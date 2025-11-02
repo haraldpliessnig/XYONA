@@ -1,0 +1,22 @@
+# Project subdirectories
+xyona-lab/
+xyona-core/
+
+# OS Files
+.DS_Store
+Thumbs.db
+*~
+
+# IDE / Editor Files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
