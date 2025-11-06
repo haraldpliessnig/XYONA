@@ -332,7 +332,7 @@ MainWindow (DocumentWindow)
             ├── Sidebar            // 250px, toggleable
             ├── NodeCanvas         // Flex (center)
             ├── ParameterPanel     // 300px, toggleable
-            ├── DebugPanel         // 200px, XYONA_DEBUG only
+            ├── DebugBar         // 200px, XYONA_DEBUG only
             └── Timeline           // 80px, resizable
 ```
 
@@ -617,8 +617,8 @@ src/app/
 │   └── FloatingWindowBase.h
 │
 ├── debug-panel/                   ✅ Dev-Logging (#ifdef XYONA_DEBUG)
-│   ├── DebugPanel.cpp
-│   └── DebugPanel.h
+│   ├── DebugBar.cpp
+│   └── DebugBar.h
 │
 ├── toolbar/                       ✅ Top-Toolbar (40px)
 │   ├── Toolbar.cpp
@@ -699,16 +699,16 @@ resources/CMakeLists.txt          ✅ Resource-Level
 
 **✅ Hervorragend:**
 
-| Dokument | Zweck | Qualität |
-|----------|-------|----------|
-| `README.md` | Quick Start, Features, Roadmap | ⭐⭐⭐⭐⭐ |
-| `BUILD.md` | Build-Anleitung (macOS, Windows, Linux) | ⭐⭐⭐⭐⭐ |
-| `UI_COMPONENTS.md` | UI-System-Referenz (vollständig) | ⭐⭐⭐⭐⭐ |
-| `DEBUG_INFO.md` | Debug-Features (XYONA_DEBUG) | ⭐⭐⭐⭐⭐ |
-| `ANALYSIS_SUMMARY.md` | Architektur-Übersicht, OpenGL-Machbarkeit | ⭐⭐⭐⭐⭐ |
-| `NODE_FACTORY_PATTERN.md` | Design-Spezifikation (Phase 2) | ⭐⭐⭐⭐⭐ |
-| `NODE_ARCHITECTURE_DIAGRAM.md` | Visuelle Diagramme | ⭐⭐⭐⭐⭐ |
-| `IMPLEMENTATION_STATUS.md` | Status-Report, Roadmap, Next Steps | ⭐⭐⭐⭐⭐ |
+| Dokument                       | Zweck                                     | Qualität |
+| ------------------------------ | ----------------------------------------- | -------- |
+| `README.md`                    | Quick Start, Features, Roadmap            | ⭐⭐⭐⭐⭐    |
+| `BUILD.md`                     | Build-Anleitung (macOS, Windows, Linux)   | ⭐⭐⭐⭐⭐    |
+| `UI_COMPONENTS.md`             | UI-System-Referenz (vollständig)          | ⭐⭐⭐⭐⭐    |
+| `DEBUG_INFO.md`                | Debug-Features (XYONA_DEBUG)              | ⭐⭐⭐⭐⭐    |
+| `ANALYSIS_SUMMARY.md`          | Architektur-Übersicht, OpenGL-Machbarkeit | ⭐⭐⭐⭐⭐    |
+| `NODE_FACTORY_PATTERN.md`      | Design-Spezifikation (Phase 2)            | ⭐⭐⭐⭐⭐    |
+| `NODE_ARCHITECTURE_DIAGRAM.md` | Visuelle Diagramme                        | ⭐⭐⭐⭐⭐    |
+| `IMPLEMENTATION_STATUS.md`     | Status-Report, Roadmap, Next Steps        | ⭐⭐⭐⭐⭐    |
 
 **✅ Bewertung:**
 
@@ -794,7 +794,7 @@ struct Options {
 - Notifications (moveable, no block, auto-close)
 - Tool-Windows (moveable, no block, persistent)
 
-#### 3. DebugPanel
+#### 3. DebugBar
 
 **✅ Development-Logging:**
 
@@ -822,13 +822,13 @@ DEBUG_LOG("Processing: " + fileName);
 
 **✅ Wiederverwendbar:**
 
-| Control | Zweck | Status |
-|---------|-------|--------|
-| `ParameterControlBase` | Basis-Klasse | ✅ Stabil |
-| `ParameterInputField` | Numerische Eingabe | ✅ Stabil |
-| `ParameterDropdown` | Enum/Choice | ✅ Stabil |
-| `ParameterCheckbox` | Boolean Flags | ✅ Stabil |
-| `ModulationSlot` | Modulation-Inputs | ✅ Stabil |
+| Control                | Zweck              | Status   |
+| ---------------------- | ------------------ | -------- |
+| `ParameterControlBase` | Basis-Klasse       | ✅ Stabil |
+| `ParameterInputField`  | Numerische Eingabe | ✅ Stabil |
+| `ParameterDropdown`    | Enum/Choice        | ✅ Stabil |
+| `ParameterCheckbox`    | Boolean Flags      | ✅ Stabil |
+| `ModulationSlot`       | Modulation-Inputs  | ✅ Stabil |
 
 **✅ Geplant (Phase 2):**
 
@@ -1077,12 +1077,12 @@ FetchContent_Declare(
 
 ### Build Types
 
-| Build Type | Optimization | Debug Info | XYONA_DEBUG | Use Case |
-|------------|--------------|------------|-------------|----------|
-| **Debug** | `-O0` | Full | ✅ | Debugging |
-| **RelWithDebInfo** | `-O2` | Yes | ✅ | **Development** (default) |
-| **Release** | `-O3` | No | ❌ | Production |
-| **MinSizeRel** | `-Os` | No | ❌ | Distribution |
+| Build Type         | Optimization | Debug Info | XYONA_DEBUG | Use Case                  |
+| ------------------ | ------------ | ---------- | ----------- | ------------------------- |
+| **Debug**          | `-O0`        | Full       | ✅           | Debugging                 |
+| **RelWithDebInfo** | `-O2`        | Yes        | ✅           | **Development** (default) |
+| **Release**        | `-O3`        | No         | ❌           | Production                |
+| **MinSizeRel**     | `-Os`        | No         | ❌           | Distribution              |
 
 **✅ Bewertung:**
 
@@ -1103,7 +1103,7 @@ endif()
 
 ```cpp
 #ifdef XYONA_DEBUG
-    m_debugPanel = std::make_unique<DebugPanel>();
+    m_debugPanel = std::make_unique<DebugBar>();
     addChildComponent(*m_debugPanel);
 #endif
 ```
@@ -1121,11 +1121,11 @@ endif()
 
 ### Platform-Tests
 
-| Platform | Build | Runtime | Stabilität | Tests |
-|----------|-------|---------|------------|-------|
-| **macOS** | ✅ Pass | ✅ Stable | ✅ Keine Crashes | ✅ Alle Menüs funktionieren |
-| **Windows** | ✅ Pass | ✅ Stable | ✅ Keine Crashes | ✅ Alle Menüs funktionieren |
-| **Linux** | ⏸️ Untested | ⏸️ TBD | ⏸️ TBD | ⏸️ TBD |
+| Platform    | Build      | Runtime  | Stabilität      | Tests                      |
+| ----------- | ---------- | -------- | --------------- | -------------------------- |
+| **macOS**   | ✅ Pass     | ✅ Stable | ✅ Keine Crashes | ✅ Alle Menüs funktionieren |
+| **Windows** | ✅ Pass     | ✅ Stable | ✅ Keine Crashes | ✅ Alle Menüs funktionieren |
+| **Linux**   | ⏸️ Untested | ⏸️ TBD    | ⏸️ TBD           | ⏸️ TBD                      |
 
 **✅ Bewertung:**
 
@@ -1170,28 +1170,28 @@ endif()
 
 ## 📋 Checkliste: JUCE 8 Best Practices
 
-| Best Practice | Status | Notizen |
-|---------------|--------|---------|
-| **JUCE 8.x verwendet** | ✅ | JUCE 8.0.6 (Latest Stable) |
-| **LookAndFeel_V4** | ✅ | Alle Themes nutzen V4 |
-| **SafePointer bei Async Callbacks** | ✅ | Konsequent in allen Async-Calls |
-| **JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR** | ✅ | In allen 21 Component-Klassen |
-| **ValueTree für State** | ✅ | ProjectState nutzt ValueTree |
-| **Smart Pointers statt Raw** | ✅ | `std::unique_ptr` durchgehend |
-| **Component-Hierarchie korrekt** | ✅ | addAndMakeVisible(), setBounds() |
-| **Binary Data für Ressourcen** | ✅ | Fonts & Icons embedded |
-| **OpenGL: Ein Context pro Canvas** | ✅ | Geplante Architektur (Phase 2) |
-| **Platform-spezifische Features** | ✅ | Native Menu auf macOS, Custom auf Windows |
-| **C++20/23 Features** | ✅ | C++23 aktiviert |
-| **CMake statt Projucer** | ✅ | Modern CMake 3.26 |
-| **FetchContent für Dependencies** | ✅ | JUCE via FetchContent |
-| **Conditional Compilation** | ✅ | `#ifdef XYONA_DEBUG` |
-| **Thread-Safe UI-Updates** | ✅ | MessageManager::callAsync() |
-| **Destructor-Reihenfolge** | ✅ | `setDefaultLookAndFeel(nullptr)` vor Theme-Destruction |
-| **Member-Init in Constructor** | ✅ | Alle Member initialisiert |
-| **Override-Keyword** | ✅ | Bei allen Overrides |
-| **Const-Correctness** | ✅ | `const` wo möglich |
-| **Namespaces** | ✅ | `namespace xyona::lab` |
+| Best Practice                                    | Status | Notizen                                                |
+| ------------------------------------------------ | ------ | ------------------------------------------------------ |
+| **JUCE 8.x verwendet**                           | ✅      | JUCE 8.0.6 (Latest Stable)                             |
+| **LookAndFeel_V4**                               | ✅      | Alle Themes nutzen V4                                  |
+| **SafePointer bei Async Callbacks**              | ✅      | Konsequent in allen Async-Calls                        |
+| **JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR** | ✅      | In allen 21 Component-Klassen                          |
+| **ValueTree für State**                          | ✅      | ProjectState nutzt ValueTree                           |
+| **Smart Pointers statt Raw**                     | ✅      | `std::unique_ptr` durchgehend                          |
+| **Component-Hierarchie korrekt**                 | ✅      | addAndMakeVisible(), setBounds()                       |
+| **Binary Data für Ressourcen**                   | ✅      | Fonts & Icons embedded                                 |
+| **OpenGL: Ein Context pro Canvas**               | ✅      | Geplante Architektur (Phase 2)                         |
+| **Platform-spezifische Features**                | ✅      | Native Menu auf macOS, Custom auf Windows              |
+| **C++20/23 Features**                            | ✅      | C++23 aktiviert                                        |
+| **CMake statt Projucer**                         | ✅      | Modern CMake 3.26                                      |
+| **FetchContent für Dependencies**                | ✅      | JUCE via FetchContent                                  |
+| **Conditional Compilation**                      | ✅      | `#ifdef XYONA_DEBUG`                                   |
+| **Thread-Safe UI-Updates**                       | ✅      | MessageManager::callAsync()                            |
+| **Destructor-Reihenfolge**                       | ✅      | `setDefaultLookAndFeel(nullptr)` vor Theme-Destruction |
+| **Member-Init in Constructor**                   | ✅      | Alle Member initialisiert                              |
+| **Override-Keyword**                             | ✅      | Bei allen Overrides                                    |
+| **Const-Correctness**                            | ✅      | `const` wo möglich                                     |
+| **Namespaces**                                   | ✅      | `namespace xyona::lab`                                 |
 
 ***JUCE 8 Best Practices Score: ✅ 20/20 (100%)***
 
@@ -1281,16 +1281,16 @@ Das Projekt ist in einem **hervorragenden Zustand**. Alle bekannten Bugs wurden 
 
 ### Scoring-Übersicht
 
-| Kategorie | Score | Gewichtung | Gewichteter Score |
-|-----------|-------|------------|-------------------|
-| **JUCE 8 Konformität** | 10/10 | 25% | 2.5 |
-| **Code-Qualität** | 9/10 | 25% | 2.25 |
-| **Projektstruktur** | 10/10 | 15% | 1.5 |
-| **UI-System** | 9.5/10 | 15% | 1.425 |
-| **Thread-Safety** | 10/10 | 10% | 1.0 |
-| **Build-System** | 10/10 | 5% | 0.5 |
-| **Testing** | 9/10 | 5% | 0.45 |
-| **Dokumentation** | 10/10 | 5% | 0.5 |
+| Kategorie              | Score  | Gewichtung | Gewichteter Score |
+| ---------------------- | ------ | ---------- | ----------------- |
+| **JUCE 8 Konformität** | 10/10  | 25%        | 2.5               |
+| **Code-Qualität**      | 9/10   | 25%        | 2.25              |
+| **Projektstruktur**    | 10/10  | 15%        | 1.5               |
+| **UI-System**          | 9.5/10 | 15%        | 1.425             |
+| **Thread-Safety**      | 10/10  | 10%        | 1.0               |
+| **Build-System**       | 10/10  | 5%         | 0.5               |
+| **Testing**            | 9/10   | 5%         | 0.45              |
+| **Dokumentation**      | 10/10  | 5%         | 0.5               |
 
 ***Gesamt-Score: 9.625 / 10 (96.25%)***
 
