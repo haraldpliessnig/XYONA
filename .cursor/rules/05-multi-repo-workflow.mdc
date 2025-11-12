@@ -1,0 +1,364 @@
+---
+description: Multi-repository workflow for XYONA Workspace
+globs: ["**/*.cpp", "**/*.h", "**/*.cmake", "**/CMakeLists.txt"]
+alwaysApply: false
+---
+
+# XYONA Multi-Repository Workflow
+
+## Repository Structure
+
+**XYONA Workspace contains 3 separate projects:**
+
+```text
+XYONA/
+├── xyona-core/          # Pure C++ DSP Library
+│   ├── include/xyona/   # Public API headers
+│   ├── src/             # Core + Audio + Processes
+│   ├── tests/           # Unit tests
+│   └── CMakeLists.txt   # Independent build
+│
+├── xyona-lab/           # JUCE UI Application
+│   ├── src/app/         # UI + Canvas + Nodes
+│   ├── cmake/           # xyona_core_provider.cmake
+│   └── CMakeLists.txt   # Depends on xyona-core
+│
+└── CDP8/                # Reference Implementation
+    ├── dev/             # Original CDP C code
+    ├── include/         # CDP headers
+    └── CMakeLists.txt   # Build CDP executables
+```
+
+---
+
+## Project Responsibilities
+
+### xyona-core (Pure DSP Library)
+
+**Purpose:** Headless audio processing library
+
+**Contains:**
+
+- `xyona::Operator` - Base class for audio processes
+- `xyona::Parameter` - Type-safe parameter system
+- `xyona::AudioFile` - Custom WAV/AIFF I/O (no dependencies)
+- Process implementations (gain, stereo_width, audio_clip, etc.)
+
+**Does NOT contain:**
+
+- UI components (no JUCE!)
+- Graph management (no Nodes, no Container)
+- Real-time audio I/O
+- Visual concepts (position, selection, etc.)
+
+**Build:** Independent, can be built/tested standalone
+
+**See:** `xyona-core/README.md`, `xyona-core/CONTEXT.md`
+
+---
+
+### xyona-lab (Visual Audio Patcher)
+
+**Purpose:** TouchDesigner/Max-style visual node editor
+
+**Contains:**
+
+- JUCE UI (Canvas, Timeline, Panels, Windows)
+- Visual Node System (wraps xyona::Operators)
+- Real-time Audio I/O (JUCE AudioDeviceManager)
+- Graph Execution Engine
+- OpenGL rendering (Canvas visualization)
+
+**Depends on:**
+
+- `xyona-core` (via CMake package or local path)
+- JUCE 8.0.6 (FetchContent)
+
+**Build:** Requires xyona-core to be available
+
+**See:** `xyona-lab/AGENTS.md`, `xyona-lab/CONTEXT.md`, `xyona-lab/ARCHITECTURE.md`
+
+---
+
+### CDP8 (Reference Code)
+
+**Purpose:** CDP algorithm reference implementation
+
+**Contains:**
+
+- Original CDP C code (~100 processes)
+- Build system for individual executables
+- Reference for porting to xyona-core
+
+**Usage:**
+
+- Read-only reference (don't modify!)
+- Study algorithm structure
+- Port to modern C++ in xyona-core
+- Validate against CDP output (golden tests)
+
+**Build:** Independent, builds CDP executables
+
+**See:** `CDP8/README.md`, `xyona-core/docs/CDP8_REFERENCE.md`
+
+---
+
+## Cross-Project Workflows
+
+### Workflow 1: Porting CDP Algorithm to xyona-core
+
+**Steps:**
+
+1. **Study CDP Code** (read-only)
+   - Find algorithm in `CDP8/dev/<category>/`
+   - Understand DSP logic + parameters
+   - Note dependencies (if any)
+
+2. **Create xyona-core Process**
+   - `xyona-core/src/processes/<name>/`
+   - Implement `xyona::Operator` subclass
+   - Create `meta.yaml` (parameters)
+   - Write `README.md` (docs)
+
+3. **Validate**
+   - Generate test audio via CDP8 executable
+   - Compare xyona-core output (RMS diff)
+   - Threshold: < -60 dBFS acceptable
+
+**Example:**
+
+```bash
+# 1. Study CDP code
+cat CDP8/dev/grain/grain.c
+
+# 2. Implement in core
+cd xyona-core
+mkdir -p src/processes/grain
+# ... implement GrainOperator.cpp + meta.yaml
+
+# 3. Test
+./build-and-test-dev.sh
+```
+
+**See:** `xyona-core/docs/CDP8_REFERENCE.md`
+
+---
+
+### Workflow 2: Integrating xyona-core into xyona-lab
+
+**Two modes: Development vs Release**
+
+**Development Mode (Local Sources):**
+
+```bash
+# Set environment variable (recommended)
+set XYONA_CORE_PATH=D:\GITHUB\XYONA\xyona-core
+
+# Or use CMakePresets.json
+cmake --preset windows-dev
+# → Uses xyona_core_provider.cmake
+# → add_subdirectory(../xyona-core) via XYONA_CORE_PATH
+# → Compiles core from sources (live changes!)
+```
+
+**Release Mode (Package):**
+
+```bash
+# Install xyona-core package
+cd xyona-core
+cmake --install build/windows-msvc-release --prefix ~/.local
+
+# Lab finds it automatically
+cd xyona-lab
+cmake --preset windows-release
+# → find_package(xyona-core CONFIG)
+# → Links pre-compiled libs
+```
+
+**See:** `xyona-lab/cmake/xyona_core_provider.cmake`
+
+---
+
+### Workflow 3: Testing Lab with Core Changes
+
+**Scenario:** Changed xyona-core Operator, need to test in Lab UI
+
+**Quick Iteration:**
+
+```bash
+# 1. Build Core only
+cd xyona-core
+.\build-dev.bat
+
+# 2. Rebuild Lab (uses updated core)
+cd ..\xyona-lab
+.\build-dev.bat
+
+# 3. Run
+.\run-dev.bat
+```
+
+**Why this works:**
+
+- Lab uses `add_subdirectory(xyona-core)` in dev mode
+- Core changes rebuild automatically
+- No manual package installation needed
+
+---
+
+## File Navigation Patterns
+
+### When to use which CONTEXT.md
+
+**Workspace CONTEXT.md (this level):**
+
+- Multi-project planning
+- Cross-cutting tasks (Core → Lab integration)
+- CDP porting roadmap
+- Release coordination
+
+**xyona-core/CONTEXT.md:**
+
+- Operator development
+- Audio I/O improvements
+- Testing infrastructure
+- CMake package fixes
+
+**xyona-lab/CONTEXT.md:**
+
+- UI development (Canvas, Timeline, Panels)
+- Node system (visual wrapper around Operators)
+- JUCE-specific work
+- OpenGL rendering
+
+---
+
+## Common Mistakes to Avoid
+
+**❌ WRONG - Mixing UI and DSP:**
+
+```cpp
+// In xyona-core/src/processes/gain/gain.cpp
+#include <juce_core/juce_core.h>  // NO JUCE in core!
+
+class GainOperator {
+    juce::Point<float> m_position;  // NO UI concepts!
+};
+```
+
+**✅ CORRECT - Pure DSP in core:**
+
+```cpp
+// In xyona-core/src/processes/gain/gain.cpp
+#include <xyona/operator.hpp>
+
+class GainOperator : public xyona::Operator {
+    float m_gain;  // Only DSP state
+};
+```
+
+**❌ WRONG - Modifying CDP8:**
+
+```bash
+# Don't do this!
+cd CDP8/dev/grain
+edit grain.c  # ❌ Modifying reference code
+```
+
+**✅ CORRECT - Port to xyona-core:**
+
+```bash
+# Do this instead
+cd xyona-core/src/processes
+mkdir grain
+# Copy logic → modern C++23
+```
+
+**❌ WRONG - Hardcoded paths:**
+
+```cmake
+# In xyona-lab/CMakeLists.txt
+add_subdirectory(D:/GITHUB/XYONA/xyona-core xyona-core)  # ❌ Hardcoded!
+```
+
+**✅ CORRECT - Use resolver:**
+
+```cmake
+# In xyona-lab/CMakeLists.txt
+include(cmake/xyona_core_provider.cmake)  # ✅ Automatic
+ensure_xyona_core(CORE_TARGET CORE_PATH)
+```
+
+---
+
+## Build Order Dependencies
+
+**Dependency Graph:**
+
+```text
+CDP8          (Independent, reference only)
+  ↓
+xyona-core    (Independent, pure C++)
+  ↓
+xyona-lab     (Depends on xyona-core)
+```
+
+**Build from Scratch (Full Workspace):**
+
+```bash
+# 1. Core first (required)
+cd xyona-core
+.\build-dev.bat
+
+# 2. Lab second (depends on core)
+cd ..\xyona-lab
+.\build-dev.bat
+
+# 3. CDP8 optional (only for reference/validation)
+cd ..\CDP8
+cmake --preset windows-msvc-release
+cmake --build build/windows-msvc-release
+```
+
+**Incremental Builds (During Development):**
+
+```bash
+# If changed xyona-core only:
+cd xyona-core
+.\build-dev.bat
+cd ..\xyona-lab
+.\build-dev.bat  # Rebuilds lab with new core
+
+# If changed xyona-lab only:
+cd xyona-lab
+.\build-dev.bat  # Core not rebuilt (faster)
+```
+
+---
+
+## Quick Reference
+
+**Which project for what task:**
+
+| Task | Project | Command |
+|------|---------|---------|
+| Implement DSP algorithm | `xyona-core` | `cd xyona-core && .\build-dev.bat` |
+| Add UI component | `xyona-lab` | `cd xyona-lab && .\build-dev.bat` |
+| Study CDP reference | `CDP8` | `cat CDP8/dev/<category>/<file>.c` |
+| Visual node wrapper | `xyona-lab` | `src/app/lab/canvas/nodes/` |
+| Audio I/O changes | `xyona-core` | `src/audio/` |
+| Parameter system | `xyona-core` | `include/xyona/parameter.hpp` |
+| Canvas rendering | `xyona-lab` | `src/app/lab/canvas/Canvas.cpp` |
+| CDP validation | `CDP8` + `xyona-core` | Compare outputs (golden test) |
+
+**Context Files:**
+
+- Workspace: `CONTEXT.md` (multi-project)
+- Core: `xyona-core/CONTEXT.md` (DSP library)
+- Lab: `xyona-lab/CONTEXT.md` (UI development)
+
+**Rules:**
+
+- Workspace: `.cursor/rules/` (this level)
+- Core: `xyona-core/.cursor/rules/` (core-specific)
+- Lab: `xyona-lab/.cursor/rules/` (lab-specific)

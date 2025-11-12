@@ -1,0 +1,114 @@
+---
+description: Cost-conscious development workflow and refactoring strategy
+alwaysApply: false
+---
+
+# Cost-Conscious Development Workflow
+
+## Refactoring Strategy
+
+**When to rewrite vs. edit - Use judgment:**
+
+**✅ Full rewrite OK (use `write` tool):**
+
+- Small files (<100 lines) with major structural changes
+- New files being created
+- Complete refactoring makes more sense than 10+ diffs
+- File logic is fundamentally changing
+
+**✅ Targeted edits preferred (use `search_replace`):**
+
+- Single function changes
+- Bug fixes (1-5 locations)
+- Small refactorings (rename, type change)
+- Large files (>200 lines) with localized changes
+
+**⚠️ Ask first:**
+
+- Files >500 lines that need major restructuring
+- Would need >15 diffs OR full rewrite
+- Cross-file refactoring affecting >5 files
+- Structural changes to core components
+
+**Multi-step refactoring for complex changes:**
+
+1. Propose plan if unclear
+2. Execute (rewrite small files OR multiple diffs for large files)
+3. Build & verify
+4. Continue if multi-phase
+
+---
+
+## Build Workflow with Sandbox
+
+**Preferred workflow:**
+
+```text
+1. Agent writes code changes
+2. Agent: run_terminal_cmd('./build-dev.sh')
+3. Agent sees output, extracts errors
+4. Agent writes fix
+5. Agent: run_terminal_cmd('./build-dev.sh') again
+6. Repeat until build succeeds
+```
+
+**Benefits:**
+
+- No 500-line error dumps in chat
+- Faster iteration
+- Lower token usage (85% savings)
+- Agent sees actual output
+
+**When to use:**
+
+- Build errors
+- Test failures
+- Runtime errors (with test scripts)
+- Verification after changes
+
+---
+
+## File Generation
+
+- **Only when necessary**: Create files only when user explicitly wants output
+- **Incremental for large files**: Build large artifacts section by section
+- **Use existing files**: Edit existing files instead of regenerating
+- **No preemptive docs**: Don't create README/docs unless explicitly asked
+- **No example spam**: Don't generate 5 examples when 1 is enough
+
+**NEVER automatically generate/update:**
+
+- README.md
+- ARCHITECTURE.md
+- API documentation
+- Other .md files
+
+**Only on explicit request:** "Update DOCS: [specific file]"
+
+**Code comments:**
+
+- Only Doxygen format for public APIs: `/** @brief Brief one-liner */`
+- No long comments
+- No example code in comments
+- Complex logic: Max 1-line comment
+
+---
+
+## Planning vs. Implementation
+
+**Correct approach - Plan first, code on request:**
+
+```text
+User: "How should I implement the node system?"
+Agent: "Architecture: Node wraps Operator, Container manages execution. Umsetzen?"
+
+[User: "Ja"]
+DANN: [Code schreiben]
+```
+
+**Key principle:**
+
+- Propose plan/architecture (text)
+- Wait for approval
+- Implement in stages
+- One file at a time

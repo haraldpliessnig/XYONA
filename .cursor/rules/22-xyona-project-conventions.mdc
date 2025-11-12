@@ -1,0 +1,266 @@
+---
+description: XYONA Workspace conventions - applies to all projects
+globs: ["**/*.cpp", "**/*.hpp", "**/*.h", "**/*.cmake"]
+alwaysApply: false
+---
+
+# XYONA Workspace Conventions
+
+**Note:** Project-specific conventions in sub-project `.cursor/rules/`:
+
+- `xyona-core/.cursor/rules/22-xyona-project-conventions.mdc` - Core library specifics
+- `xyona-lab/.cursor/rules/22-xyona-project-conventions.mdc` - Lab UI specifics
+
+This file contains **shared conventions** across all XYONA projects.
+
+---
+
+## Project Structure
+
+**XYONA Workspace contains 3 projects:**
+
+```text
+XYONA/
+├── xyona-core/        # Pure C++ DSP Library (NO JUCE!)
+│   ├── include/       # Public API: xyona::Operator, Parameter, AudioFile
+│   ├── src/           # Core + Audio + Processes
+│   └── tests/         # Unit tests
+│
+├── xyona-lab/         # JUCE UI Application
+│   ├── src/app/       # UI Components, Canvas, Timeline
+│   └── cmake/         # xyona_core_provider.cmake
+│
+└── CDP8/              # Reference C Code (Read-Only)
+    └── dev/           # Original CDP algorithms
+```
+
+---
+
+## Separation of Concerns
+
+**CRITICAL: Where to implement what?**
+
+| Feature Type | Project | Example |
+|--------------|---------|---------|
+| DSP Algorithm | `xyona-core` | Gain, Reverb, Pitch Shift |
+| Audio I/O | `xyona-core` | WAV/AIFF Reader/Writer |
+| Parameter System | `xyona-core` | Float/Int/Enum Parameters |
+| UI Component | `xyona-lab` | Buttons, Sliders, Panels |
+| Visual Node | `xyona-lab` | Node wrapping Operator |
+| Canvas Rendering | `xyona-lab` | OpenGL/JUCE Graphics |
+| Graph Execution | `xyona-lab` | Topological sort, Audio routing |
+
+**Dependencies:**
+
+```text
+CDP8 (Reference) → Study only, don't modify
+  ↓
+xyona-core (DSP) → Pure C++, no UI concepts
+  ↓
+xyona-lab (UI) → JUCE, depends on xyona-core
+```
+
+---
+
+## Common Rules (All Projects)
+
+### 1. Documentation
+
+**Doxygen Comments:**
+
+- Public API only: `/** @brief One-line description */`
+- NO long comments (see `.cursor/rules/21-doxygen-documentation.mdc`)
+
+**Markdown:**
+
+- Explicit language tags for code blocks
+- `text` for pseudo-code/formulas
+- See `.cursor/rules/30-markdown-conventions.mdc`
+
+### 2. Build System
+
+**CMake Conventions:**
+
+- C++23 standard (all projects)
+- Generator expressions for relocatable packages
+- `$<BUILD_INTERFACE>` vs `$<INSTALL_INTERFACE>`
+
+**Build Scripts:**
+
+- Development: `build-dev.bat` / `build-dev.sh`
+- Testing: `run-tests-dev.bat` / `run-tests-dev.sh`
+- Combined: `build-and-test-dev.bat` / `build-and-test-dev.sh`
+
+### 3. File Organization
+
+**Headers:**
+
+- Public API: `include/<project>/`
+- Private impl: `src/<module>/`
+- No `.h` files in `include/` (use `.hpp`)
+
+**Source:**
+
+- One class per file: `ClassName.cpp` + `ClassName.h` (if private)
+- Group by feature: `src/<feature>/`
+
+### 4. Naming Conventions
+
+**C++ Style:**
+
+- Classes: `PascalCase`
+- Functions: `camelCase`
+- Variables: `camelCase`, members: `m_camelCase`
+- Constants: `SCREAMING_SNAKE_CASE` or `kPascalCase`
+
+**Files:**
+
+- CMake: `PascalCase.cmake`
+- Scripts: `snake_case.py` / `snake_case.sh`
+- Docs: `SCREAMING_SNAKE_CASE.md`
+
+---
+
+## Cross-Project Workflows
+
+### Workflow 1: Porting CDP Algorithm
+
+**Steps:**
+
+1. Study CDP code in `CDP8/dev/<category>/`
+2. Implement in `xyona-core/src/processes/<name>/`
+3. Create `meta.yaml` (parameters)
+4. Write tests (golden-test validation)
+5. Document in `README.md`
+
+**Validation:**
+
+- Build CDP executable
+- Generate reference audio
+- Compare xyona-core output (RMS diff < -60 dBFS)
+
+**See:** `.cursor/rules/05-multi-repo-workflow.mdc`
+
+### Workflow 2: Core → Lab Integration
+
+**Development Mode (Live Changes):**
+
+```bash
+set XYONA_CORE_PATH=D:\GITHUB\XYONA\xyona-core
+cd xyona-lab
+.\build-dev.bat
+# → add_subdirectory(xyona-core) via provider
+# → Compiles core from sources
+```
+
+**Release Mode (Package):**
+
+```bash
+cd xyona-core
+cmake --install build/windows-msvc-release --prefix ~/.local
+cd xyona-lab
+.\build-dev.bat
+# → find_package(xyona-core CONFIG)
+# → Links pre-compiled libs
+```
+
+### Workflow 3: Quick Iteration
+
+```bash
+# Change in xyona-core
+cd xyona-core
+.\build-dev.bat
+
+# Rebuild Lab (picks up changes)
+cd ..\xyona-lab
+.\build-dev.bat
+```
+
+---
+
+## Common Mistakes to Avoid
+
+### ❌ WRONG - Mixing Concerns
+
+```cpp
+// In xyona-core/src/processes/gain.cpp
+#include <juce_core/juce_core.h>  // NO JUCE in core!
+
+class GainOperator {
+    juce::Point<float> m_position;  // NO UI concepts!
+};
+```
+
+### ✅ CORRECT - Pure Separation
+
+```cpp
+// In xyona-core/src/processes/gain.cpp
+#include <xyona/operator.hpp>
+
+class GainOperator : public xyona::Operator {
+    float m_gain;  // Only DSP state
+};
+```
+
+### ❌ WRONG - Modifying Reference
+
+```bash
+cd CDP8/dev/grain
+edit grain.c  # ❌ Don't modify reference code!
+```
+
+### ✅ CORRECT - Port to Core
+
+```bash
+cd xyona-core/src/processes
+mkdir grain
+# Implement modern C++23 version
+```
+
+### ❌ WRONG - Hardcoded Paths
+
+```cmake
+# In xyona-lab/CMakeLists.txt
+add_subdirectory(D:/absolute/path/xyona-core)  # ❌ Not portable!
+```
+
+### ✅ CORRECT - Use Resolver
+
+```cmake
+# In xyona-lab/CMakeLists.txt
+include(cmake/xyona_core_provider.cmake)  # ✅ Handles all cases
+ensure_xyona_core(CORE_TARGET CORE_PATH)
+```
+
+---
+
+## Quick Reference
+
+**Context Files:**
+
+- Workspace: `CONTEXT.md` (cross-cutting tasks)
+- Core: `xyona-core/CONTEXT.md` (DSP library development)
+- Lab: `xyona-lab/CONTEXT.md` (UI development)
+
+**Build Order:**
+
+```bash
+# Full workspace (from scratch)
+cd xyona-core && .\build-dev.bat && cd ..
+cd xyona-lab && .\build-dev.bat && cd ..
+
+# Incremental (only Lab changed)
+cd xyona-lab && .\build-dev.bat
+```
+
+**Rules:**
+
+- Workspace: `.cursor/rules/` (shared conventions)
+- Core: `xyona-core/.cursor/rules/` (core-specific)
+- Lab: `xyona-lab/.cursor/rules/` (lab-specific)
+
+**See Also:**
+
+- `.cursor/rules/05-multi-repo-workflow.mdc` - Detailed workflows
+- `xyona-core/.cursor/rules/22-xyona-project-conventions.mdc` - Core conventions
+- `xyona-lab/.cursor/rules/22-xyona-project-conventions.mdc` - Lab conventions

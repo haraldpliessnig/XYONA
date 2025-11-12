@@ -1,0 +1,191 @@
+---
+description: Markdown writing conventions
+globs: ["**/*.md"]
+alwaysApply: false
+---
+
+# Markdown Best Practices
+
+**🚨 CRITICAL: Apply WHILE writing, not after!**
+
+## Rule #1: Lists ALWAYS Need Blank Lines
+
+**BEFORE writing ANY list, add blank line!**
+
+```markdown
+❌ WRONG:
+Some text:
+- Item 1
+- Item 2
+
+✅ CORRECT:
+Some text:
+
+- Item 1
+- Item 2
+```
+
+**MD032 is the #1 most common error - CHECK EVERY LIST!**
+
+---
+
+## Rule #2: Code Blocks Need Language Tags
+
+When writing Markdown files, ALWAYS specify explicit language tags for code blocks:
+
+**Language Tags:**
+
+- `bash` or `shell` - Shell commands, terminal output
+- `cpp` or `c++` - C++ code
+- `python` or `py` - Python code
+- `cmake` - CMakeLists.txt content
+- `yaml` or `yml` - YAML configuration files
+- `json` - JSON data
+- `text` - Plain text, ASCII art, diagrams, pseudo-code, mathematical formulas
+- `diff` - Git diffs, patches
+
+**When to use `text`:**
+
+- Mathematical formulas (e.g., "Mid = (L + R) / 2")
+- ASCII art and diagrams
+- Pseudo-code that isn't a specific language
+- Algorithm descriptions in plain notation
+- Visual representations with characters (└─┐├)
+
+**Never use:**
+
+- Empty blocks (```\n```) without language tag
+- Wrong language tags that trigger incorrect syntax highlighting
+
+## Spacing Rules (MEMORIZE THIS!)
+
+**EVERY TIME you write a list:**
+
+1. Blank line BEFORE list
+2. Write list items
+3. Blank line AFTER list
+
+**Template to copy:**
+
+```markdown
+Text before.
+
+- List item 1
+- List item 2
+- List item 3
+
+Text after.
+```
+
+**Common mistakes:**
+
+- ❌ `Text:\n- Item` → Missing blank line before!
+- ❌ `- Item\nText` → Missing blank line after!
+- ❌ `\n\n\nText` → Too many blank lines (max 1)
+
+**Rules:**
+
+- Maximum 1 consecutive blank line (MD012)
+- Fenced code blocks MUST have blank lines before/after (MD031)
+- Lists MUST have blank lines before/after (MD032)
+
+**Example - Correct Spacing:**
+
+```text
+Input: L (left), R (right)
+Mid  = (L + R) / 2
+```
+
+**Common Mistakes to Avoid:**
+
+- **Multiple blank lines:** Use max 1 blank line between sections
+- **No blank lines around code:** Always add blank line before/after code blocks
+- **Missing language tags:** Always specify language (bash, cpp, python, etc.)
+
+**Example:**
+
+```text
+❌ BAD - Multiple blank lines:
+# Heading
+[3 blank lines here]
+Content
+
+✅ GOOD - Single blank line:
+# Heading
+[1 blank line]
+Content
+```
+
+## Additional Best Practices
+
+**Headings:**
+
+- Surround headings with blank lines (MD022)
+- Only one top-level heading (# H1) per file (MD025)
+- First line should be a top-level heading (MD041)
+- Use actual headings, NOT bold text as headings (MD036: no-emphasis-as-heading)
+
+**Emphasis as Heading (MD036) - Common Mistake:**
+
+```markdown
+❌ WRONG - Bold text looks like heading:
+**This is NOT a heading**
+Just bold text that misleads readers.
+
+✅ CORRECT - Use actual heading:
+## This is a Real Heading
+
+Content follows here.
+```
+
+**Why MD036 matters:**
+
+- Screen readers can't navigate "fake headings"
+- Table of contents won't include bold-as-heading
+- Breaks document hierarchy
+- Harder to maintain structure
+
+**Lists:**
+
+- Surround lists with blank lines (MD032)
+- Use consistent marker style (- or * or +, not mixed)
+- Indent nested lists with 2-4 spaces
+
+**Links:**
+
+- Use reference-style links for repeated URLs
+- Keep link text descriptive (avoid "click here")
+
+## Workflow Reminder
+
+**BEFORE writing anything, ask:**
+
+1. Am I about to write a list? → Add blank line first!
+2. Am I writing code? → Pick language tag (bash, cpp, text)
+3. Did I just finish a section? → Only 1 blank line (not 2+)
+
+**Checklist while writing:**
+
+- [ ] Every list has blank line before it
+- [ ] Every list has blank line after it
+- [ ] Every code block has language tag
+- [ ] Every code block has blank lines around it
+- [ ] Never more than 1 consecutive blank line
+- [ ] Bold text is NOT used as heading (use ## instead)
+
+**Mental model:**
+
+```markdown
+Content
+
+[BLANK LINE] ← Always before list!
+- List
+- Items
+[BLANK LINE] ← Always after list!
+
+Content
+```
+
+**Result:** Write it right first time - no linter fixes needed!
+
+This ensures consistent rendering across GitHub, VS Code, and documentation generators.

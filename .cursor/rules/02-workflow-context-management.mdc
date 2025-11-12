@@ -1,0 +1,172 @@
+---
+description: Context management for XYONA Workspace (core + lab + CDP8)
+alwaysApply: false
+---
+
+# Context Management Strategy (XYONA Workspace)
+
+## Auto-Load Project Context
+
+**XYONA Workspace contains 3 projects:**
+
+- `xyona-core/` - Pure C++ DSP library (Operators, Audio I/O)
+- `xyona-lab/` - JUCE UI application (Visual patcher, timeline)
+- `CDP8/` - Reference C code (CDP algorithms to port)
+
+**Context Files per Project:**
+
+- `CONTEXT.md` - Current session tracking (Workspace-level + per-project)
+- `xyona-core/CONTEXT.md` - Core library development
+- `xyona-lab/CONTEXT.md` - UI/Lab development
+- `xyona-lab/AGENTS.md` - Lab project overview
+- `xyona-lab/ARCHITECTURE.md` - Lab architecture
+
+**When user starts chat:**
+
+- If working on Core → load `@xyona-core/CONTEXT.md`
+- If working on Lab → load `@xyona-lab/CONTEXT.md`
+- If cross-cutting → load Workspace `@CONTEXT.md`
+
+## When to Suggest Context Updates
+
+After significant debugging sessions, remind the user:
+
+- "Consider updating CONTEXT.md with what we tried"
+- "This finding should go in KNOWN_ISSUES.md"
+- "Update the TODO list in CONTEXT.md"
+
+## Context Document Usage
+
+**CONTEXT.md:**
+
+- Active problems being debugged
+- What was tried and results
+- Next steps and hypotheses
+- Current work session notes
+
+**ARCHITECTURE.md:**
+
+- System design and component relationships
+- Design decisions and rationale
+- Threading model and data flow
+- Performance targets and metrics
+
+**AGENTS.md:**
+
+- High-level project description
+- Tech stack and conventions
+- Development philosophy
+- Quick reference info
+
+## Long Conversation Strategy
+
+**Critical: 8-hour chats are a COST KILLER!**
+
+Long chat cache accumulation:
+
+- 1 hour (50 msgs): ~100k cache/request
+- 2 hours (100 msgs): ~200k cache/request
+- 8 hours (200+ msgs): ~500k+ cache/request!
+
+**Cost impact:**
+
+- 1h chat: ~$10
+- 8h chat: ~$50-100 (5-10x more expensive!)
+
+**When to break up a chat:**
+
+**After ~20-30 messages OR 1-2 hours:**
+
+1. Suggest saving progress to CONTEXT.md
+2. Recommend starting fresh chat
+3. Next chat loads context with `@CONTEXT.md`
+
+**For complex 8h problems:**
+
+- Don't do ONE 8h chat ($100)
+- Do FOUR 2h chats ($40 total)
+- Update CONTEXT.md between sessions (5 min each)
+
+**Workflow:**
+
+```text
+Hour 0-2: Chat 1 → Update CONTEXT.md
+Hour 2-4: Chat 2 → Load @CONTEXT.md → Update
+Hour 4-6: Chat 3 → Load @CONTEXT.md → Update
+Hour 6-8: Chat 4 → Load @CONTEXT.md → SOLVE!
+```
+
+**Time overhead:** 20 min (4× 5min)
+**Cost savings:** $60 per problem!
+
+## How to Update CONTEXT.md (5 Minutes)
+
+**Quick Update Template:**
+
+```markdown
+## Active Problems
+
+### [Problem Name]
+
+**What we tried:**
+- ✗ Approach A - failed because X
+- ✗ Approach B - failed because Y
+- ✓ Approach C - partially works but...
+
+**Current hypothesis:**
+The problem is likely Z because...
+
+**Next steps:**
+1. Try approach D
+2. Check forum thread
+3. Test on platform X
+
+**Relevant files:**
+- File.cpp:123-145
+```
+
+**Update frequency:**
+
+- After each 1-2h session (5 min)
+- After solving problem (mark as resolved)
+- After important discovery (add to findings)
+
+## When to Suggest Context Updates
+
+**After 20-30 messages:**
+"We're at 25 messages (~1h). Consider saving progress to CONTEXT.md and starting a fresh chat. This will reduce costs by ~70%."
+
+**After resolving an issue:**
+"Should we update CONTEXT.md to mark this as resolved and document the solution?"
+
+**After discovering something important:**
+"This seems like a key finding - want to add it to CONTEXT.md?"
+
+**After build errors / long debugging:**
+"Before we continue, let's save what we tried to CONTEXT.md. This prevents cache accumulation."
+
+## When to Load Context
+
+**User starts with @CONTEXT.md:**
+
+- Read the file carefully
+- Check "Active Problems" section
+- Continue where they left off
+- No need to re-explain
+
+**User mentions continuing work:**
+
+- Suggest: "Want to load @CONTEXT.md to see where we left off?"
+
+**User starts fresh without @:**
+
+- If relevant work was recent, remind: "Should we load @CONTEXT.md?"
+
+## Don't Be Pushy
+
+- Only suggest updates when genuinely useful
+- Don't interrupt flow during active debugging
+- User decides when to update docs
+- Context updates are optional, not mandatory
+- Don't suggest updates every 5 minutes
+- Wait for natural breaking points (issue resolved, switching tasks, 1h mark)

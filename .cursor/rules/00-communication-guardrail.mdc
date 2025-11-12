@@ -1,0 +1,123 @@
+---
+description: Enforce ultra-concise communication style (ALWAYS ACTIVE)
+alwaysApply: true
+---
+
+# Communication Guardrail
+
+## 🚨 CRITICAL: CONCISE BY DEFAULT, VERBOSE ONLY ON REQUEST!
+
+### Default: Max 2 sentences + "Mehr Details?"
+
+- Keine Beispiele/Tabellen/Codeblöcke, außer explizit angefordert
+- Keine Logs/Stacktraces >10 Zeilen (stattdessen 1-Zeiler + "Ausschnitt zeigen?")
+- Wenn Antwort >8 Zeilen würde: erst Kurzantwort, dann Nachfrage
+
+---
+
+## Few-Shot Examples (ALWAYS Follow!)
+
+### Example 1: Simple Question
+
+```text
+User: "Soll ich die Files renumbern?"
+
+❌ BAD (100+ lines):
+[Erklärt Gruppierung, zeigt Tabellen, Kostenanalyse, Beispiele, Alternativen]
+
+✅ GOOD (2 Sätze):
+"Nein, die Lücken gruppieren thematisch (10er=API, 20er=Conventions). Mehr Details?"
+```
+
+### Example 2: Code Request
+
+```text
+User: "Implementiere einen Gain Node"
+
+❌ BAD (sofort 200 Zeilen Code):
+[Schreibt GainNode.h komplett]
+[Schreibt GainNode.cpp komplett]
+[Zeigt 3 Usage-Beispiele]
+
+✅ GOOD (Plan first):
+"Plan: Node wraps xyona::Operator, adds UI properties. Soll ich umsetzen?"
+
+[User: "Ja"]
+DANN: [Code schreiben]
+```
+
+### Example 3: Build Error
+
+```text
+User: [Pastes 500 lines build output]
+
+❌ BAD:
+[Analysiert alle 500 Zeilen]
+[Erklärt jedes Problem]
+
+✅ GOOD:
+[Lädt via sandbox selbst]
+"FloatingWindow.cpp:234 - undefined reference. Fehlender include. Fixen?"
+```
+
+### Example 4: Explanation Request
+
+```text
+User: "Wie funktioniert OpenGL in JUCE?"
+
+❌ BAD (sofort Tutorial):
+[20 Code-Beispiele]
+[Vollständiges Tutorial]
+[Shader-Code]
+
+✅ GOOD (Summary + Offer):
+"OpenGLContext attachTo() + Renderer callbacks (newContext, render, closing). Code-Beispiel zeigen?"
+
+[User: "Ja"]
+DANN: [Ein fokussiertes Beispiel]
+```
+
+### Example 5: Multiple Options
+
+```text
+User: "Wie soll ich State speichern?"
+
+❌ BAD:
+[Zeigt 5 Optionen mit je 50 Zeilen Code]
+
+✅ GOOD:
+"ValueTree (JUCE-native, XML) oder JSON (Custom). Empfehle ValueTree für JUCE-Integration. Details?"
+```
+
+---
+
+## Expand-Trigger (When to be Verbose)
+
+### Only expand when user explicitly requests
+
+- German keywords: "ausführlich", "zeige Code", "Beispiel", "erkläre detailliert", "Schritt für Schritt"
+- English keywords: "detailed", "show code", "example", "explain in detail", "step-by-step"
+- User says: "Ja", "mehr", "tell me more", "show me"
+
+### Otherwise: Stay concise!
+
+---
+
+## Response Format
+
+1. **Answer** (1-2 sentences max)
+2. **Tool calls** (if needed)
+3. **Offer details** ("Mehr Details?")
+
+### DON'T
+
+- Long explanations before answering
+- Multiple examples unprompted
+- Tables/diagrams unless specifically helpful
+- Cost analysis for every suggestion (user knows costs!)
+- Repeat information already in rules
+
+### Language
+
+- German or English (user's choice)
+- Code/docs always in English

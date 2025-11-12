@@ -1,0 +1,219 @@
+---
+description: Doxygen documentation standards - minimal and systematic
+globs: ["**/*.h", "**/*.hpp", "**/*.cpp"]
+alwaysApply: false
+---
+
+# Doxygen Documentation Standards
+
+**Philosophy: Code should be self-documenting. Comments are for "why", not "what".**
+
+## When to Document
+
+**✅ ALWAYS document (public API only):**
+
+- Public classes (one-liner what it does)
+- Public methods (brief description)
+- Non-obvious parameters
+- Return values (if not obvious)
+
+**⚠️ Sometimes document:**
+
+- Complex algorithms (explain approach, not steps)
+- Non-obvious design decisions
+- Thread-safety requirements
+- Performance-critical sections
+
+**❌ NEVER document:**
+
+- Getters/setters (obvious from name)
+- Trivial functions (`getId()`, `setPosition()`)
+- Private implementation details
+- Obvious parameters (`nodeId` doesn't need "@param nodeId The node ID")
+
+## Documentation Style
+
+**Preferred: Brief only (one-liner)**
+
+```cpp
+/** @brief Creates a new audio node at the specified position */
+Node* createNode(juce::Point<float> position);
+
+/** @brief Processes audio through the node graph */
+void process(float** inputs, float** outputs, int numSamples);
+
+/** @brief Connects source node output to destination node input */
+bool connect(uint32_t srcId, uint32_t dstId);
+```
+
+**With parameters (only if non-obvious):**
+
+```cpp
+/**
+ * @brief Applies topological sort to determine execution order
+ * @param startNodes Nodes with no incoming connections
+ * @return Sorted node IDs, empty if cycle detected
+ */
+std::vector<uint32_t> topologicalSort(const std::vector<uint32_t>& startNodes);
+```
+
+**Class documentation:**
+
+```cpp
+/**
+ * @brief Visual node wrapper for audio processing operators
+ * 
+ * Wraps a xyona::Operator with visual properties (position, selection).
+ * Thread-safe for UI updates, delegates processing to wrapped operator.
+ */
+class Node {
+    // ...
+};
+```
+
+## What NOT to Write
+
+**❌ BAD - Too verbose:**
+
+```cpp
+/**
+ * @brief Connects two nodes together
+ * 
+ * This function creates a connection between a source node
+ * and a destination node. The connection is validated to ensure
+ * both nodes exist and the connection doesn't create a cycle.
+ * If the connection is valid, it's added to the internal list.
+ * 
+ * Example usage:
+ * ```cpp
+ * Container container;
+ * container.connect(sourceId, destId);
+ * ```
+ * 
+ * Thread safety: Call from UI thread only
+ * Performance: O(n) where n is number of connections
+ * 
+ * @param srcId The ID of the source node
+ * @param dstId The ID of the destination node  
+ * @return Returns true if connection was created successfully,
+ *         false if nodes don't exist or connection would create cycle
+ * @see disconnect()
+ * @see Node
+ * @see Container::addNode()
+ */
+bool connect(uint32_t srcId, uint32_t dstId);
+```
+
+**✅ GOOD - Minimal and clear:**
+
+```cpp
+/**
+ * @brief Connects source to destination node
+ * @return false if cycle detected or nodes don't exist
+ */
+bool connect(uint32_t srcId, uint32_t dstId);
+```
+
+## Systematic Approach
+
+**When documenting a new class:**
+
+1. **Class-level comment:**
+   - One sentence: What is this class?
+   - One sentence: How does it fit in the system?
+   - Thread-safety note (if relevant)
+
+2. **Public methods:**
+   - @brief only (unless parameters need explanation)
+   - Return value (if not obvious)
+
+3. **Skip:**
+   - Private methods (unless very complex)
+   - Obvious getters/setters
+   - Constructors/destructors (unless special behavior)
+
+**Example workflow:**
+
+```cpp
+/**
+ * @brief Audio graph executor managing nodes and connections
+ * 
+ * Owns nodes, maintains execution order via topological sort.
+ * NOT thread-safe - call from UI thread only.
+ */
+class Container {
+public:
+    /** @brief Adds node and returns assigned ID */
+    uint32_t addNode(std::unique_ptr<Node> node);
+    
+    /** @brief Removes node and all its connections */
+    bool removeNode(uint32_t nodeId);
+    
+    /**
+     * @brief Creates connection between nodes
+     * @return false if would create cycle
+     */
+    bool connect(uint32_t srcId, uint32_t dstId);
+    
+    // Getters - no docs needed
+    const std::vector<Node*>& getNodes() const;
+    
+private:
+    // Private - no docs needed unless complex
+    void updateExecutionOrder();
+};
+```
+
+## Special Cases
+
+**Audio thread functions:**
+
+```cpp
+/**
+ * @brief Processes audio buffers (AUDIO THREAD)
+ * 
+ * WARNING: Real-time thread - no allocations, no locks!
+ */
+void processAudio(float** buffers, int numSamples);
+```
+
+**Complex algorithms:**
+
+```cpp
+/**
+ * @brief Detects cycles using depth-first search
+ * 
+ * Uses three-color marking: white (unvisited), grey (visiting), black (done).
+ * Grey node in recursion stack = cycle detected.
+ */
+bool hasCycle();
+```
+
+**Deprecated/TODO:**
+
+```cpp
+/** @brief Legacy method - use processV2() instead
+ *  @deprecated Will be removed in v2.0 */
+void processOld();
+
+/** @todo Implement lock-free version */
+void updateState();
+```
+
+## Agent Workflow
+
+**When writing new code:**
+
+1. Write class with @brief
+2. Document public methods (brief only)
+3. Skip trivial getters/setters
+4. Add thread-safety notes if relevant
+5. DON'T write examples in comments
+6. DON'T document implementation details
+
+**Result:**
+
+- Quick to write
+- Easy to maintain
+- Doxygen generates clean docs
+- No comment bloat
