@@ -41,6 +41,77 @@ report update can backfill prior report commit hashes.
 | `xyona-lab` | `feature/cdp8-offline-foundation` | `docs/cdp8-offline-crossrefs` |
 | `xyona-cdp-pack` | `feature/cdp8-offline-foundation` | `cdp8-rewrite-infra` |
 
+## Continuation Note
+
+This is the handoff state after the first whole-file CDP/HQ vertical slice.
+
+Latest pushed commits:
+
+- `xyona-core`: `d4d437b feat(core): add offline pack ABI contract`
+- `xyona-cdp-pack`: `57105fa feat(cdp-pack): add whole-file loudness normalise`
+- `xyona-lab`: `a83cf769 feat(lab): render whole-file offline pack artifacts`
+- workspace root: `a34809e docs: record whole-file normalise slice`
+
+Current proven capability:
+
+- `cdp.modify.loudness_normalise` is the reference same-length whole-file
+  operator.
+- The pack advertises the operator as HQ-only and rejects block processing for
+  it.
+- Lab can call the pack's optional offline API directly, materialize the output
+  audio buffer, validate the `OfflineSessionContract`, and mark the artifact as
+  RT re-entry-capable.
+
+Resume commands on a fresh machine:
+
+```powershell
+git -C xyona-core switch feature/cdp8-offline-foundation
+git -C xyona-core pull
+git -C xyona-cdp-pack switch feature/cdp8-offline-foundation
+git -C xyona-cdp-pack pull
+git -C xyona-lab switch feature/cdp8-offline-foundation
+git -C xyona-lab pull
+git switch docs/cdp8-offline-spectral-roadmap
+git pull
+```
+
+Verification baseline to rerun before the next implementation step:
+
+```powershell
+cd D:\GITHUB\XYONA\xyona-core
+cmake --build --preset windows-msvc-debug
+ctest --test-dir build\windows-msvc-debug -C Debug --output-on-failure
+
+cd D:\GITHUB\XYONA\xyona-cdp-pack
+$env:XYONA_CORE_ROOT='D:\GITHUB\XYONA\xyona-core'
+cmake --build --preset windows-msvc-debug
+ctest --preset windows-msvc-debug --output-on-failure
+
+cd D:\GITHUB\XYONA\xyona-lab
+$env:XYONA_CORE_PATH='D:\GITHUB\XYONA\xyona-core'
+cmake --build --preset windows-dev --target xyona_lab_tests
+$env:XYONA_OPERATOR_PACK_PATH='D:\GITHUB\XYONA\xyona-cdp-pack\build\windows-msvc-debug\Debug'
+.\build\windows-dev\tests\Debug\xyona_lab_tests.exe --test='Offline Pack Processor Client' --xyona-only --summary-only
+.\build\windows-dev\tests\Debug\xyona_lab_tests.exe --xyona-only --summary-only
+```
+
+Next implementation steps, in order:
+
+1. Promote the direct `OfflineRenderEngine::renderWholeFileOperatorToBuffer`
+   entry point into graph-level scheduling for offline-only pack nodes.
+2. Teach Lab's graph/build diagnostics to distinguish "offline-only, valid for
+   HQ materialization" from "invalid for this graph" so Canvas nodes do not look
+   broken merely because they are not RT-capable.
+3. Add artifact persistence and RT/HQ bridge wiring through the existing
+   `HQ_RT.md` layer/clip architecture, rather than creating a CDP-specific
+   playback cache.
+4. Add output-length negotiation before any length-changing CDP operator is
+   implemented.
+5. Only after length negotiation exists, pick a small length-changing
+   time-domain CDP operator as the next vertical slice.
+6. Start PVOC/spectral work only after typed spectral artifact/port semantics
+   are explicit; do not pass PVOC/PVX data through audio buffers.
+
 ## Commit Log
 
 ### `xyona-core`
