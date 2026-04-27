@@ -30,21 +30,30 @@ Current state:
   block into a known render range.
 - Core pack ABI v2 supports block-based audio operators with fixed `num_samples`
   per process call.
-- Core now also exposes an optional `offline_packs_v1` C ABI for whole-file pack
-  query/process calls that do not fit the block callback.
+- Core currently exposes a prototype whole-buffer offline C ABI, currently
+  named `offline_packs_v1`, for the first simple same-length whole-file
+  query/process slice.
 - The CDP pack has the first dynamic pack, descriptor, buffer, validation, and
   block-safe operator infrastructure.
 - The CDP pack already classifies future process shapes such as whole-file,
   length-changing, analysis-output, multi-output, and generator operators.
 - The first whole-file, length-preserving CDP slice exists:
   `cdp.modify.loudness_normalise` performs a full-file peak scan through the
-  optional offline ABI and Lab can materialize the result as an RT-reentry-safe
-  audio artifact.
+  prototype whole-buffer offline ABI and Lab can materialize the result as an
+  RT-reentry-safe audio artifact.
+- Lab has a first `MaterializedAudioStore` for materialized layer/clip metadata,
+  in-memory resident audio, WAV-backed asset persistence APIs, and a ProjectState
+  manifest anchor.
 
 Missing state:
 
-- Graph-level scheduling for offline-only pack nodes.
-- Output length negotiation for length-changing CDP programs.
+- Offline Session ABI implemented and tested with streaming, progress, and
+  cancellation. This is the first production offline pack contract.
+- App-level save/open lifecycle wiring for materialized assets, including stale
+  asset detection and user-visible re-render state.
+- Realtime LayerPlayer consumption of materialized clips.
+- Output length negotiation for length-changing CDP programs through the Offline
+  Session ABI.
 - A typed analysis/spectral data model instead of pretending PVOC/PVX is audio.
 - Lab graph planning rules for offline-only and non-audio-producing nodes.
 - Golden reference tooling at CDP8 family scale.
@@ -54,6 +63,10 @@ Conclusion:
 
 This is cleanly achievable by extending the current HQ renderer and pack ABI. It
 should not be solved by special-case hacks inside individual CDP operators.
+The current whole-buffer offline ABI is a prototype/reference bridge for the
+existing same-length whole-file slice. It is not the release production offline
+contract for length-changing, PVOC/spectral, multi-output, or long-running CDP
+work.
 
 ## Why This Architecture Is Required
 
@@ -190,6 +203,189 @@ Architectural consequence:
 The CDP roadmap is not a replacement for `HQ_RT.md`. It is an extension that
 adds CDP-specific offline program execution and spectral data semantics to the
 existing HQ-first architecture.
+
+## Hard Gate System
+
+These gates supersede the older informal phase ordering whenever there is a
+conflict. A later CDP operator family may start only when every listed
+dependency gate is complete.
+
+### Gate A - Constrain Prototype Whole-Buffer Offline ABI
+
+The current whole-buffer offline ABI, currently named `offline_packs_v1`, is a
+temporary prototype/reference bridge. It remains valid only for bounded
+same-length, whole-buffer operators such as the current
+`cdp.modify.loudness_normalise` reference slice while the production Offline
+Session ABI is being built.
+
+Allowed on the prototype:
+
+- deterministic same-length whole-file operators
+- bounded test/reference renders
+- operators whose input and output can reasonably be held in memory
+
+Forbidden on the prototype:
+
+- length-changing operators
+- PVOC/spectral analysis or synthesis
+- multi-output or multi-file operators
+- production-scale long-file CDP workflows
+
+Exit criteria:
+
+- Roadmap/report describe the current whole-buffer ABI as a temporary
+  prototype/reference ABI.
+- New CDP inventory entries for length-changing, PVOC/spectral, or multi-output
+  work are blocked unless they target the production Offline Session ABI.
+- Before release, the current `cdp.modify.loudness_normalise` slice is ported to
+  the Offline Session ABI and the public prototype ABI surface is removed or
+  explicitly downgraded to an internal test helper.
+
+### Gate B - Converge `MaterializedAudioStore` With `HQ_RT.md` Phase 7
+
+`MaterializedAudioStore` is the current concrete implementation line for the
+`HQ_RT.md` Phase 7 layer/clip store. Do not build a parallel `AudioLayer`,
+`LayerPool`, or `ClipStore` system beside it unless this decision is explicitly
+reversed.
+
+Exit criteria:
+
+- `HQ_RT.md` states that `MaterializedAudioStore` is the active Phase 7 store
+  implementation.
+- Any future rename/refactor preserves one store lineage and one manifest/asset
+  contract.
+
+### Gate C - Production Persistence And Staleness
+
+Materialized assets are not production-ready until normal project save/open
+orchestration and staleness detection exist.
+
+Required behavior:
+
+- stable project asset directory convention
+- save/open/save-as lifecycle wiring
+- relative asset paths in project files
+- missing asset diagnostics
+- orphan cleanup policy
+- dependency signature for each materialized layer/clip
+- stale detection when source audio, producer operator, parameters, sample rate,
+  render range, pack algorithm version, spectral settings, or dependent assets
+  change
+- user-visible state such as `Valid`, `Rendering`, `Stale`, `Missing`,
+  `Failed`, or `Re-render required`
+- RT playback must not silently treat stale or missing material as valid
+
+Exit criteria:
+
+- A saved project can reload materialized audio assets without manual API calls.
+- A changed dependency marks the materialized clip stale and exposes a
+  re-render-required state.
+- Missing asset behavior is deterministic and diagnosable.
+
+### Gate D - Realtime LayerPlayer Consumption
+
+The RT graph must be able to consume a materialized clip as ordinary source
+material.
+
+Required behavior:
+
+- no disk I/O on the audio thread
+- no offline pack calls on the audio thread
+- resident buffer or pre-opened asset handle prepared outside RT
+- graph rebuild sees the clip as a normal RT-safe source
+- clear behavior for missing or stale materialized clips
+
+Exit criteria:
+
+- A headless test proves: offline render -> materialized clip -> RT LayerPlayer
+  playback.
+- The RT playback path performs no blocking file or pack work in the callback.
+
+### Gate E - Implemented Offline Session ABI
+
+This gate is not satisfied by a design document. It requires implementation and
+tests.
+
+This is the first production offline pack contract. Its internal C ABI should be
+versioned, for example as session API v1, but it should not be framed as a
+second production generation replacing a released v1.
+
+Required behavior:
+
+- session lifecycle
+- streaming input blocks
+- finish/finalize step
+- output length preflight or discovery
+- read-output-block or host asset output
+- progress reporting through a standardized ABI path
+- cancellation through a standardized ABI path
+- host scratch/asset policy hooks or equivalent memory-spooling contract
+
+Exit criteria:
+
+- Core exposes the Offline Session ABI.
+- CDP pack implements one reference operator that exercises the full lifecycle.
+- Lab/Core/Pack tests prove normal completion, progress reporting, and
+  cancellation.
+- The current `cdp.modify.loudness_normalise` reference slice is ported onto the
+  session lifecycle or the remaining prototype path is explicitly internal-only.
+
+### Gate F - CI Baseline
+
+Local manual verification is not enough for this branch.
+
+Exit criteria:
+
+- GitHub Actions or equivalent CI runs at least Core, Pack, and Lab smoke tests
+  on macOS Clang and Windows MSVC.
+- Linux GCC/Clang is planned next but does not block the first baseline.
+- CDP pack runtime discovery is covered by CI or a documented equivalent smoke
+  command.
+
+### Gate G - Length-Changing Audio
+
+Hard dependencies:
+
+- Gate C
+- Gate D
+- Gate E
+
+Exit criteria:
+
+- Synthetic length-changing reference operator passes through the Offline
+  Session ABI.
+- Lab allocates/materializes the actual negotiated output length.
+- RT consumes the resulting materialized clip without truncation or hidden
+  padding.
+
+### Gate H - PVOC/Spectral
+
+Hard dependencies:
+
+- Gate E
+- typed data ports or asset handles
+- CDP8 golden fixture harness for PVOC/PVX behavior
+
+PVOC/spectral work must not be started on the prototype whole-buffer offline
+ABI.
+
+Exit criteria:
+
+- PVOC analysis data is represented as typed data or a host asset, not audio.
+- Window, hop, magnitude/frequency, phase-unwrapping/reconstruction, and
+  serialization policies are explicit.
+- CDP8-compatible golden tests exist before real spectral families are ported.
+
+### Gate I - Generator Edge Case
+
+Before the first CDP generator operator is added, Lab must have an explicit test
+for a `processShape=generator`, `abiV2Support=direct` pack operator with no
+upstream audio input.
+
+Exit criteria:
+
+- RT and HQ graph building both handle the generator shape deliberately.
+- Offline render behavior is covered for null-upstream generator nodes.
 
 ## Current Architecture Baseline
 
@@ -356,6 +552,8 @@ Required guarantees:
   observes either the old valid result or the new completed result.
 - Re-entry should use the existing/planned `HQ_RT.md` layer model:
   `AudioLayer`, `LayeredClip`, `LayerPool`, `ClipStore`, and RT/HQ bridge nodes.
+  See Gate B: the concrete implementation line is `MaterializedAudioStore`; the
+  older names remain architecture terms, not parallel store systems.
 
 This reduces implementation risk because CDP-specific complexity stays in the
 HQ/offline layer. The RT engine only needs robust consumption of finalized
@@ -579,14 +777,28 @@ Tasks:
   - scratch allocation or asset creation
   - logging
 - Implement Core-side adapter from the C ABI to host runtime objects.
-- Add tests with a synthetic whole-file operator.
+- Implement one reference operator in the CDP pack or a dedicated test pack that
+  exercises the full lifecycle.
+- Add tests for:
+  - normal completion
+  - progress reporting
+  - cancellation before input finishes
+  - cancellation during finalize/output
+  - output length preflight/discovery
 
 Exit criteria:
 
-- A synthetic pack operator can consume a full input, finalize, and return a
-  same-length output through the offline session path.
+- The Offline Session ABI is implemented in Core and consumed by at least one
+  pack.
+- A reference operator can consume streamed input, finalize, and return output
+  through the offline session path.
 - The same operator is not allowed in realtime processing.
-- Cancellation and progress are observable in tests.
+- The current `cdp.modify.loudness_normalise` reference slice is ported onto the
+  session lifecycle, or the remaining prototype whole-buffer path is explicitly
+  internal-only.
+- Cancellation and progress are standardized and asserted in tests.
+- Length-changing, PVOC/spectral, multi-output, and long-running CDP work remain
+  blocked until this gate is complete.
 
 Primary repos:
 
@@ -620,9 +832,11 @@ Tasks:
   - atomic swap into RT-visible source state
 - Map CDP materialization onto the existing/planned `HQ_RT.md` Phase 5-7 model:
   - persistent renderer or render-target metadata
-  - `AudioLayer` / `LayeredClip`
-  - `LayerPool` / `ClipStore`
+  - `MaterializedAudioStore` as the concrete Phase 7 layer/clip store line
   - `LayerPlayerNode` or equivalent RT-safe playback node
+- Do not add a second parallel `AudioLayer` / `LayerPool` / `ClipStore`
+  implementation beside `MaterializedAudioStore` without an explicit
+  architecture reversal.
 - Define scheduling for simple vertical slices:
   - source audio -> whole-file CDP node -> audio sink
   - source audio -> length-changing CDP node -> audio sink
@@ -684,6 +898,12 @@ Purpose:
 
 Support CDP programs whose output length differs from input length and can still
 re-enter RT as ordinary baked material.
+
+Hard prerequisites:
+
+- Gate C: production persistence and staleness
+- Gate D: realtime LayerPlayer consumption
+- Gate E: implemented and tested Offline Session ABI
 
 Tasks:
 
@@ -799,6 +1019,8 @@ Tasks:
   - params changed
   - sample rate changed
   - spectral settings changed
+- Surface stale analysis/materialized data as a user-visible state instead of
+  silently treating old assets as valid.
 - Add UI placeholders for unsupported or stale analysis data.
 
 Exit criteria:
@@ -819,6 +1041,14 @@ Primary repos:
 Purpose:
 
 Implement spectral analysis data as a first-class CDP pack format.
+
+Hard prerequisites:
+
+- Gate E: implemented and tested Offline Session ABI
+- Phase 7 typed data ports or asset handles
+- CDP8 golden fixture harness for PVOC/PVX behavior
+
+PVOC/PVX must not be implemented on the prototype whole-buffer offline ABI.
 
 Tasks:
 
@@ -903,6 +1133,13 @@ Primary repos:
 Purpose:
 
 Prove the complete time-domain to spectral-domain to time-domain workflow.
+
+Hard prerequisites:
+
+- Gate E: implemented and tested Offline Session ABI
+- Phase 7 typed data ports or asset handles
+- Phase 8 PVOC/PVX data model
+- Phase 9 FFT/windowing/reconstruction policy
 
 First slice:
 
@@ -1101,20 +1338,55 @@ CDP programs can operate on large files.
 
 Mitigation:
 
-- Define memory budgets and disk-backed scratch before broad whole-file rollout.
+- Keep the prototype whole-buffer offline ABI limited to bounded
+  simple/reference operators.
+- Implement the Offline Session ABI with memory/spooling policy
+  before length-changing, PVOC/spectral, multi-output, or production-scale
+  long-file operators.
+- Port `cdp.modify.loudness_normalise` to the Offline Session ABI and remove the
+  public prototype ABI surface before release unless an explicit internal-helper
+  exception is made.
+
+### Risk: Stale Materialized Assets
+
+If source audio, parameters, sample rate, render range, algorithm version, or
+spectral settings change after a clip is materialized, RT could otherwise play
+an old render as if it were current.
+
+Mitigation:
+
+- Store dependency signatures with materialized layers/clips.
+- Mark stale or missing assets with a user-visible `Re-render required` state.
+- Do not silently treat stale material as valid RT source material.
 
 ## Recommended Immediate Next Steps
 
-1. Fix `xyona-cdp-pack` Windows test script behavior.
-2. Draft Core pack offline/session ABI structs.
-3. Promote process-shape metadata into host-visible descriptors.
-4. Reconcile the first CDP RT re-entry slice with `HQ_RT.md` Phase 5-7:
-   renderer metadata, layer/clip storage, and RT-safe playback.
-5. Add a synthetic whole-file same-length operator test.
-6. Integrate that synthetic operator through Lab HQ render.
-7. Materialize the result into a Lab layer/clip/asset that RT can consume.
-8. Port one real whole-file length-preserving CDP operator.
-9. Only then start length-changing and PVOC work.
+1. Document and enforce the gate system:
+   - the current whole-buffer offline ABI is prototype/reference only.
+   - `MaterializedAudioStore` is the concrete `HQ_RT.md` Phase 7 store line.
+   - length-changing and PVOC/spectral require implemented/tested
+     Offline Session ABI.
+2. Complete materialized asset production persistence:
+   - project asset directory convention
+   - save/open/save-as lifecycle wiring
+   - relative paths
+   - missing asset diagnostics
+   - cleanup/orphan policy
+   - dependency signatures and stale detection
+   - user-visible `Re-render required` state
+3. Add realtime LayerPlayer consumption of `MaterializedAudioStore` clips with
+   no disk I/O or pack calls in the audio callback.
+4. Add CI baseline for Core, Pack, and Lab on macOS Clang and Windows MSVC.
+5. Implement the Offline Session ABI with a reference operator
+   and tests for normal completion, progress, and cancellation.
+6. Port `cdp.modify.loudness_normalise` onto the session lifecycle and remove
+   or internalize the prototype whole-buffer ABI surface before release.
+7. Only after the Offline Session ABI is implemented and tested, start
+   length-changing audio.
+8. Only after the Offline Session ABI plus typed data/asset handles and CDP8
+   golden fixtures, start PVOC/spectral work.
+9. Before the first CDP generator, add the explicit null-upstream generator
+   graph/render test.
 
 ## Definition Of Done For CDP8 Rewrite Readiness
 
@@ -1124,9 +1396,14 @@ XYONA is ready for broad CDP8 rewrite work when:
 - Lab can distinguish realtime, HQ, whole-file, length-changing, and typed-data
   operators before execution.
 - Whole-file same-length operators execute through Lab HQ render.
+- The prototype whole-buffer offline ABI is not a release production contract.
+- Offline Session ABI execution exists and is tested for normal completion,
+  progress, and cancellation.
 - Length-changing operators negotiate output length without truncation.
 - Completed offline results can re-enter RT atomically as ordinary Lab
   source/value artifacts.
+- Materialized assets persist through normal project save/open and stale results
+  are detected before RT treats them as valid.
 - Typed spectral data exists as a first-class graph or asset value.
 - PVOC analysis/synthesis identity roundtrip is deterministic.
 - CDP8 golden reference tooling is repeatable.

@@ -87,6 +87,10 @@ Current proven capability:
 - `ProjectState` now has a manifest anchor for materialized audio metadata, so
   the store manifest can survive a project save/load round-trip without embedding
   raw audio in the `.xyona` XML.
+- The plan is now gated: the current whole-buffer offline ABI, currently named
+  `offline_packs_v1`, is a prototype/reference bridge. Length-changing,
+  PVOC/spectral, multi-output, and production-scale long-file CDP work require
+  the implemented and tested Offline Session ABI.
 
 Resume commands on a fresh machine:
 
@@ -123,17 +127,43 @@ $env:XYONA_OPERATOR_PACK_PATH='D:\GITHUB\XYONA\xyona-cdp-pack\build\windows-msvc
 
 Next implementation steps, in order:
 
-1. Wire the materialized store into the real project save/open lifecycle:
-   choose the project asset directory convention, call the WAV persistence API
-   on save, restore the manifest and resident audio on load, and keep missing
-   asset failures diagnosable.
-2. Make the realtime LayerPlayer consume the materialized layer/clip store.
-3. Add output-length negotiation before any length-changing CDP operator is
-   implemented.
-4. Only after length negotiation exists, pick a small length-changing
-   time-domain CDP operator as the next vertical slice.
-5. Start PVOC/spectral work only after typed spectral artifact/port semantics
-   are explicit; do not pass PVOC/PVX data through audio buffers.
+1. Finalize the gate documentation:
+   - the current whole-buffer offline ABI is prototype/reference only.
+   - `MaterializedAudioStore` is the concrete `HQ_RT.md` Phase 7 store line.
+   - length-changing and PVOC/spectral require implemented/tested
+     Offline Session ABI.
+2. Complete materialized asset production persistence:
+   - project asset directory convention
+   - save/open/save-as lifecycle wiring
+   - relative paths
+   - missing asset diagnostics
+   - cleanup/orphan policy
+   - dependency signatures and stale detection
+   - user-visible `Re-render required` state
+3. Make the realtime LayerPlayer consume the materialized layer/clip store with
+   no disk I/O or pack calls in the audio callback.
+4. Add CI baseline for Core, Pack, and Lab on macOS Clang and Windows MSVC.
+5. Implement the Offline Session ABI with a reference operator
+   and tests for normal completion, progress, and cancellation.
+6. Port `cdp.modify.loudness_normalise` onto the session lifecycle and remove
+   or internalize the prototype whole-buffer ABI surface before release.
+7. Only after the Offline Session ABI is implemented and tested, start
+   length-changing audio.
+8. Only after the Offline Session ABI plus typed data/asset handles and CDP8
+   golden fixtures, start PVOC/spectral work.
+9. Before the first CDP generator, add the explicit null-upstream generator
+   graph/render test.
+
+Hard gate summary:
+
+- The current whole-buffer offline ABI remains usable only as a temporary
+  prototype/reference path for existing same-length work. It is not a release
+  production path for length-changing, PVOC/spectral, multi-output, or
+  long-running CDP operators.
+- Persistence is not production-complete until materialized asset dependencies
+  are fingerprinted and stale/missing assets produce a visible re-render state.
+- PVOC/spectral has an explicit hard dependency on implemented/tested
+  Offline Session ABI, typed data or asset handles, and CDP8 golden fixtures.
 
 ## Commit Log
 
@@ -1149,11 +1179,19 @@ Follow-up:
 - `MaterializedAudioStore` now has file-backed asset persistence APIs and a
   ProjectState manifest anchor, but the normal app save/open lifecycle does not
   yet call them automatically.
+- Materialized layers/clips do not yet carry dependency signatures, so stale
+  source audio, parameter, render-range, sample-rate, algorithm-version, or
+  spectral-setting changes are not yet surfaced as `Re-render required`.
 - Materialized clips are not yet consumed by the realtime LayerPlayer path, so
   the bridge proves storage, metadata, and file-backed reload but not RT
   playback.
 - Same-length whole-file CDP operators now have a first execution and
-  materialization path. Length-changing CDP operators still need output length
-  negotiation before they are allowed to materialize artifacts.
+  materialization path through the prototype whole-buffer offline ABI. Before
+  release, that reference slice should move onto the Offline Session ABI or the
+  prototype path should become an internal-only helper. Length-changing,
+  PVOC/spectral, multi-output, and long-running CDP operators must use the
+  implemented/tested Offline Session ABI.
 - Typed spectral/PVOC artifacts remain data-only until typed artifact ports and
-  host semantics exist; they must not be routed through audio buffers.
+  host semantics exist; they must not be routed through audio buffers. PVOC also
+  has an explicit hard dependency on the Offline Session ABI and CDP8 golden
+  fixtures.
