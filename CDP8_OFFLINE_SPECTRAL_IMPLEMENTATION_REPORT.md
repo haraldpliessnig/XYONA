@@ -116,6 +116,59 @@ Repository: `xyona-cdp-pack`
 
 Branch: `feature/cdp8-offline-foundation`
 
+Commit: `4708197`
+
+Subject: `feat(cdp-pack): expose process shape metadata`
+
+Files changed:
+
+- `src/support/pack_descriptors.h`
+- `src/operators/cdp_utility_identity.cpp`
+- `src/operators/cdp_utility_db_gain.cpp`
+- `src/operators/cdp_modify_loudness_gain.cpp`
+- `src/operators/cdp_modify_loudness_dbgain.cpp`
+- `src/operators/cdp_modify_loudness_phase_invert.cpp`
+- `src/operators/cdp_modify_space_mirror.cpp`
+- `src/operators/cdp_modify_space_narrow.cpp`
+- `tests/test_cdp_pack.cpp`
+
+Technical change:
+
+- Added a shared block-length-preserving engine metadata fragment for CDP pack
+  operator descriptors.
+- Exposed host-visible process-shape metadata for all currently registered CDP
+  operators:
+  - `processShape: block_length_preserving`
+  - `outputLength: same_as_input`
+  - `wholeFileRequired: false`
+  - `lengthChanging: false`
+  - `audioOutput: true`
+  - `multiOutput: false`
+  - `abiV2Support: direct`
+- Updated the pack-loader test to assert that every currently registered CDP
+  operator publishes the block-length-preserving engine metadata through Core's
+  metadata registry.
+
+Verification:
+
+- `.\build-and-test-dev.bat`
+- Result: passed. Build succeeded and CTest reported `100% tests passed, 0 tests
+  failed out of 11`.
+- `git diff --check`
+- Result: passed before commit. Git reported only line-ending normalization
+  warnings.
+
+Follow-up:
+
+- The next metadata step is Lab-side interpretation/validation of these fields,
+  not just pack publication.
+
+### `xyona-cdp-pack`
+
+Repository: `xyona-cdp-pack`
+
+Branch: `feature/cdp8-offline-foundation`
+
 Commit: `e06a193`
 
 Subject: `fix(cdp-pack): stabilize Windows test preset`
@@ -175,6 +228,8 @@ Follow-up:
 - `xyona-cdp-pack`: `.\build-and-test-dev.bat` passed; 11/11 CTest tests passed.
 - `xyona-cdp-pack`: `ctest --preset windows-msvc-debug --output-on-failure`
   passed without manual runtime DLL `PATH`; 11/11 CTest tests passed.
+- `xyona-cdp-pack`: `.\build-and-test-dev.bat` passed after process-shape
+  metadata publication; 11/11 CTest tests passed.
 
 ## Open Risks
 
