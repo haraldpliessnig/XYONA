@@ -49,6 +49,8 @@ nodes, and the first in-memory materialized layer/clip bridge for RT-ready
 offline audio artifacts. The materialized store now also has the first
 file-backed asset/ProjectState manifest persistence API plus normal Lab
 Project save/open/save-as orchestration and store-level staleness state.
+The AudioEngineManager materialize path now also feeds store signatures with
+current render-dependency fingerprints.
 
 Latest implementation commits:
 
@@ -57,7 +59,9 @@ Latest implementation commits:
 - `xyona-lab`: `16e662dc feat(lab): persist materialized audio assets`
 - `xyona-lab`: `ad6a7d53 feat(lab): wire materialized assets into project lifecycle`
 - `xyona-lab`: `6b71007b feat(lab): track materialized asset staleness`
-- workspace root: this report update records the latest Lab staleness slice.
+- `xyona-lab`: `5adbcb97 feat(lab): fingerprint materialized render dependencies`
+- workspace root: this report update records the latest Lab render-dependency
+  signature slice.
 
 Current proven capability:
 
@@ -104,6 +108,14 @@ Current proven capability:
 - Missing assets now leave diagnostic metadata in the active store as `Missing`
   instead of being silently discarded; `isRealtimePlayable()` remains false for
   stale, missing, failed, or nonresident material.
+- The AudioEngineManager materialize path now extends materialized dependency
+  signatures with a current render fingerprint covering the RenderJob, render
+  range, sample rate, graph plan, wires, whole-file node identity, operator
+  descriptor versions, operator parameters, parameter sources, tempo points, and
+  timeline grid context.
+- A headless integration test now proves that changing an upstream operator
+  parameter changes the materialized signature and that the older layer can be
+  marked `Stale` / `Re-render required` / not RT-playable.
 - The plan is now gated: the current whole-buffer offline ABI, currently named
   `offline_whole_buffer_prototype`, is a prototype/reference bridge. Length-changing,
   PVOC/spectral, multi-output, and production-scale long-file CDP work require
@@ -155,9 +167,9 @@ Next implementation steps, in order:
      Offline Session ABI.
 2. Finish materialized asset production persistence:
    - cleanup/orphan policy
-   - graph-side current dependency signatures for source audio, parameters,
-     render range, pack algorithm version, dependent assets, and spectral
-     settings
+   - external source/dependent asset file fingerprints
+   - future spectral settings in dependency signatures once spectral
+     materialized artifacts exist
    - dedicated UI surface for `Re-render required` / `Missing` materialized clips
 3. Make the realtime LayerPlayer consume the materialized layer/clip store with
    no disk I/O or pack calls in the audio callback.
@@ -230,10 +242,65 @@ Verification:
 
 Follow-up:
 
-- Feed the store API with graph-side current signatures that include source
-  audio/dependent asset fingerprints, operator parameters, render range, sample
-  rate, pack algorithm version, and future spectral settings.
+- Feed the store API with external source/dependent asset fingerprints and
+  future spectral settings once those materialized artifact types exist.
 - Add the user-facing Lab UI surface for `Missing` / `Re-render required`
+  materialized clips.
+- Define cleanup/orphan policy for project asset directories.
+
+### Graph-Side Materialized Render Dependency Signatures
+
+Repository: `xyona-lab`
+
+Branch: `feature/cdp8-offline-foundation`
+
+Commit: `5adbcb97`
+
+Subject: `feat(lab): fingerprint materialized render dependencies`
+
+Files changed:
+
+- `src/app/lab/audio/engine/AudioEngineManager.cpp`
+- `src/app/lab/audio/engine/MaterializedAudioStore.h`
+- `src/app/lab/audio/engine/MaterializedAudioStore.cpp`
+- `tests/AudioEngineManagerTests.cpp`
+- `docs/architecture/HQ_RT.md`
+
+Technical change:
+
+- Added an optional render-dependency fingerprint input to
+  `makeMaterializedAudioDependencySignature(...)` and to the store
+  materialization APIs.
+- `AudioEngineManager::renderOfflineToMaterializedClip(...)` now builds a
+  deterministic `offline-render-deps-v1` fingerprint from RenderJob fields,
+  render range, sample rate, graph plan, wires, whole-file nodes, operator
+  descriptor versions, operator parameters, parameter sources, tempo points, and
+  timeline grid context.
+- The CDP whole-file normalise integration test now renders once, changes an
+  upstream `cdp.utility.db_gain` parameter, renders again, verifies that the
+  signature changes, and proves the old layer transitions to `Stale` with
+  `Re-render required` and `isRealtimePlayable() == false`.
+- `HQ_RT.md` now marks the graph/job/parameter side of current signatures as
+  implemented and keeps external source/dependent asset file fingerprints,
+  spectral settings, UI, cleanup, and LayerPlayer RT consumption open.
+
+Verification:
+
+- `xyona-lab`: `git diff --check`
+  - Result: passed.
+- `xyona-lab`: `XYONA_CORE_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-core cmake --build build/macos-dev --target xyona_lab_tests`
+  - Result: passed. Build succeeded with existing warning classes only.
+- `xyona-lab`: `build/macos-dev/tests/xyona_lab_tests --test="Materialized Audio Store" --summary-only --xyona-only`
+  - Result: passed; 4 tests, 88 passes, 0 failures.
+- `xyona-lab`: `XYONA_OPERATOR_PACK_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-cdp-pack/build/macos-clang-debug build/macos-dev/tests/xyona_lab_tests --test="AudioEngineManager Minimal Plan" --summary-only --xyona-only`
+  - Result: passed; 35 tests, 566 passes, 0 failures.
+- Full Lab CTest was intentionally not rerun for this slice.
+
+Follow-up:
+
+- Add external source/dependent asset file fingerprints before Gate C is
+  considered complete.
+- Add the dedicated Lab UI surface for `Missing` / `Re-render required`
   materialized clips.
 - Define cleanup/orphan policy for project asset directories.
 
@@ -1344,10 +1411,11 @@ Follow-up:
 
 - `MaterializedAudioStore` now participates in normal Project save/open/save-as,
   but cleanup/orphan policy is not implemented yet.
-- Materialized layers now carry store-level dependency signatures and can be
-  marked `Stale`, but Lab does not yet compute current graph-side signatures for
-  source audio, dependent assets, parameters, render range, sample rate, pack
-  algorithm version, or spectral settings.
+- Materialized layers now carry store-level dependency signatures and the
+  AudioEngineManager materialize path computes current graph/job/parameter
+  signatures, but external source/dependent asset file fingerprints, future
+  spectral settings, and pack binary identity beyond descriptor/artifact
+  versions are still open.
 - `Missing` and `Stale` states are persisted and diagnosable, but there is not
   yet a dedicated UI surface for re-rendering those clips.
 - Materialized clips are not yet consumed by the realtime LayerPlayer path, so

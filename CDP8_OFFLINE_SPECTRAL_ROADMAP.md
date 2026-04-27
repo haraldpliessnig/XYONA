@@ -47,15 +47,18 @@ Current state:
   project-local `*.xyona-assets/materialized_audio` directory. The store also
   persists a per-layer dependency signature plus `Valid`, `Rendering`, `Stale`,
   `Missing`, and `Failed` states and clears resident audio when a layer becomes
-  stale or missing.
+  stale or missing. The AudioEngineManager materialize path now feeds those
+  signatures with current render dependencies from the RenderJob, render range,
+  sample rate, graph plan, wires, operator descriptor versions, parameters,
+  tempo, and grid context.
 
 Missing state:
 
 - Offline Session ABI implemented and tested with streaming, progress, and
   cancellation. This is the first production offline pack contract.
 - Remaining production persistence for materialized assets: orphan cleanup,
-  graph-side current dependency signatures for source audio/parameters/pack
-  versions/spectral settings, and a dedicated UI surface for re-render state.
+  external source/dependent asset file fingerprints, future spectral settings,
+  and a dedicated UI surface for re-render state.
 - Realtime LayerPlayer consumption of materialized clips.
 - Output length negotiation for length-changing CDP programs through the Offline
   Session ABI.
@@ -262,9 +265,10 @@ Exit criteria:
 
 ### Gate C - Production Persistence And Staleness
 
-Normal project save/open orchestration now exists. Materialized assets are not
-production-complete until graph-wide dependency signatures, stale/missing UI
-states, and cleanup/orphan policy exist.
+Normal project save/open orchestration, store-level staleness state, and the
+first AudioEngineManager render-dependency signatures now exist. Materialized
+assets are not production-complete until external source/dependent asset
+fingerprints, stale/missing UI states, and cleanup/orphan policy exist.
 
 Required behavior:
 
@@ -287,6 +291,8 @@ Exit criteria:
 - A changed dependency marks the materialized clip stale and exposes a
   re-render-required state.
 - Missing asset behavior is deterministic and diagnosable.
+- External source/dependent asset changes are included in the stale check before
+  this gate is considered complete.
 
 ### Gate D - Realtime LayerPlayer Consumption
 
@@ -1362,6 +1368,11 @@ an old render as if it were current.
 Mitigation:
 
 - Store dependency signatures with materialized layers/clips.
+- Feed signatures with current AudioEngineManager render dependencies: render
+  job, render range, sample rate, graph plan, wires, operator descriptor
+  versions, parameters, tempo, and grid context.
+- Add external source/dependent asset file fingerprints before declaring Gate C
+  complete.
 - Mark stale or missing assets with a user-visible `Re-render required` state.
 - Do not silently treat stale material as valid RT source material.
 
@@ -1374,9 +1385,9 @@ Mitigation:
      Offline Session ABI.
 2. Finish materialized asset production persistence:
    - cleanup/orphan policy
-   - graph-side current dependency signatures for source audio, parameters,
-     render range, pack algorithm version, dependent assets, and spectral
-     settings
+   - external source/dependent asset file fingerprints
+   - future spectral settings in dependency signatures once spectral
+     materialized artifacts exist
    - dedicated UI surface for `Re-render required` / `Missing` materialized clips
 3. Add realtime LayerPlayer consumption of `MaterializedAudioStore` clips with
    no disk I/O or pack calls in the audio callback.
