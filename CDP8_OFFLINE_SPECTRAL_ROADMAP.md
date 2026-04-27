@@ -57,14 +57,17 @@ Current state:
   externally changed materialized asset reloads as `Stale` / `Re-render
   required` instead of becoming RT-playable. `lab.audio_file_in` source paths
   are now stored as string parameters and their source WAV content fingerprints
-  feed the materialized render dependency signature.
+  feed the materialized render dependency signature. A first BottomBar status
+  surface now exposes materialized clips that are `Rendering`, `Stale`,
+  `Missing`, `Failed`, or otherwise not RT-playable; the summary logic is
+  separated so it can move into a later product UI.
 
 Missing state:
 
 - Offline Session ABI implemented and tested with streaming, progress, and
   cancellation. This is the first production offline pack contract.
 - Remaining production persistence for materialized assets: future spectral
-  settings and a dedicated UI surface for re-render state.
+  settings once spectral materialized artifacts exist.
 - Realtime LayerPlayer consumption of materialized clips.
 - Output length negotiation for length-changing CDP programs through the Offline
   Session ABI.
@@ -274,8 +277,10 @@ Exit criteria:
 Normal project save/open orchestration, store-level staleness state, and the
 AudioEngineManager render-dependency signatures now exist. Cleanup/orphan
 policy, `lab.audio_file_in` source file fingerprints, and materialized WAV asset
-file fingerprints exist. Materialized assets are not production-complete until
-stale/missing UI states exist.
+file fingerprints exist. A first user-visible status surface for stale/missing
+materialized clips exists in the BottomBar. Gate C is complete for the current
+materialized audio path; future spectral settings enter the signature set once
+spectral materialized artifacts exist.
 
 Required behavior:
 
@@ -300,6 +305,8 @@ Exit criteria:
 - Missing asset behavior is deterministic and diagnosable.
 - External `lab.audio_file_in` source file changes and materialized WAV asset
   file changes are included in stale checks.
+- Non-playable materialized clips are surfaced in UI state rather than only in
+  internal store metadata.
 
 ### Gate D - Realtime LayerPlayer Consumption
 
@@ -1391,10 +1398,9 @@ Mitigation:
    - `MaterializedAudioStore` is the concrete `HQ_RT.md` Phase 7 store line.
    - length-changing and PVOC/spectral require implemented/tested
      Offline Session ABI.
-2. Finish materialized asset production persistence:
+2. Carry forward future materialized dependency coverage:
    - future spectral settings in dependency signatures once spectral
      materialized artifacts exist
-   - dedicated UI surface for `Re-render required` / `Missing` materialized clips
 3. Add realtime LayerPlayer consumption of `MaterializedAudioStore` clips with
    no disk I/O or pack calls in the audio callback.
 4. Add CI baseline for Core, Pack, and Lab on macOS Clang and Windows MSVC.

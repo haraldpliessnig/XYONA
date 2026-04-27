@@ -60,6 +60,9 @@ audio.
 Lab now also persists `file` / `path` / `string` operator parameters through
 Canvas project state, and `lab.audio_file_in` source WAV files feed content
 fingerprints into materialized render-dependency signatures.
+Lab now also exposes materialized clips that are `Rendering`, `Stale`,
+`Missing`, `Failed`, or otherwise not RT-playable through a BottomBar status
+surface backed by a separate `MaterializedAudioStatusSummary` model.
 
 Latest implementation commits:
 
@@ -72,9 +75,10 @@ Latest implementation commits:
 - `xyona-lab`: `f87b14aa feat(lab): clean orphaned materialized audio assets`
 - `xyona-lab`: `1d24ef1a feat(lab): fingerprint materialized audio asset files`
 - `xyona-lab`: `a9271660 feat(lab): fingerprint audio file source dependencies`
+- `xyona-lab`: `48a79a0a feat(lab): surface materialized audio status`
 - workspace root: this report update records the latest Lab render-dependency
   signature, orphan-cleanup, materialized asset file-fingerprint, and
-  `lab.audio_file_in` source-fingerprint slices.
+  `lab.audio_file_in` source-fingerprint/status-surface slices.
 
 Current proven capability:
 
@@ -143,6 +147,10 @@ Current proven capability:
   fingerprints now participate in materialized render-dependency signatures.
   Changing the source file changes the signature and makes older materialized
   layers fail the current-signature check as `Stale` / `Re-render required`.
+- `MaterializedAudioStatusSummary` now turns store state into user-facing clip
+  counts and diagnostics, and the BottomBar displays that summary whenever
+  materialized clips need attention. This is intentionally a small replaceable
+  status surface, not the final clip/render-queue UI.
 - The plan is now gated: the current whole-buffer offline ABI, currently named
   `offline_whole_buffer_prototype`, is a prototype/reference bridge. Length-changing,
   PVOC/spectral, multi-output, and production-scale long-file CDP work require
@@ -192,10 +200,9 @@ Next implementation steps, in order:
    - `MaterializedAudioStore` is the concrete `HQ_RT.md` Phase 7 store line.
    - length-changing and PVOC/spectral require implemented/tested
      Offline Session ABI.
-2. Finish materialized asset production persistence:
+2. Carry forward future materialized dependency coverage:
    - future spectral settings in dependency signatures once spectral
      materialized artifacts exist
-   - dedicated UI surface for `Re-render required` / `Missing` materialized clips
 3. Make the realtime LayerPlayer consume the materialized layer/clip store with
    no disk I/O or pack calls in the audio callback.
 4. Add CI baseline for Core, Pack, and Lab on macOS Clang and Windows MSVC.
@@ -216,13 +223,68 @@ Hard gate summary:
   prototype/reference path for existing same-length work. It is not a release
   production path for length-changing, PVOC/spectral, multi-output, or
   long-running CDP operators.
-- Persistence is not production-complete until future materialized artifact
-  dependencies are covered as they appear and stale/missing assets produce a
-  visible re-render state.
+- Current materialized-audio persistence/staleness is complete for Gate C:
+  stale/missing assets produce visible status, and future materialized artifact
+  dependencies are added as those artifact types appear.
 - PVOC/spectral has an explicit hard dependency on implemented/tested
   Offline Session ABI, typed data or asset handles, and CDP8 golden fixtures.
 
 ## Commit Log
+
+### Materialized Audio Status Surface
+
+Repository: `xyona-lab`
+
+Branch: `feature/cdp8-offline-foundation`
+
+Commit: `48a79a0a`
+
+Subject: `feat(lab): surface materialized audio status`
+
+Files changed:
+
+- `src/app/lab/audio/engine/MaterializedAudioStatusSummary.h`
+- `src/app/lab/audio/engine/MaterializedAudioStatusSummary.cpp`
+- `src/app/lab/bottombar/BottomBar.h`
+- `src/app/lab/bottombar/BottomBar.cpp`
+- `src/app/MainComponent.cpp`
+- `src/app/CMakeLists.txt`
+- `tests/MaterializedAudioStoreTests.cpp`
+- `docs/architecture/HQ_RT.md`
+
+Technical change:
+
+- Added a separate `MaterializedAudioStatusSummary` model that scans
+  `MaterializedAudioStore` clips and reports user-visible issues for
+  non-RT-playable materialized audio.
+- The summary counts `Rendering`, `Stale`, `Missing`, `Failed`, and blocked
+  clips and formats compact status text plus detail tooltip diagnostics.
+- `BottomBar` now consumes the summary and shows a small status chip only when
+  materialized clips need attention. This keeps Gate C user-visible without
+  locking the product into this as the final materialized-clip UI.
+- `MainComponent` wires the active `AudioEngineManager` store into the
+  BottomBar, so project load/save/render state is surfaced from the live store.
+- `HQ_RT.md` now marks the first `Re-render required` / `Missing` status UI as
+  implemented and leaves the later product Clip/Render Queue UI as a UX choice.
+
+Verification:
+
+- `xyona-lab`: `git diff --check`
+  - Result: passed.
+- `xyona-lab`: `XYONA_CORE_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-core cmake --build build/macos-dev --target xyona_lab_tests`
+  - Result: passed. Build succeeded with existing warning classes only.
+- `xyona-lab`: `build/macos-dev/tests/xyona_lab_tests --test="Materialized Audio Store" --summary-only --xyona-only`
+  - Result: passed; 6 tests, 145 passes, 0 failures.
+- Full Lab CTest was intentionally not run for this focused Gate C UI/status
+  slice.
+
+Follow-up:
+
+- Move the summary into a richer materialized clip/render-queue UI once that UX
+  is intentionally designed.
+- Start Gate D by making realtime LayerPlayer consume valid resident
+  `MaterializedAudioStore` clips without disk I/O or pack calls on the audio
+  thread.
 
 ### Audio File Source Dependency Fingerprints
 
@@ -283,8 +345,8 @@ Follow-up:
 
 - Add future spectral settings and any additional external source/asset types
   to dependency signatures as those materialized artifact paths are introduced.
-- Add the dedicated Lab UI surface for `Missing` / `Re-render required`
-  materialized clips.
+- First status surface was completed later in `48a79a0a`; richer
+  materialized-clip UI remains a product UX decision.
 
 ### Store-Level Materialized Asset Staleness
 
@@ -333,8 +395,8 @@ Follow-up:
 - Feed the store API with future spectral settings and any additional
   source/asset dependency fingerprints once those materialized artifact types
   exist.
-- Add the user-facing Lab UI surface for `Missing` / `Re-render required`
-  materialized clips.
+- First status surface was completed later in `48a79a0a`; richer
+  materialized-clip UI remains a product UX decision.
 
 ### Graph-Side Materialized Render Dependency Signatures
 
@@ -388,8 +450,8 @@ Follow-up:
 
 - Add future spectral settings and any additional source/asset dependency
   fingerprints once those materialized artifact paths exist.
-- Add the dedicated Lab UI surface for `Missing` / `Re-render required`
-  materialized clips.
+- First status surface was completed later in `48a79a0a`; richer
+  materialized-clip UI remains a product UX decision.
 
 ### Materialized Asset Orphan Cleanup
 
@@ -435,8 +497,8 @@ Follow-up:
 
 - Add future spectral settings and any additional source/asset dependency
   fingerprints once those materialized artifact paths exist.
-- Add the dedicated Lab UI surface for `Missing` / `Re-render required`
-  materialized clips.
+- First status surface was completed later in `48a79a0a`; richer
+  materialized-clip UI remains a product UX decision.
 
 ### Materialized WAV Asset File Fingerprints
 
@@ -484,8 +546,8 @@ Follow-up:
 
 - Add future spectral settings and any additional source/asset dependency
   fingerprints once those materialized artifact paths exist.
-- Add the dedicated Lab UI surface for `Missing` / `Re-render required`
-  materialized clips.
+- First status surface was completed later in `48a79a0a`; richer
+  materialized-clip UI remains a product UX decision.
 
 ### Project-Lifecycle Materialized Asset Persistence
 
@@ -537,8 +599,9 @@ Verification:
 
 Follow-up:
 
-- Add materialized asset dependency signatures, stale detection, and a visible
-  `Re-render required` state.
+- Materialized asset dependency signatures, stale detection, and first visible
+  `Re-render required` state were completed later in the Gate C slices through
+  `48a79a0a`.
 - Add realtime LayerPlayer consumption of materialized clips without disk I/O in
   the audio callback.
 
@@ -1611,6 +1674,15 @@ Follow-up:
   failures.
 - Full Lab CTest was intentionally not run for the focused
   `lab.audio_file_in` source dependency fingerprint slice.
+- `xyona-lab`: `git diff --check` passed before committing the materialized
+  audio status surface.
+- `xyona-lab`: `XYONA_CORE_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-core cmake --build build/macos-dev --target xyona_lab_tests`
+  passed after adding the materialized audio status surface.
+- `xyona-lab`: `build/macos-dev/tests/xyona_lab_tests --test="Materialized Audio Store" --summary-only --xyona-only`
+  passed after adding the status summary coverage; 6 tests, 145 passes, 0
+  failures.
+- Full Lab CTest was intentionally not run for the focused Gate C status-surface
+  slice.
 
 ## Open Risks
 
@@ -1621,9 +1693,11 @@ Follow-up:
   AudioEngineManager materialize path computes current graph/job/parameter
   signatures, and `lab.audio_file_in` source files plus materialized WAV assets
   are fingerprinted. Future spectral settings, additional source/asset types,
-  and pack binary identity beyond descriptor/artifact versions are still open.
-- `Missing` and `Stale` states are persisted and diagnosable, but there is not
-  yet a dedicated UI surface for re-rendering those clips.
+  and pack binary identity beyond descriptor/artifact versions are still open as
+  future artifact paths appear.
+- `Missing` and `Stale` states are persisted, diagnosable, and visible through
+  the BottomBar status surface. A richer materialized clip/render-queue UI is
+  still a later product UX decision.
 - Materialized clips are not yet consumed by the realtime LayerPlayer path, so
   the bridge proves storage, metadata, and file-backed reload but not RT
   playback.
