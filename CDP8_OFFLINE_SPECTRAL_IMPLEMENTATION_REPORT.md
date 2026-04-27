@@ -48,6 +48,39 @@ Repository: workspace root
 
 Branch: `docs/cdp8-offline-spectral-roadmap`
 
+Commit: to be backfilled by a later report update if needed.
+
+Subject planned for this commit: `chore: track CDP pack foundation pointer`
+
+Files changed:
+
+- `xyona-cdp-pack` gitlink
+- `CDP8_OFFLINE_SPECTRAL_IMPLEMENTATION_REPORT.md`
+
+Technical change:
+
+- Updates the workspace root's `xyona-cdp-pack` gitlink to the CDP pack
+  foundation branch state that contains:
+  - `e06a193 fix(cdp-pack): stabilize Windows test preset`
+  - `4708197 feat(cdp-pack): expose process shape metadata`
+- Records this pointer update in the implementation report.
+
+Verification:
+
+- `xyona-cdp-pack` branch state was verified before the gitlink update:
+  `.\build-and-test-dev.bat` passed with 11/11 CTest tests.
+
+Follow-up:
+
+- If publishing these branches, push `xyona-cdp-pack` before or alongside this
+  workspace root branch so the gitlink target exists remotely.
+
+### Workspace Root
+
+Repository: workspace root
+
+Branch: `docs/cdp8-offline-spectral-roadmap`
+
 Commit: `9153919`
 
 Subject: `docs: add CDP8 offline spectral roadmap`
