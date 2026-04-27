@@ -47,15 +47,16 @@ This is the handoff state after the first graph-scheduled whole-file CDP/HQ
 vertical slice, the first Canvas/runtime eligibility state for HQ-only CDP
 nodes, and the first in-memory materialized layer/clip bridge for RT-ready
 offline audio artifacts. The materialized store now also has the first
-file-backed asset/ProjectState manifest persistence API.
+file-backed asset/ProjectState manifest persistence API plus normal Lab
+Project save/open/save-as orchestration.
 
 Latest implementation commits:
 
 - `xyona-core`: `d4d437b feat(core): add offline pack ABI contract`
 - `xyona-cdp-pack`: `57105fa feat(cdp-pack): add whole-file loudness normalise`
 - `xyona-lab`: `16e662dc feat(lab): persist materialized audio assets`
-- workspace root: `1c77da1 docs: record materialized clip bridge slice`; this
-  report update records `16e662dc` and can be backfilled later if needed.
+- `xyona-lab`: `ad6a7d53 feat(lab): wire materialized assets into project lifecycle`
+- workspace root: this report update records the latest Lab lifecycle slice.
 
 Current proven capability:
 
@@ -87,6 +88,13 @@ Current proven capability:
 - `ProjectState` now has a manifest anchor for materialized audio metadata, so
   the store manifest can survive a project save/load round-trip without embedding
   raw audio in the `.xyona` XML.
+- MainWindow project save and save-as now persist the active
+  `MaterializedAudioStore` before writing the `.xyona` file. Assets are stored
+  beside the project in `ProjectName.xyona-assets/materialized_audio`, while the
+  manifest keeps relative WAV filenames.
+- MainWindow project open now rehydrates materialized assets automatically. A
+  missing asset directory or file produces a user-visible warning and does not
+  leave stale layers in the active store.
 - The plan is now gated: the current whole-buffer offline ABI, currently named
   `offline_whole_buffer_prototype`, is a prototype/reference bridge. Length-changing,
   PVOC/spectral, multi-output, and production-scale long-file CDP work require
@@ -136,11 +144,7 @@ Next implementation steps, in order:
    - `MaterializedAudioStore` is the concrete `HQ_RT.md` Phase 7 store line.
    - length-changing and PVOC/spectral require implemented/tested
      Offline Session ABI.
-2. Complete materialized asset production persistence:
-   - project asset directory convention
-   - save/open/save-as lifecycle wiring
-   - relative paths
-   - missing asset diagnostics
+2. Finish materialized asset production persistence:
    - cleanup/orphan policy
    - dependency signatures and stale detection
    - user-visible `Re-render required` state
@@ -170,6 +174,62 @@ Hard gate summary:
   Offline Session ABI, typed data or asset handles, and CDP8 golden fixtures.
 
 ## Commit Log
+
+### Project-Lifecycle Materialized Asset Persistence
+
+Repository: `xyona-lab`
+
+Branch: `feature/cdp8-offline-foundation`
+
+Commit: `ad6a7d53`
+
+Subject: `feat(lab): wire materialized assets into project lifecycle`
+
+Files changed:
+
+- `src/app/lab/audio/engine/MaterializedAudioProjectPersistence.h`
+- `src/app/lab/audio/engine/MaterializedAudioProjectPersistence.cpp`
+- `src/app/lab/audio/engine/MaterializedAudioStore.cpp`
+- `src/app/MainWindow.cpp`
+- `src/app/CMakeLists.txt`
+- `tests/MaterializedAudioStoreTests.cpp`
+- `docs/architecture/HQ_RT.md`
+
+Technical change:
+
+- Added a Lab-side project persistence bridge for materialized audio assets.
+- Project save and save-as now persist resident materialized audio to
+  `ProjectName.xyona-assets/materialized_audio` and store relative WAV filenames
+  in the `ProjectState` materialized audio manifest before the `.xyona` file is
+  written.
+- Project open now loads the manifest plus asset directory back into the active
+  `AudioEngineManager` store. Missing assets are reported with a warning and do
+  not leave stale layers in the active store.
+- Fixed a JUCE debug assertion in repeated persistence/save-as by deriving a
+  filename from stored relative paths without constructing `juce::File` from a
+  relative path string.
+- Updated `HQ_RT.md` to mark the Project save/open/save-as lifecycle as done and
+  keep staleness, cleanup, and RT LayerPlayer consumption as the remaining Phase
+  7 work.
+
+Verification:
+
+- `xyona-lab`: `git diff --check`
+  - Result: passed.
+- `xyona-lab`: `XYONA_CORE_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-core cmake --build build/macos-dev --target xyona_lab_tests`
+  - Result: passed. Build succeeded with existing warning classes only.
+- `xyona-lab`: `build/macos-dev/tests/xyona_lab_tests --test="Materialized Audio Store" --summary-only --xyona-only`
+  - Result: passed; 3 tests, 59 passes, 0 failures.
+- Full Lab CTest was intentionally not rerun for this slice; the targeted
+  lifecycle suite covers the changed path and avoids the long blanket test run.
+
+Follow-up:
+
+- Add materialized asset dependency signatures, stale detection, and a visible
+  `Re-render required` state.
+- Define cleanup/orphan policy for project asset directories.
+- Add realtime LayerPlayer consumption of materialized clips without disk I/O in
+  the audio callback.
 
 ### Prototype Whole-Buffer ABI Rename
 
@@ -649,9 +709,8 @@ Verification:
 
 Follow-up:
 
-- Add real project save/open orchestration around these APIs, including a stable
-  project asset directory convention and clear diagnostics for missing WAV
-  assets.
+- Completed by `ad6a7d53 feat(lab): wire materialized assets into project
+  lifecycle`.
 - Add the realtime LayerPlayer adapter/path that consumes materialized clips
   instead of re-running the HQ graph.
 
@@ -1209,12 +1268,16 @@ Follow-up:
 - `xyona-lab`: `XYONA_OPERATOR_PACK_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-cdp-pack/build/macos-clang-debug ctest --test-dir build/macos-dev --output-on-failure -R '^(xyona_lab_tests|operator_packs_tests)$'`
   passed after the materialized asset persistence slice; 2/2 CTest tests
   passed.
+- `xyona-lab`: `XYONA_CORE_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-core cmake --build build/macos-dev --target xyona_lab_tests`
+  passed after wiring materialized assets into Project save/open/save-as.
+- `xyona-lab`: `build/macos-dev/tests/xyona_lab_tests --test="Materialized Audio Store" --summary-only --xyona-only`
+  passed after the project lifecycle wiring; 3 tests, 59 passes, 0 failures.
 
 ## Open Risks
 
-- `MaterializedAudioStore` now has file-backed asset persistence APIs and a
-  ProjectState manifest anchor, but the normal app save/open lifecycle does not
-  yet call them automatically.
+- `MaterializedAudioStore` now participates in normal Project save/open/save-as,
+  but cleanup/orphan policy and dependency-staleness state are not implemented
+  yet.
 - Materialized layers/clips do not yet carry dependency signatures, so stale
   source audio, parameter, render-range, sample-rate, algorithm-version, or
   spectral-setting changes are not yet surfaced as `Re-render required`.

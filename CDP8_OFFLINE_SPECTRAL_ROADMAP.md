@@ -42,15 +42,16 @@ Current state:
   prototype whole-buffer offline ABI and Lab can materialize the result as an
   RT-reentry-safe audio artifact.
 - Lab has a first `MaterializedAudioStore` for materialized layer/clip metadata,
-  in-memory resident audio, WAV-backed asset persistence APIs, and a ProjectState
-  manifest anchor.
+  in-memory resident audio, WAV-backed asset persistence APIs, a ProjectState
+  manifest anchor, and automatic Project save/open/save-as orchestration via a
+  project-local `*.xyona-assets/materialized_audio` directory.
 
 Missing state:
 
 - Offline Session ABI implemented and tested with streaming, progress, and
   cancellation. This is the first production offline pack contract.
-- App-level save/open lifecycle wiring for materialized assets, including stale
-  asset detection and user-visible re-render state.
+- Remaining production persistence for materialized assets: orphan cleanup,
+  dependency/stale detection, and user-visible re-render state.
 - Realtime LayerPlayer consumption of materialized clips.
 - Output length negotiation for length-changing CDP programs through the Offline
   Session ABI.
@@ -1366,11 +1367,7 @@ Mitigation:
    - `MaterializedAudioStore` is the concrete `HQ_RT.md` Phase 7 store line.
    - length-changing and PVOC/spectral require implemented/tested
      Offline Session ABI.
-2. Complete materialized asset production persistence:
-   - project asset directory convention
-   - save/open/save-as lifecycle wiring
-   - relative paths
-   - missing asset diagnostics
+2. Finish materialized asset production persistence:
    - cleanup/orphan policy
    - dependency signatures and stale detection
    - user-visible `Re-render required` state
