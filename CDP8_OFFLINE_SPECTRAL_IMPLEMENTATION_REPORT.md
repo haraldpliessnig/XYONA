@@ -43,14 +43,16 @@ report update can backfill prior report commit hashes.
 
 ## Continuation Note
 
-This is the handoff state after the first whole-file CDP/HQ vertical slice.
+This is the handoff state after the first graph-scheduled whole-file CDP/HQ
+vertical slice.
 
-Latest pushed commits:
+Latest implementation commits:
 
 - `xyona-core`: `d4d437b feat(core): add offline pack ABI contract`
 - `xyona-cdp-pack`: `57105fa feat(cdp-pack): add whole-file loudness normalise`
-- `xyona-lab`: `a83cf769 feat(lab): render whole-file offline pack artifacts`
-- workspace root: `a34809e docs: record whole-file normalise slice`
+- `xyona-lab`: `ffdeb47f feat(lab): schedule whole-file offline pack nodes`
+- workspace root: this report update records `ffdeb47f`; its own commit hash
+  can be backfilled by a later report update if needed.
 
 Current proven capability:
 
@@ -61,6 +63,9 @@ Current proven capability:
 - Lab can call the pack's optional offline API directly, materialize the output
   audio buffer, validate the `OfflineSessionContract`, and mark the artifact as
   RT re-entry-capable.
+- Lab can now also schedule same-length whole-file pack nodes inside the
+  offline/HQ graph for the first supported graph shape:
+  source/block region -> one whole-file node -> direct terminal audio targets.
 
 Resume commands on a fresh machine:
 
@@ -97,11 +102,12 @@ $env:XYONA_OPERATOR_PACK_PATH='D:\GITHUB\XYONA\xyona-cdp-pack\build\windows-msvc
 
 Next implementation steps, in order:
 
-1. Promote the direct `OfflineRenderEngine::renderWholeFileOperatorToBuffer`
-   entry point into graph-level scheduling for offline-only pack nodes.
-2. Teach Lab's graph/build diagnostics to distinguish "offline-only, valid for
-   HQ materialization" from "invalid for this graph" so Canvas nodes do not look
-   broken merely because they are not RT-capable.
+1. Add a Lab headless integration test for the real graph path:
+   source audio -> `cdp.modify.loudness_normalise` -> terminal output/file-out
+   through `OfflineGraphBuilder` and `OfflineRenderEngine`.
+2. Teach Canvas/UI state to distinguish "offline-only, valid for HQ
+   materialization" from "invalid for this graph" so valid HQ-only CDP nodes do
+   not look broken merely because they are not RT-capable.
 3. Add artifact persistence and RT/HQ bridge wiring through the existing
    `HQ_RT.md` layer/clip architecture, rather than creating a CDP-specific
    playback cache.
@@ -260,10 +266,81 @@ Verification:
 
 Follow-up:
 
-- Promote the direct whole-file render entry point into graph-level scheduling
-  for offline-only nodes.
+- Completed by `ffdeb47f feat(lab): schedule whole-file offline pack nodes`.
 - Persist materialized artifacts through the HQ/RT layer/clip bridge described
   in `xyona-lab/docs/architecture/HQ_RT.md`.
+
+### `xyona-lab`
+
+Repository: `xyona-lab`
+
+Branch: `feature/cdp8-offline-foundation`
+
+Commit: `ffdeb47f`
+
+Subject: `feat(lab): schedule whole-file offline pack nodes`
+
+Files changed:
+
+- `src/app/lab/adapters/OperatorProcessMetadata.h`
+- `src/app/lab/adapters/OperatorProcessMetadata.cpp`
+- `src/app/lab/audio/adapter/AudioIOHostAdapters.h`
+- `src/app/lab/audio/adapter/AudioIOHostAdapters.cpp`
+- `src/app/lab/audio/builder/AudioGraphBuilder.cpp`
+- `src/app/lab/audio/engine/AudioGraphProcessor.h`
+- `src/app/lab/audio/engine/OfflineRenderEngine.cpp`
+- `tests/OperatorProcessMetadataTests.cpp`
+
+Technical change:
+
+- Added `supportsOfflineWholeFileHostContract(...)` so Lab can recognize
+  HQ-only, same-length, whole-file pack operators from descriptor metadata.
+- Added `OfflineWholeFilePackHostAdapter`, an offline-only graph adapter that
+  captures full input audio during block graph execution, captures the first
+  parameter snapshot, and invokes `OfflinePackProcessorClient` after the block
+  region has rendered.
+- Extended `GraphPlan` with scheduled whole-file node sidecar metadata.
+- Taught `OfflineGraphBuilder` to keep supported same-length whole-file nodes
+  in the HQ graph and construct `OfflineWholeFilePackHostAdapter` for them.
+- Taught `OfflineRenderEngine` to materialize exactly one active whole-file
+  node in the first supported scheduling slice:
+  - direct terminal audio targets only
+  - whole-file node must feed every render terminal
+  - terminal targets cannot have additional direct inputs
+  - channel mappings must be complete
+  - output length must match the internal render range
+- Replaces device/file-out/signal-capture material with the materialized
+  whole-file result when the supported terminal shape is detected.
+- Added a metadata unit test proving that
+  `whole_file_length_preserving` / `same_as_input` / `requires_whole_file_host_contract`
+  is rejected by current block builders but accepted by the offline whole-file
+  scheduler helper.
+
+Verification:
+
+- `xyona-core`: `./build-dev.sh`
+  - Result: passed.
+- `xyona-cdp-pack`: `./build-dev.sh`
+  - Result: passed.
+- `xyona-cdp-pack`: `ctest --preset macos-clang-debug --output-on-failure`
+  - Result: passed; 12/12 CTest tests passed.
+- `xyona-lab`: `./build-dev.sh`
+  - Result: passed. Build succeeded with existing warning classes only.
+- `xyona-lab`: `cmake --build build/macos-dev --target xyona_lab_tests`
+  - Result: passed after adding the metadata test.
+- `xyona-lab`: `build/macos-dev/tests/xyona_lab_tests --test="Operator Process Metadata" --summary-only --xyona-only`
+  - Result: passed; 6 tests, 49 passes, 0 failures.
+- `xyona-lab`: `XYONA_OPERATOR_PACK_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-cdp-pack/build/macos-clang-debug ctest --test-dir build/macos-dev --output-on-failure -R '^(xyona_lab_tests|operator_packs_tests)$'`
+  - Result: passed; 2/2 CTest tests passed.
+- `xyona-lab`: `git diff --check`
+  - Result: passed.
+
+Follow-up:
+
+- Add a dedicated graph-path Lab integration test for
+  `source -> cdp.modify.loudness_normalise -> output/file-out`.
+- Keep length-changing, multi-output, and typed data operators closed until
+  output-length negotiation and typed artifact flow exist.
 
 ### Workspace Root
 
@@ -694,6 +771,19 @@ Follow-up:
 - `xyona-lab`: `.\build\windows-dev\tests\Debug\xyona_lab_tests.exe
   --xyona-only --summary-only` passed with the same pack path; 1155 tests,
   943516 passes, 0 failures.
+- `xyona-core`: `./build-dev.sh` passed on macOS before graph-level whole-file
+  Lab scheduling.
+- `xyona-cdp-pack`: `./build-dev.sh` passed on macOS before graph-level
+  whole-file Lab scheduling.
+- `xyona-cdp-pack`: `ctest --preset macos-clang-debug --output-on-failure`
+  passed on macOS; 12/12 CTest tests passed.
+- `xyona-lab`: `./build-dev.sh` passed on macOS after graph-level whole-file
+  Lab scheduling.
+- `xyona-lab`: `build/macos-dev/tests/xyona_lab_tests --test="Operator Process Metadata" --summary-only --xyona-only`
+  passed after the offline whole-file scheduler metadata test was added; 6
+  tests, 49 passes, 0 failures.
+- `xyona-lab`: `XYONA_OPERATOR_PACK_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-cdp-pack/build/macos-clang-debug ctest --test-dir build/macos-dev --output-on-failure -R '^(xyona_lab_tests|operator_packs_tests)$'`
+  passed; 2/2 CTest tests passed.
 
 ## Open Risks
 
