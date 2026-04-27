@@ -44,14 +44,18 @@ Current state:
 - Lab has a first `MaterializedAudioStore` for materialized layer/clip metadata,
   in-memory resident audio, WAV-backed asset persistence APIs, a ProjectState
   manifest anchor, and automatic Project save/open/save-as orchestration via a
-  project-local `*.xyona-assets/materialized_audio` directory.
+  project-local `*.xyona-assets/materialized_audio` directory. The store also
+  persists a per-layer dependency signature plus `Valid`, `Rendering`, `Stale`,
+  `Missing`, and `Failed` states and clears resident audio when a layer becomes
+  stale or missing.
 
 Missing state:
 
 - Offline Session ABI implemented and tested with streaming, progress, and
   cancellation. This is the first production offline pack contract.
 - Remaining production persistence for materialized assets: orphan cleanup,
-  dependency/stale detection, and user-visible re-render state.
+  graph-side current dependency signatures for source audio/parameters/pack
+  versions/spectral settings, and a dedicated UI surface for re-render state.
 - Realtime LayerPlayer consumption of materialized clips.
 - Output length negotiation for length-changing CDP programs through the Offline
   Session ABI.
@@ -258,8 +262,9 @@ Exit criteria:
 
 ### Gate C - Production Persistence And Staleness
 
-Materialized assets are not production-ready until normal project save/open
-orchestration and staleness detection exist.
+Normal project save/open orchestration now exists. Materialized assets are not
+production-complete until graph-wide dependency signatures, stale/missing UI
+states, and cleanup/orphan policy exist.
 
 Required behavior:
 
@@ -1369,8 +1374,10 @@ Mitigation:
      Offline Session ABI.
 2. Finish materialized asset production persistence:
    - cleanup/orphan policy
-   - dependency signatures and stale detection
-   - user-visible `Re-render required` state
+   - graph-side current dependency signatures for source audio, parameters,
+     render range, pack algorithm version, dependent assets, and spectral
+     settings
+   - dedicated UI surface for `Re-render required` / `Missing` materialized clips
 3. Add realtime LayerPlayer consumption of `MaterializedAudioStore` clips with
    no disk I/O or pack calls in the audio callback.
 4. Add CI baseline for Core, Pack, and Lab on macOS Clang and Windows MSVC.
