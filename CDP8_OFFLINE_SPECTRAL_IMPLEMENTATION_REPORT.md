@@ -57,6 +57,9 @@ audio during project asset reload.
 Materialized WAV asset files now also carry content fingerprints so external
 asset edits reload as `Stale` / `Re-render required` instead of valid resident
 audio.
+Lab now also persists `file` / `path` / `string` operator parameters through
+Canvas project state, and `lab.audio_file_in` source WAV files feed content
+fingerprints into materialized render-dependency signatures.
 
 Latest implementation commits:
 
@@ -68,8 +71,10 @@ Latest implementation commits:
 - `xyona-lab`: `5adbcb97 feat(lab): fingerprint materialized render dependencies`
 - `xyona-lab`: `f87b14aa feat(lab): clean orphaned materialized audio assets`
 - `xyona-lab`: `1d24ef1a feat(lab): fingerprint materialized audio asset files`
+- `xyona-lab`: `a9271660 feat(lab): fingerprint audio file source dependencies`
 - workspace root: this report update records the latest Lab render-dependency
-  signature, orphan-cleanup, and materialized asset file-fingerprint slices.
+  signature, orphan-cleanup, materialized asset file-fingerprint, and
+  `lab.audio_file_in` source-fingerprint slices.
 
 Current proven capability:
 
@@ -133,6 +138,11 @@ Current proven capability:
   (size/mtime/FNV-64). If an external edit changes the stored asset, project
   reload marks the layer `Stale`, records `Re-render required`, and leaves it
   nonresident/non-RT-playable.
+- `lab.audio_file_in` source file paths now persist as string parameters instead
+  of being coerced through numeric parameter state, and source WAV content
+  fingerprints now participate in materialized render-dependency signatures.
+  Changing the source file changes the signature and makes older materialized
+  layers fail the current-signature check as `Stale` / `Re-render required`.
 - The plan is now gated: the current whole-buffer offline ABI, currently named
   `offline_whole_buffer_prototype`, is a prototype/reference bridge. Length-changing,
   PVOC/spectral, multi-output, and production-scale long-file CDP work require
@@ -183,7 +193,6 @@ Next implementation steps, in order:
    - length-changing and PVOC/spectral require implemented/tested
      Offline Session ABI.
 2. Finish materialized asset production persistence:
-   - external source file fingerprints
    - future spectral settings in dependency signatures once spectral
      materialized artifacts exist
    - dedicated UI surface for `Re-render required` / `Missing` materialized clips
@@ -207,12 +216,75 @@ Hard gate summary:
   prototype/reference path for existing same-length work. It is not a release
   production path for length-changing, PVOC/spectral, multi-output, or
   long-running CDP operators.
-- Persistence is not production-complete until materialized asset dependencies
-  are fingerprinted and stale/missing assets produce a visible re-render state.
+- Persistence is not production-complete until future materialized artifact
+  dependencies are covered as they appear and stale/missing assets produce a
+  visible re-render state.
 - PVOC/spectral has an explicit hard dependency on implemented/tested
   Offline Session ABI, typed data or asset handles, and CDP8 golden fixtures.
 
 ## Commit Log
+
+### Audio File Source Dependency Fingerprints
+
+Repository: `xyona-lab`
+
+Branch: `feature/cdp8-offline-foundation`
+
+Commit: `a9271660`
+
+Subject: `feat(lab): fingerprint audio file source dependencies`
+
+Files changed:
+
+- `src/app/lab/adapters/CorePayload.h`
+- `src/app/lab/adapters/NodeBinder.h`
+- `src/app/lab/adapters/NodeBinder.cpp`
+- `src/app/lab/canvas/Canvas.Persistence.cpp`
+- `src/app/lab/audio/builder/AudioGraphBuilder.cpp`
+- `src/app/lab/audio/engine/AudioEngineManager.cpp`
+- `tests/AudioEngineManagerTests.cpp`
+- `tests/CanvasParamPersistenceTests.cpp`
+- `docs/architecture/HQ_RT.md`
+
+Technical change:
+
+- Added `CorePayload::stringParamValues` for non-RT setup parameters such as
+  file/path/string values while keeping numeric `paramValues` as the primary RT
+  path.
+- `NodeBinder` now initializes, restores, and applies descriptor parameters of
+  type `file`, `path`, or `string` as string values, and Canvas persistence
+  round-trips them through a `stringParams` array.
+- `AudioGraphBuilder` and `OfflineGraphBuilder` now read `lab.audio_file_in`
+  and file-out `file_path` values from string parameter state, with numeric
+  fallback for older payloads.
+- `AudioEngineManager` now includes sorted string parameter values in
+  materialized render-dependency fingerprints and adds a source-file content
+  fingerprint for `lab.audio_file_in` paths.
+- A focused integration test proves that changing the source WAV for
+  `lab.audio_file_in` changes the materialized dependency signature and makes
+  the older layer verify as `Stale` / `Re-render required` / not RT-playable.
+- `HQ_RT.md` now marks `lab.audio_file_in` source dependency fingerprints as
+  implemented for the current materialized audio path.
+
+Verification:
+
+- `xyona-lab`: `git diff --check`
+  - Result: passed.
+- `xyona-lab`: `XYONA_CORE_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-core cmake --build build/macos-dev --target xyona_lab_tests`
+  - Result: passed. Build succeeded with existing warning classes only.
+- `xyona-lab`: `build/macos-dev/tests/xyona_lab_tests --test="AudioEngineManager Minimal Plan" --summary-only --xyona-only`
+  - Result: passed; 36 tests, 537 passes, 0 failures. The CDP pack subtest was
+    skipped because `XYONA_OPERATOR_PACK_PATH` was unset.
+- `xyona-lab`: `build/macos-dev/tests/xyona_lab_tests --test="Canvas Param Persistence" --summary-only --xyona-only`
+  - Result: passed; 14 tests, 88 passes, 0 failures.
+- Full Lab CTest was intentionally not run for this focused Gate C slice.
+
+Follow-up:
+
+- Add future spectral settings and any additional external source/asset types
+  to dependency signatures as those materialized artifact paths are introduced.
+- Add the dedicated Lab UI surface for `Missing` / `Re-render required`
+  materialized clips.
 
 ### Store-Level Materialized Asset Staleness
 
@@ -258,8 +330,9 @@ Verification:
 
 Follow-up:
 
-- Feed the store API with external source file fingerprints and future spectral
-  settings once those materialized artifact types exist.
+- Feed the store API with future spectral settings and any additional
+  source/asset dependency fingerprints once those materialized artifact types
+  exist.
 - Add the user-facing Lab UI surface for `Missing` / `Re-render required`
   materialized clips.
 
@@ -296,8 +369,8 @@ Technical change:
   signature changes, and proves the old layer transitions to `Stale` with
   `Re-render required` and `isRealtimePlayable() == false`.
 - `HQ_RT.md` now marks the graph/job/parameter side of current signatures as
-  implemented and keeps external source file fingerprints, spectral settings,
-  UI, and LayerPlayer RT consumption open.
+  implemented. At this point, external source file fingerprints, spectral
+  settings, UI, and LayerPlayer RT consumption remained open.
 
 Verification:
 
@@ -313,7 +386,8 @@ Verification:
 
 Follow-up:
 
-- Add external source file fingerprints before Gate C is considered complete.
+- Add future spectral settings and any additional source/asset dependency
+  fingerprints once those materialized artifact paths exist.
 - Add the dedicated Lab UI surface for `Missing` / `Re-render required`
   materialized clips.
 
@@ -359,7 +433,8 @@ Verification:
 
 Follow-up:
 
-- Add external source file fingerprints before Gate C is considered complete.
+- Add future spectral settings and any additional source/asset dependency
+  fingerprints once those materialized artifact paths exist.
 - Add the dedicated Lab UI surface for `Missing` / `Re-render required`
   materialized clips.
 
@@ -392,7 +467,8 @@ Technical change:
   `isRealtimePlayable() == false`.
 - Existing manifests without `fileFingerprint` remain load-compatible.
 - `HQ_RT.md` now distinguishes implemented materialized WAV dependent-asset
-  fingerprints from still-open external source file fingerprints.
+  fingerprints from source-file fingerprints, which were added in the later
+  `a9271660` slice.
 
 Verification:
 
@@ -406,7 +482,8 @@ Verification:
 
 Follow-up:
 
-- Add external source file fingerprints before Gate C is considered complete.
+- Add future spectral settings and any additional source/asset dependency
+  fingerprints once those materialized artifact paths exist.
 - Add the dedicated Lab UI surface for `Missing` / `Re-render required`
   materialized clips.
 
@@ -1521,15 +1598,29 @@ Follow-up:
 - `xyona-lab`: `build/macos-dev/tests/xyona_lab_tests --test="Materialized Audio Store" --summary-only --xyona-only`
   passed after materialized WAV asset file fingerprints; 5 tests, 123 passes,
   0 failures.
+- `xyona-lab`: `git diff --check` passed before committing
+  `lab.audio_file_in` source dependency fingerprints.
+- `xyona-lab`: `XYONA_CORE_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-core cmake --build build/macos-dev --target xyona_lab_tests`
+  passed after adding `lab.audio_file_in` source dependency fingerprints.
+- `xyona-lab`: `build/macos-dev/tests/xyona_lab_tests --test="AudioEngineManager Minimal Plan" --summary-only --xyona-only`
+  passed after adding `lab.audio_file_in` source dependency fingerprints; 36
+  tests, 537 passes, 0 failures. The CDP pack subtest was skipped because
+  `XYONA_OPERATOR_PACK_PATH` was unset.
+- `xyona-lab`: `build/macos-dev/tests/xyona_lab_tests --test="Canvas Param Persistence" --summary-only --xyona-only`
+  passed after adding string parameter persistence; 14 tests, 88 passes, 0
+  failures.
+- Full Lab CTest was intentionally not run for the focused
+  `lab.audio_file_in` source dependency fingerprint slice.
 
 ## Open Risks
 
 - `MaterializedAudioStore` now participates in normal Project save/open/save-as,
   and Project save now removes orphaned materialized audio assets from the
   store-owned asset directory.
-- Materialized layers now carry store-level dependency signatures and the
+- Materialized layers now carry store-level dependency signatures, the
   AudioEngineManager materialize path computes current graph/job/parameter
-  signatures, but external source file fingerprints, future spectral settings,
+  signatures, and `lab.audio_file_in` source files plus materialized WAV assets
+  are fingerprinted. Future spectral settings, additional source/asset types,
   and pack binary identity beyond descriptor/artifact versions are still open.
 - `Missing` and `Stale` states are persisted and diagnosable, but there is not
   yet a dedicated UI surface for re-rendering those clips.
