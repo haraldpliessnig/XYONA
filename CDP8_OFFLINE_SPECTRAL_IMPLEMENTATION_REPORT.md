@@ -44,16 +44,17 @@ report update can backfill prior report commit hashes.
 ## Continuation Note
 
 This is the handoff state after the first graph-scheduled whole-file CDP/HQ
-vertical slice and the first Canvas/runtime eligibility state for HQ-only CDP
-nodes.
+vertical slice, the first Canvas/runtime eligibility state for HQ-only CDP
+nodes, and the first in-memory materialized layer/clip bridge for RT-ready
+offline audio artifacts.
 
 Latest implementation commits:
 
 - `xyona-core`: `d4d437b feat(core): add offline pack ABI contract`
 - `xyona-cdp-pack`: `57105fa feat(cdp-pack): add whole-file loudness normalise`
-- `xyona-lab`: `6131bce2 feat(lab): mark offline-only CDP nodes`
-- workspace root: this report update records `6131bce2`; its own commit hash
-  can be backfilled by a later report update if needed.
+- `xyona-lab`: `e44c0d7f feat(lab): materialize offline renders as clips`
+- workspace root: `934425e docs: record offline-only node state slice`; this
+  report update records `e44c0d7f` and can be backfilled later if needed.
 
 Current proven capability:
 
@@ -74,6 +75,11 @@ Current proven capability:
   marked as valid offline whole-file work instead of an invalid RT node.
 - Realtime graph diagnostics now distinguish offline-materializable HQ-only
   nodes from genuinely unsupported capability/process-shape failures.
+- Lab can materialize the first RT-ready audio artifact from an offline render
+  into `MaterializedAudioStore` as a layer-backed clip.
+- The materialized clip bridge preserves producer/session/artifact metadata and
+  resident in-memory audio for the current Lab session; its manifest round-trip
+  stores metadata only and deliberately does not inline raw audio frames.
 
 Resume commands on a fresh machine:
 
@@ -110,9 +116,9 @@ $env:XYONA_OPERATOR_PACK_PATH='D:\GITHUB\XYONA\xyona-cdp-pack\build\windows-msvc
 
 Next implementation steps, in order:
 
-1. Add artifact persistence and RT/HQ bridge wiring through the existing
-   `HQ_RT.md` layer/clip architecture, rather than creating a CDP-specific
-   playback cache.
+1. Complete the RT/HQ bridge by turning materialized audio into file-backed
+   ProjectState assets and making the realtime LayerPlayer consume the
+   materialized layer/clip store.
 2. Add output-length negotiation before any length-changing CDP operator is
    implemented.
 3. Only after length negotiation exists, pick a small length-changing
@@ -445,10 +451,108 @@ Verification:
 
 Follow-up:
 
-- Build artifact persistence and RT/HQ bridge wiring through the existing
-  `HQ_RT.md` layer/clip architecture.
+- Completed in part by `e44c0d7f feat(lab): materialize offline renders as
+  clips`.
+- Finish file-backed artifact persistence and realtime LayerPlayer consumption
+  through the existing `HQ_RT.md` layer/clip architecture.
 - Keep length-changing and typed spectral CDP operators gated until output
   length negotiation and typed artifact semantics exist.
+
+### `xyona-lab`
+
+Repository: `xyona-lab`
+
+Branch: `feature/cdp8-offline-foundation`
+
+Commit: `e44c0d7f`
+
+Subject: `feat(lab): materialize offline renders as clips`
+
+Files changed:
+
+- `src/app/lab/audio/engine/MaterializedAudioStore.h`
+- `src/app/lab/audio/engine/MaterializedAudioStore.cpp`
+- `src/app/lab/audio/engine/AudioEngineManager.h`
+- `src/app/lab/audio/engine/AudioEngineManager.cpp`
+- `src/app/CMakeLists.txt`
+- `tests/MaterializedAudioStoreTests.cpp`
+- `tests/AudioEngineManagerTests.cpp`
+- `tests/CMakeLists.txt`
+
+Technical change:
+
+- Added `MaterializedAudioStore`, a Lab-owned layer/clip store for RT-ready
+  offline audio artifacts.
+- The store validates `OfflineSessionContract` / `OfflineArtifactContract`,
+  rejects data-only or non-RT-reentry artifacts, copies resident audio into a
+  materialized layer, and creates timeline clips that reference that layer.
+- Added a `juce::ValueTree` manifest round-trip for layer/clip metadata. The
+  manifest preserves artifact metadata and IDs, but deliberately does not
+  serialize raw audio buffers.
+- Added `AudioEngineManager::renderOfflineToMaterializedClip(...)`, which
+  renders the HQ/offline graph, picks the first RT-ready audio artifact,
+  normalizes its sample/channel/range metadata to the rendered buffer, and
+  inserts it into the materialized store.
+- Extended the CDP whole-file normalise integration test so the graph render is
+  also materialized as a reusable layer-backed clip.
+
+Verification:
+
+- `xyona-lab`: `cmake --build build/macos-dev --target xyona_lab_tests`
+  - Result: passed. Build succeeded with existing warning classes only.
+- `xyona-lab`: `build/macos-dev/tests/xyona_lab_tests --test="Materialized Audio Store" --summary-only --xyona-only`
+  - Result: passed; 2 tests, 23 passes, 0 failures.
+- `xyona-lab`: `XYONA_OPERATOR_PACK_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-cdp-pack/build/macos-clang-debug build/macos-dev/tests/xyona_lab_tests --test="CDP Pack Canvas Smoke" --summary-only --xyona-only`
+  - Result: passed; 7 tests, 220 passes, 0 failures.
+- `xyona-lab`: `XYONA_OPERATOR_PACK_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-cdp-pack/build/macos-clang-debug build/macos-dev/tests/xyona_lab_tests --test="AudioEngineManager Minimal Plan" --summary-only --xyona-only`
+  - Result: passed; 35 tests, 555 passes, 0 failures.
+- `xyona-lab`: `XYONA_OPERATOR_PACK_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-cdp-pack/build/macos-clang-debug ctest --test-dir build/macos-dev --output-on-failure -R '^(xyona_lab_tests|operator_packs_tests)$'`
+  - Result: passed; 2/2 CTest tests passed.
+- `xyona-lab`: `git diff --check`
+  - Result: passed.
+
+Follow-up:
+
+- Wire the materialized manifest into ProjectState and store rendered audio as
+  file-backed assets so materialized layers survive process restart.
+- Add the realtime LayerPlayer adapter/path that consumes materialized clips
+  instead of re-running the HQ graph.
+- Keep length-changing and typed spectral CDP operators gated until the bridge
+  can handle persisted artifacts, output-length negotiation, and typed data.
+
+### Workspace Root
+
+Repository: workspace root
+
+Branch: `docs/cdp8-offline-spectral-roadmap`
+
+Commit: pending report commit
+
+Subject: `docs: record materialized clip bridge slice`
+
+Files changed:
+
+- `CDP8_OFFLINE_SPECTRAL_IMPLEMENTATION_REPORT.md`
+
+Technical change:
+
+- Updated the implementation report to record the first materialized layer/clip
+  bridge slice in `xyona-lab`.
+- Clarified that current materialization is in-memory audio plus metadata
+  manifest, not yet file-backed ProjectState persistence or realtime
+  LayerPlayer playback.
+- Updated the next implementation step to focus on file-backed artifact assets
+  and RT LayerPlayer consumption.
+
+Verification:
+
+- `git diff --check`
+  - Result: passed.
+
+Follow-up:
+
+- Backfill this root commit hash in a later report update if exact root-report
+  self-reference becomes necessary.
 
 ### Workspace Root
 
@@ -909,13 +1013,28 @@ Follow-up:
 - `xyona-lab`: `XYONA_OPERATOR_PACK_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-cdp-pack/build/macos-clang-debug ctest --test-dir build/macos-dev --output-on-failure -R '^(xyona_lab_tests|operator_packs_tests)$'`
   passed after Canvas/runtime eligibility state was added; 2/2 CTest tests
   passed.
+- `xyona-lab`: `cmake --build build/macos-dev --target xyona_lab_tests`
+  passed after adding the materialized audio store and bridge API.
+- `xyona-lab`: `build/macos-dev/tests/xyona_lab_tests --test="Materialized Audio Store" --summary-only --xyona-only`
+  passed after materialized layer/clip store coverage was added; 2 tests, 23
+  passes, 0 failures.
+- `xyona-lab`: `XYONA_OPERATOR_PACK_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-cdp-pack/build/macos-clang-debug build/macos-dev/tests/xyona_lab_tests --test="CDP Pack Canvas Smoke" --summary-only --xyona-only`
+  passed after the materialized bridge slice; 7 tests, 220 passes, 0 failures.
+- `xyona-lab`: `XYONA_OPERATOR_PACK_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-cdp-pack/build/macos-clang-debug build/macos-dev/tests/xyona_lab_tests --test="AudioEngineManager Minimal Plan" --summary-only --xyona-only`
+  passed after the normalise render was also materialized as a clip; 35 tests,
+  555 passes, 0 failures.
+- `xyona-lab`: `XYONA_OPERATOR_PACK_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-cdp-pack/build/macos-clang-debug ctest --test-dir build/macos-dev --output-on-failure -R '^(xyona_lab_tests|operator_packs_tests)$'`
+  passed after the materialized bridge slice; 2/2 CTest tests passed.
 
 ## Open Risks
 
-- The first implementation slice must not fork a CDP-only RT re-entry path. It
-  must align with `xyona-lab/docs/architecture/HQ_RT.md` Phase 5-7.
-- Same-length whole-file CDP operators now have a first execution path.
-  Length-changing CDP operators still need output length negotiation before
-  they are allowed to materialize artifacts.
-- The first real length-changing vertical slice still needs layer/clip
-  persistence and RT re-entry wiring after artifact materialization.
+- `MaterializedAudioStore` is currently a session-local bridge. The manifest
+  round-trips metadata only; raw rendered audio still needs file-backed asset
+  persistence before restart/reload is safe.
+- Materialized clips are not yet consumed by the realtime LayerPlayer path, so
+  the bridge proves storage and metadata but not RT playback.
+- Same-length whole-file CDP operators now have a first execution and
+  materialization path. Length-changing CDP operators still need output length
+  negotiation before they are allowed to materialize artifacts.
+- Typed spectral/PVOC artifacts remain data-only until typed artifact ports and
+  host semantics exist; they must not be routed through audio buffers.
