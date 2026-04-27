@@ -42,6 +42,43 @@ report update can backfill prior report commit hashes.
 
 ## Commit Log
 
+### Workspace Root
+
+Repository: workspace root
+
+Branch: `docs/cdp8-offline-spectral-roadmap`
+
+Commit: `9153919`
+
+Subject: `docs: add CDP8 offline spectral roadmap`
+
+Files changed:
+
+- `CDP8_OFFLINE_SPECTRAL_ROADMAP.md`
+- `CDP8_OFFLINE_SPECTRAL_IMPLEMENTATION_REPORT.md`
+
+Technical change:
+
+- Added a cross-repo roadmap for CDP8 offline execution, RT re-entry,
+  length-changing output, typed spectral data, and PVOC/PVX readiness.
+- Added this implementation report.
+- Aligned the roadmap with `xyona-lab/docs/architecture/HQ_RT.md` Phase 5-7 so
+  CDP RT re-entry uses the existing HQ/RT layer/clip architecture rather than a
+  CDP-specific cache path.
+- Documented the architecture documents considered by the roadmap:
+  `HQ_RT.md`, `PDC.md`, `PURE_DATA_NODES.md`,
+  `HIGH_END_ANALYZER_ARCHITECTURE_v2_2.md`, and related Lab ADRs.
+
+Verification:
+
+- `git diff --check`
+- Result: passed before commit.
+
+Follow-up:
+
+- This report update backfills the root commit hash. This report-update commit
+  can be backfilled by a later report update if needed.
+
 ### `xyona-lab`
 
 Repository: `xyona-lab`
@@ -130,37 +167,9 @@ Follow-up:
 - Keep the next implementation slice focused on host-visible process-shape
   metadata.
 
-## Workspace Root Documentation Work
-
-Commit hash: to be backfilled by a later report update if needed.
-
-Subject planned for this report commit: `docs: add CDP8 offline spectral roadmap`
-
-### Workspace Root
-
-Files:
-
-- `CDP8_OFFLINE_SPECTRAL_ROADMAP.md`
-- `CDP8_OFFLINE_SPECTRAL_IMPLEMENTATION_REPORT.md`
-
-Work:
-
-- Added a cross-repo roadmap for CDP8 offline execution, RT re-entry,
-  length-changing output, typed spectral data, and PVOC/PVX readiness.
-- Added this implementation report.
-- Updated the roadmap to explicitly align CDP RT re-entry with
-  `xyona-lab/docs/architecture/HQ_RT.md` Phase 5-7.
-
-### `xyona-lab`
-
-No uncommitted work.
-
-### `xyona-cdp-pack`
-
-No uncommitted work.
-
 ## Verification Log
 
+- workspace root: `git diff --check` passed before commit.
 - `xyona-lab`: `git diff --check` passed before commit.
 - `xyona-cdp-pack`: `git diff --check` passed before commit.
 - `xyona-cdp-pack`: `.\build-and-test-dev.bat` passed; 11/11 CTest tests passed.
