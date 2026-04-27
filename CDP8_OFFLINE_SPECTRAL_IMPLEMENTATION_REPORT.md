@@ -44,14 +44,15 @@ report update can backfill prior report commit hashes.
 ## Continuation Note
 
 This is the handoff state after the first graph-scheduled whole-file CDP/HQ
-vertical slice.
+vertical slice and the first Canvas/runtime eligibility state for HQ-only CDP
+nodes.
 
 Latest implementation commits:
 
 - `xyona-core`: `d4d437b feat(core): add offline pack ABI contract`
 - `xyona-cdp-pack`: `57105fa feat(cdp-pack): add whole-file loudness normalise`
-- `xyona-lab`: `6dee2ec5 test(lab): cover whole-file CDP graph render`
-- workspace root: this report update records `6dee2ec5`; its own commit hash
+- `xyona-lab`: `6131bce2 feat(lab): mark offline-only CDP nodes`
+- workspace root: this report update records `6131bce2`; its own commit hash
   can be backfilled by a later report update if needed.
 
 Current proven capability:
@@ -68,6 +69,11 @@ Current proven capability:
   source/block region -> one whole-file node -> direct terminal audio targets.
 - Lab has a headless integration test that proves the real graph path:
   `lab.grid_source -> cdp.utility.db_gain -> cdp.modify.loudness_normalise -> lab.mainbus_out`.
+- Canvas nodes now derive a runtime eligibility state from descriptor
+  capabilities and engine metadata, so `cdp.modify.loudness_normalise` is
+  marked as valid offline whole-file work instead of an invalid RT node.
+- Realtime graph diagnostics now distinguish offline-materializable HQ-only
+  nodes from genuinely unsupported capability/process-shape failures.
 
 Resume commands on a fresh machine:
 
@@ -104,17 +110,14 @@ $env:XYONA_OPERATOR_PACK_PATH='D:\GITHUB\XYONA\xyona-cdp-pack\build\windows-msvc
 
 Next implementation steps, in order:
 
-1. Teach Canvas/UI state to distinguish "offline-only, valid for HQ
-   materialization" from "invalid for this graph" so valid HQ-only CDP nodes do
-   not look broken merely because they are not RT-capable.
-2. Add artifact persistence and RT/HQ bridge wiring through the existing
+1. Add artifact persistence and RT/HQ bridge wiring through the existing
    `HQ_RT.md` layer/clip architecture, rather than creating a CDP-specific
    playback cache.
-3. Add output-length negotiation before any length-changing CDP operator is
+2. Add output-length negotiation before any length-changing CDP operator is
    implemented.
-4. Only after length negotiation exists, pick a small length-changing
+3. Only after length negotiation exists, pick a small length-changing
    time-domain CDP operator as the next vertical slice.
-5. Start PVOC/spectral work only after typed spectral artifact/port semantics
+4. Start PVOC/spectral work only after typed spectral artifact/port semantics
    are explicit; do not pass PVOC/PVX data through audio buffers.
 
 ## Commit Log
@@ -386,6 +389,66 @@ Follow-up:
 - Move from render-path proof to Canvas/UI validity state for HQ-only CDP nodes.
 - Keep artifact persistence and output-length negotiation as the next
   infrastructure milestones before length-changing CDP operators are enabled.
+
+### `xyona-lab`
+
+Repository: `xyona-lab`
+
+Branch: `feature/cdp8-offline-foundation`
+
+Commit: `6131bce2`
+
+Subject: `feat(lab): mark offline-only CDP nodes`
+
+Files changed:
+
+- `src/app/lab/audio/builder/AudioGraphBuilder.cpp`
+- `src/app/lab/audio/builder/GraphPlanDiagnostics.cpp`
+- `src/app/lab/audio/builder/GraphPlanDiagnostics.h`
+- `src/app/lab/canvas/Canvas.CoreNodes.cpp`
+- `src/app/lab/canvas/nodes/common/NodeData.h`
+- `src/app/lab/canvas/nodes/generic/renderers/GenericNodeRenderer.cpp`
+- `tests/AudioEngineManagerTests.cpp`
+- `tests/CdpPackCanvasSmokeTests.cpp`
+
+Technical change:
+
+- Added non-persisted Canvas node runtime eligibility state derived from
+  descriptor capabilities plus engine metadata.
+- `cdp.modify.loudness_normalise` now binds as `OfflineWholeFile` in Canvas,
+  while block CDP pack nodes continue to bind as realtime+offline capable.
+- Generic node rendering now draws a subtle accent for offline-only or
+  currently unsupported runtime states without adding visible explanatory text
+  to the node.
+- Realtime `AudioGraphBuilder` diagnostics now emit
+  `NodeOfflineOnlyMaterializable` for HQ/offline-only nodes that are valid for
+  offline materialization, rather than treating them as generic missing
+  `canRealtime` capability.
+- Process-shape diagnostics now mention whole-file input before the generic
+  unsupported host-contract message when both apply.
+- The CDP Canvas smoke test now covers `cdp.modify.loudness_normalise` metadata,
+  NodeBinder instantiation, parameter mini-readout, and offline-whole-file
+  runtime state.
+
+Verification:
+
+- `xyona-lab`: `cmake --build build/macos-dev --target xyona_lab_tests`
+  - Result: passed. Build succeeded with existing warning classes only.
+- `xyona-lab`: `XYONA_OPERATOR_PACK_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-cdp-pack/build/macos-clang-debug build/macos-dev/tests/xyona_lab_tests --test="CDP Pack Canvas Smoke" --summary-only --xyona-only`
+  - Result: passed; 7 tests, 220 passes, 0 failures.
+- `xyona-lab`: `XYONA_OPERATOR_PACK_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-cdp-pack/build/macos-clang-debug build/macos-dev/tests/xyona_lab_tests --test="AudioEngineManager Minimal Plan" --summary-only --xyona-only`
+  - Result: passed; 35 tests, 542 passes, 0 failures.
+- `xyona-lab`: `XYONA_OPERATOR_PACK_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-cdp-pack/build/macos-clang-debug ctest --test-dir build/macos-dev --output-on-failure -R '^(xyona_lab_tests|operator_packs_tests)$'`
+  - Result: passed; 2/2 CTest tests passed.
+- `xyona-lab`: `git diff --check`
+  - Result: passed.
+
+Follow-up:
+
+- Build artifact persistence and RT/HQ bridge wiring through the existing
+  `HQ_RT.md` layer/clip architecture.
+- Keep length-changing and typed spectral CDP operators gated until output
+  length negotiation and typed artifact semantics exist.
 
 ### Workspace Root
 
@@ -835,6 +898,17 @@ Follow-up:
 - `xyona-lab`: `XYONA_OPERATOR_PACK_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-cdp-pack/build/macos-clang-debug ctest --test-dir build/macos-dev --output-on-failure -R '^(xyona_lab_tests|operator_packs_tests)$'`
   passed after the graph-path CDP normalise integration test was added; 2/2
   CTest tests passed.
+- `xyona-lab`: `cmake --build build/macos-dev --target xyona_lab_tests`
+  passed after Canvas/runtime eligibility state was added.
+- `xyona-lab`: `XYONA_OPERATOR_PACK_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-cdp-pack/build/macos-clang-debug build/macos-dev/tests/xyona_lab_tests --test="CDP Pack Canvas Smoke" --summary-only --xyona-only`
+  passed after `cdp.modify.loudness_normalise` Canvas status coverage was
+  added; 7 tests, 220 passes, 0 failures.
+- `xyona-lab`: `XYONA_OPERATOR_PACK_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-cdp-pack/build/macos-clang-debug build/macos-dev/tests/xyona_lab_tests --test="AudioEngineManager Minimal Plan" --summary-only --xyona-only`
+  passed after offline-only graph diagnostics were added; 35 tests, 542 passes,
+  0 failures.
+- `xyona-lab`: `XYONA_OPERATOR_PACK_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-cdp-pack/build/macos-clang-debug ctest --test-dir build/macos-dev --output-on-failure -R '^(xyona_lab_tests|operator_packs_tests)$'`
+  passed after Canvas/runtime eligibility state was added; 2/2 CTest tests
+  passed.
 
 ## Open Risks
 
