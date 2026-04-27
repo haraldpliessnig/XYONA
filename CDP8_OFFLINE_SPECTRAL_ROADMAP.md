@@ -50,15 +50,17 @@ Current state:
   stale or missing. The AudioEngineManager materialize path now feeds those
   signatures with current render dependencies from the RenderJob, render range,
   sample rate, graph plan, wires, operator descriptor versions, parameters,
-  tempo, and grid context.
+  tempo, and grid context. Project save now also removes orphaned materialized
+  audio files and does not promote persisted stale/missing/failed material back
+  to valid RT-playable audio just because an old WAV file still exists.
 
 Missing state:
 
 - Offline Session ABI implemented and tested with streaming, progress, and
   cancellation. This is the first production offline pack contract.
-- Remaining production persistence for materialized assets: orphan cleanup,
-  external source/dependent asset file fingerprints, future spectral settings,
-  and a dedicated UI surface for re-render state.
+- Remaining production persistence for materialized assets: external
+  source/dependent asset file fingerprints, future spectral settings, and a
+  dedicated UI surface for re-render state.
 - Realtime LayerPlayer consumption of materialized clips.
 - Output length negotiation for length-changing CDP programs through the Offline
   Session ABI.
@@ -268,7 +270,8 @@ Exit criteria:
 Normal project save/open orchestration, store-level staleness state, and the
 first AudioEngineManager render-dependency signatures now exist. Materialized
 assets are not production-complete until external source/dependent asset
-fingerprints, stale/missing UI states, and cleanup/orphan policy exist.
+fingerprints and stale/missing UI states exist. Cleanup/orphan policy exists for
+the store-owned `materialized_audio` asset directory.
 
 Required behavior:
 
@@ -1384,7 +1387,6 @@ Mitigation:
    - length-changing and PVOC/spectral require implemented/tested
      Offline Session ABI.
 2. Finish materialized asset production persistence:
-   - cleanup/orphan policy
    - external source/dependent asset file fingerprints
    - future spectral settings in dependency signatures once spectral
      materialized artifacts exist

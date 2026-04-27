@@ -51,6 +51,9 @@ file-backed asset/ProjectState manifest persistence API plus normal Lab
 Project save/open/save-as orchestration and store-level staleness state.
 The AudioEngineManager materialize path now also feeds store signatures with
 current render-dependency fingerprints.
+Project save now also cleans orphaned materialized audio assets and stale,
+missing, or failed layers are not silently promoted back to valid RT-playable
+audio during project asset reload.
 
 Latest implementation commits:
 
@@ -60,8 +63,9 @@ Latest implementation commits:
 - `xyona-lab`: `ad6a7d53 feat(lab): wire materialized assets into project lifecycle`
 - `xyona-lab`: `6b71007b feat(lab): track materialized asset staleness`
 - `xyona-lab`: `5adbcb97 feat(lab): fingerprint materialized render dependencies`
+- `xyona-lab`: `f87b14aa feat(lab): clean orphaned materialized audio assets`
 - workspace root: this report update records the latest Lab render-dependency
-  signature slice.
+  signature and orphan-cleanup slices.
 
 Current proven capability:
 
@@ -116,6 +120,11 @@ Current proven capability:
 - A headless integration test now proves that changing an upstream operator
   parameter changes the materialized signature and that the older layer can be
   marked `Stale` / `Re-render required` / not RT-playable.
+- Project save now treats `*.xyona-assets/materialized_audio` as the
+  MaterializedAudioStore-owned directory: files not referenced by valid
+  manifest layers are deleted, empty materialized-audio directories are removed
+  when the store has no layers, and stale/missing/failed layers are not
+  rehydrated as `Valid` from old WAV files.
 - The plan is now gated: the current whole-buffer offline ABI, currently named
   `offline_whole_buffer_prototype`, is a prototype/reference bridge. Length-changing,
   PVOC/spectral, multi-output, and production-scale long-file CDP work require
@@ -166,7 +175,6 @@ Next implementation steps, in order:
    - length-changing and PVOC/spectral require implemented/tested
      Offline Session ABI.
 2. Finish materialized asset production persistence:
-   - cleanup/orphan policy
    - external source/dependent asset file fingerprints
    - future spectral settings in dependency signatures once spectral
      materialized artifacts exist
@@ -246,7 +254,6 @@ Follow-up:
   future spectral settings once those materialized artifact types exist.
 - Add the user-facing Lab UI surface for `Missing` / `Re-render required`
   materialized clips.
-- Define cleanup/orphan policy for project asset directories.
 
 ### Graph-Side Materialized Render Dependency Signatures
 
@@ -282,7 +289,7 @@ Technical change:
   `Re-render required` and `isRealtimePlayable() == false`.
 - `HQ_RT.md` now marks the graph/job/parameter side of current signatures as
   implemented and keeps external source/dependent asset file fingerprints,
-  spectral settings, UI, cleanup, and LayerPlayer RT consumption open.
+  spectral settings, UI, and LayerPlayer RT consumption open.
 
 Verification:
 
@@ -302,7 +309,53 @@ Follow-up:
   considered complete.
 - Add the dedicated Lab UI surface for `Missing` / `Re-render required`
   materialized clips.
-- Define cleanup/orphan policy for project asset directories.
+
+### Materialized Asset Orphan Cleanup
+
+Repository: `xyona-lab`
+
+Branch: `feature/cdp8-offline-foundation`
+
+Commit: `f87b14aa`
+
+Subject: `feat(lab): clean orphaned materialized audio assets`
+
+Files changed:
+
+- `src/app/lab/audio/engine/MaterializedAudioProjectPersistence.cpp`
+- `src/app/lab/audio/engine/MaterializedAudioStore.cpp`
+- `tests/MaterializedAudioStoreTests.cpp`
+- `docs/architecture/HQ_RT.md`
+
+Technical change:
+
+- Project save now removes unreferenced files from the store-owned
+  `*.xyona-assets/materialized_audio` directory.
+- Saving an empty materialized store removes an empty materialized-audio asset
+  directory.
+- Cleanup keeps only files referenced by currently `Valid` manifest layers, so
+  old WAV files from stale/missing/failed layers cannot remain active assets.
+- Project asset reload no longer loads resident audio for persisted
+  stale/missing/failed layers, preventing stale metadata from becoming
+  RT-playable just because an old file still exists.
+- `HQ_RT.md` now marks materialized asset cleanup/orphan policy as implemented.
+
+Verification:
+
+- `xyona-lab`: `git diff --check`
+  - Result: passed.
+- `xyona-lab`: `XYONA_CORE_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-core cmake --build build/macos-dev --target xyona_lab_tests`
+  - Result: passed. Build succeeded with existing warning classes only.
+- `xyona-lab`: `build/macos-dev/tests/xyona_lab_tests --test="Materialized Audio Store" --summary-only --xyona-only`
+  - Result: passed; 5 tests, 112 passes, 0 failures.
+- Full Lab CTest was intentionally not run for this focused persistence slice.
+
+Follow-up:
+
+- Add external source/dependent asset file fingerprints before Gate C is
+  considered complete.
+- Add the dedicated Lab UI surface for `Missing` / `Re-render required`
+  materialized clips.
 
 ### Project-Lifecycle Materialized Asset Persistence
 
@@ -356,7 +409,6 @@ Follow-up:
 
 - Add materialized asset dependency signatures, stale detection, and a visible
   `Re-render required` state.
-- Define cleanup/orphan policy for project asset directories.
 - Add realtime LayerPlayer consumption of materialized clips without disk I/O in
   the audio callback.
 
@@ -1406,11 +1458,17 @@ Follow-up:
 - `xyona-lab`: `build/macos-dev/tests/xyona_lab_tests --test="Materialized Audio Store" --summary-only --xyona-only`
   passed after adding store-level staleness/status tracking; 4 tests, 88
   passes, 0 failures.
+- `xyona-lab`: `XYONA_CORE_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-core cmake --build build/macos-dev --target xyona_lab_tests`
+  passed after adding materialized asset orphan cleanup.
+- `xyona-lab`: `build/macos-dev/tests/xyona_lab_tests --test="Materialized Audio Store" --summary-only --xyona-only`
+  passed after materialized asset orphan cleanup; 5 tests, 112 passes, 0
+  failures.
 
 ## Open Risks
 
 - `MaterializedAudioStore` now participates in normal Project save/open/save-as,
-  but cleanup/orphan policy is not implemented yet.
+  and Project save now removes orphaned materialized audio assets from the
+  store-owned asset directory.
 - Materialized layers now carry store-level dependency signatures and the
   AudioEngineManager materialize path computes current graph/job/parameter
   signatures, but external source/dependent asset file fingerprints, future
