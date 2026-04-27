@@ -31,8 +31,8 @@ Current state:
 - Core pack ABI v2 supports block-based audio operators with fixed `num_samples`
   per process call.
 - Core currently exposes a prototype whole-buffer offline C ABI, currently
-  named `offline_packs_v1`, for the first simple same-length whole-file
-  query/process slice.
+  named `offline_whole_buffer_prototype`, for the first simple same-length
+  whole-file query/process slice.
 - The CDP pack has the first dynamic pack, descriptor, buffer, validation, and
   block-safe operator infrastructure.
 - The CDP pack already classifies future process shapes such as whole-file,
@@ -212,11 +212,11 @@ dependency gate is complete.
 
 ### Gate A - Constrain Prototype Whole-Buffer Offline ABI
 
-The current whole-buffer offline ABI, currently named `offline_packs_v1`, is a
-temporary prototype/reference bridge. It remains valid only for bounded
-same-length, whole-buffer operators such as the current
-`cdp.modify.loudness_normalise` reference slice while the production Offline
-Session ABI is being built.
+The current whole-buffer offline ABI, currently named
+`offline_whole_buffer_prototype`, is a temporary prototype/reference bridge. It
+remains valid only for bounded same-length, whole-buffer operators such as the
+current `cdp.modify.loudness_normalise` reference slice while the production
+Offline Session ABI is being built.
 
 Allowed on the prototype:
 

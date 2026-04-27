@@ -88,9 +88,13 @@ Current proven capability:
   the store manifest can survive a project save/load round-trip without embedding
   raw audio in the `.xyona` XML.
 - The plan is now gated: the current whole-buffer offline ABI, currently named
-  `offline_packs_v1`, is a prototype/reference bridge. Length-changing,
+  `offline_whole_buffer_prototype`, is a prototype/reference bridge. Length-changing,
   PVOC/spectral, multi-output, and production-scale long-file CDP work require
   the implemented and tested Offline Session ABI.
+- The prototype whole-buffer ABI no longer uses release-like `v1` names in the
+  live code path. Core installs `xyona/api/offline_whole_buffer_prototype.h`,
+  the CDP pack exports `xyona_pack_get_offline_whole_buffer_prototype_api`, and
+  Lab resolves that symbol explicitly.
 
 Resume commands on a fresh machine:
 
@@ -167,6 +171,38 @@ Hard gate summary:
 
 ## Commit Log
 
+### Prototype Whole-Buffer ABI Rename
+
+Repositories:
+
+- `xyona-core`: `1b0468e refactor(core): rename offline prototype ABI`
+- `xyona-cdp-pack`: `142ca88 refactor(cdp-pack): use offline prototype ABI name`
+- `xyona-lab`: `9d8badad refactor(lab): load offline prototype ABI`
+
+Technical change:
+
+- Renamed the live prototype header from a release-looking offline-pack-v1 name
+  to `xyona/api/offline_whole_buffer_prototype.h`.
+- Renamed the exported CDP pack symbol to
+  `xyona_pack_get_offline_whole_buffer_prototype_api`.
+- Renamed prototype C ABI types and constants to the
+  `xyona_pack_offline_whole_buffer_prototype_*` /
+  `XYONA_PACK_OFFLINE_WHOLE_BUFFER_PROTOTYPE_*` namespace.
+- Updated Lab's `OfflinePackProcessorClient` dynamic lookup to require the new
+  prototype symbol.
+
+Verification:
+
+- `xyona-core`: `cmake --build --preset macos-clang-debug` passed.
+- `xyona-core`: `ctest --preset macos-clang-debug --output-on-failure` passed;
+  7/7 tests.
+- `xyona-cdp-pack`: `XYONA_CORE_ROOT=/Users/haraldpliessnig/Github/XYONA/xyona-core cmake --build --preset macos-clang-debug` passed.
+- `xyona-cdp-pack`: `ctest --test-dir build/macos-clang-debug --output-on-failure -R '^cdp_modify_loudness_normalise_tests$'` passed; 1/1 targeted test.
+- `xyona-cdp-pack`: `nm -gU build/macos-clang-debug/xyona_pack_cdp_ops.dylib | rg "offline.*api"` showed only `_xyona_pack_get_offline_whole_buffer_prototype_api`.
+- `xyona-lab`: `XYONA_CORE_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-core cmake --build build/macos-dev --target xyona_lab_tests` passed with existing warning classes.
+- `xyona-lab`: `XYONA_OPERATOR_PACK_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-cdp-pack/build/macos-clang-debug build/macos-dev/tests/xyona_lab_tests --test="Offline Pack Processor Client" --summary-only --xyona-only` passed; 1 test, 22 passes.
+- `git diff --check` passed for Root, Core, Pack, and Lab.
+
 ### `xyona-core`
 
 Repository: `xyona-core`
@@ -179,7 +215,7 @@ Subject: `feat(core): add offline pack ABI contract`
 
 Files changed:
 
-- `include/xyona/api/offline_packs_v1.h`
+- `include/xyona/api/offline_whole_buffer_prototype.h`
 - `CMakeLists.txt`
 - `tests/CMakeLists.txt`
 - `tests/test_operator_packs.cpp`
@@ -240,7 +276,7 @@ Technical change:
   for `modify loudness 3` / `LOUDNESS_NORM`, and
   `whole_file_length_preserving` engine metadata.
 - The block v2 process path deliberately returns unsupported for this operator;
-  actual execution goes through `xyona_pack_get_offline_api_v1`.
+  actual execution goes through `xyona_pack_get_offline_whole_buffer_prototype_api`.
 - The offline process scans the full input for peak level, sanitizes non-finite
   boundary samples, materializes same-length audio, and rejects invalid target
   peak parameters.
@@ -288,7 +324,7 @@ Files changed:
 Technical change:
 
 - Added a Lab-side offline pack client that resolves a loaded pack by operator
-  namespace, opens its dynamic library, obtains `xyona_pack_get_offline_api_v1`,
+  namespace, opens its dynamic library, obtains `xyona_pack_get_offline_whole_buffer_prototype_api`,
   queries the output contract, materializes an audio buffer, validates the
   `OfflineSessionContract`, and returns an RT re-entry-capable audio artifact.
 - Added `OfflineRenderEngine::renderWholeFileOperatorToBuffer` as the first

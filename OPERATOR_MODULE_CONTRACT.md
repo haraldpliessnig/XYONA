@@ -69,13 +69,13 @@ stable audio golden reference must still have descriptor and behavioral tests.
 
 ## Offline ABI Guardrail
 
-The current whole-buffer offline ABI, currently named `offline_packs_v1`, is a
-prototype/reference surface only. If represented in an operator module, use an
-explicit prototype name such as `adapter/offline_whole_buffer_prototype.cpp`, not
-a name that implies a released production ABI. The prototype may describe
-bounded, same-length, whole-buffer operators such as the current CDP
-loudness-normalise slice while the production Offline Session ABI is being
-built.
+The current whole-buffer offline ABI, currently named
+`offline_whole_buffer_prototype`, is a prototype/reference surface only. If
+represented in an operator module, use an explicit prototype name such as
+`adapter/offline_whole_buffer_prototype.cpp`, not a name that implies a released
+production ABI. The prototype may describe bounded, same-length, whole-buffer
+operators such as the current CDP loudness-normalise slice while the production
+Offline Session ABI is being built.
 
 Production-scale offline operators must target the session/streaming offline
 contract once the Offline Session ABI exists. This includes length-changing,
