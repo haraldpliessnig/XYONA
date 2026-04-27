@@ -50,8 +50,8 @@ Latest implementation commits:
 
 - `xyona-core`: `d4d437b feat(core): add offline pack ABI contract`
 - `xyona-cdp-pack`: `57105fa feat(cdp-pack): add whole-file loudness normalise`
-- `xyona-lab`: `ffdeb47f feat(lab): schedule whole-file offline pack nodes`
-- workspace root: this report update records `ffdeb47f`; its own commit hash
+- `xyona-lab`: `6dee2ec5 test(lab): cover whole-file CDP graph render`
+- workspace root: this report update records `6dee2ec5`; its own commit hash
   can be backfilled by a later report update if needed.
 
 Current proven capability:
@@ -66,6 +66,8 @@ Current proven capability:
 - Lab can now also schedule same-length whole-file pack nodes inside the
   offline/HQ graph for the first supported graph shape:
   source/block region -> one whole-file node -> direct terminal audio targets.
+- Lab has a headless integration test that proves the real graph path:
+  `lab.grid_source -> cdp.utility.db_gain -> cdp.modify.loudness_normalise -> lab.mainbus_out`.
 
 Resume commands on a fresh machine:
 
@@ -102,20 +104,17 @@ $env:XYONA_OPERATOR_PACK_PATH='D:\GITHUB\XYONA\xyona-cdp-pack\build\windows-msvc
 
 Next implementation steps, in order:
 
-1. Add a Lab headless integration test for the real graph path:
-   source audio -> `cdp.modify.loudness_normalise` -> terminal output/file-out
-   through `OfflineGraphBuilder` and `OfflineRenderEngine`.
-2. Teach Canvas/UI state to distinguish "offline-only, valid for HQ
+1. Teach Canvas/UI state to distinguish "offline-only, valid for HQ
    materialization" from "invalid for this graph" so valid HQ-only CDP nodes do
    not look broken merely because they are not RT-capable.
-3. Add artifact persistence and RT/HQ bridge wiring through the existing
+2. Add artifact persistence and RT/HQ bridge wiring through the existing
    `HQ_RT.md` layer/clip architecture, rather than creating a CDP-specific
    playback cache.
-4. Add output-length negotiation before any length-changing CDP operator is
+3. Add output-length negotiation before any length-changing CDP operator is
    implemented.
-5. Only after length negotiation exists, pick a small length-changing
+4. Only after length negotiation exists, pick a small length-changing
    time-domain CDP operator as the next vertical slice.
-6. Start PVOC/spectral work only after typed spectral artifact/port semantics
+5. Start PVOC/spectral work only after typed spectral artifact/port semantics
    are explicit; do not pass PVOC/PVX data through audio buffers.
 
 ## Commit Log
@@ -337,10 +336,56 @@ Verification:
 
 Follow-up:
 
-- Add a dedicated graph-path Lab integration test for
-  `source -> cdp.modify.loudness_normalise -> output/file-out`.
+- Completed by `6dee2ec5 test(lab): cover whole-file CDP graph render`.
 - Keep length-changing, multi-output, and typed data operators closed until
   output-length negotiation and typed artifact flow exist.
+
+### `xyona-lab`
+
+Repository: `xyona-lab`
+
+Branch: `feature/cdp8-offline-foundation`
+
+Commit: `6dee2ec5`
+
+Subject: `test(lab): cover whole-file CDP graph render`
+
+Files changed:
+
+- `tests/AudioEngineManagerTests.cpp`
+
+Technical change:
+
+- Added a headless Lab integration test for the real whole-file CDP graph path:
+  `lab.grid_source -> cdp.utility.db_gain -> cdp.modify.loudness_normalise -> lab.mainbus_out`.
+- The test loads the CDP pack through `XYONA_OPERATOR_PACK_PATH`, builds an
+  `OfflineGraphBuilder` plan, and asserts that exactly one whole-file CDP node
+  is scheduled.
+- The render path goes through `AudioEngineManager::renderOffline`, not the
+  direct offline pack client.
+- The source grid pulses are first attenuated by `cdp.utility.db_gain`; the
+  whole-file normalise node must then materialize stereo pulses back to target
+  peak while preserving the render length and silent non-pulse samples.
+- The pack-load helper now tolerates the full test suite order where the CDP
+  pack may already be loaded and `loadOperatorPacksDefault()` reports a
+  duplicate path.
+
+Verification:
+
+- `xyona-lab`: `cmake --build build/macos-dev --target xyona_lab_tests`
+  - Result: passed. Build succeeded with existing warning classes only.
+- `xyona-lab`: `XYONA_OPERATOR_PACK_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-cdp-pack/build/macos-clang-debug build/macos-dev/tests/xyona_lab_tests --test="AudioEngineManager Minimal Plan" --summary-only --xyona-only`
+  - Result: passed; 35 tests, 542 passes, 0 failures.
+- `xyona-lab`: `XYONA_OPERATOR_PACK_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-cdp-pack/build/macos-clang-debug ctest --test-dir build/macos-dev --output-on-failure -R '^(xyona_lab_tests|operator_packs_tests)$'`
+  - Result: passed; 2/2 CTest tests passed.
+- `xyona-lab`: `git diff --check`
+  - Result: passed.
+
+Follow-up:
+
+- Move from render-path proof to Canvas/UI validity state for HQ-only CDP nodes.
+- Keep artifact persistence and output-length negotiation as the next
+  infrastructure milestones before length-changing CDP operators are enabled.
 
 ### Workspace Root
 
@@ -784,6 +829,12 @@ Follow-up:
   tests, 49 passes, 0 failures.
 - `xyona-lab`: `XYONA_OPERATOR_PACK_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-cdp-pack/build/macos-clang-debug ctest --test-dir build/macos-dev --output-on-failure -R '^(xyona_lab_tests|operator_packs_tests)$'`
   passed; 2/2 CTest tests passed.
+- `xyona-lab`: `XYONA_OPERATOR_PACK_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-cdp-pack/build/macos-clang-debug build/macos-dev/tests/xyona_lab_tests --test="AudioEngineManager Minimal Plan" --summary-only --xyona-only`
+  passed after the graph-path CDP normalise integration test was added; 35
+  tests, 542 passes, 0 failures.
+- `xyona-lab`: `XYONA_OPERATOR_PACK_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-cdp-pack/build/macos-clang-debug ctest --test-dir build/macos-dev --output-on-failure -R '^(xyona_lab_tests|operator_packs_tests)$'`
+  passed after the graph-path CDP normalise integration test was added; 2/2
+  CTest tests passed.
 
 ## Open Risks
 
