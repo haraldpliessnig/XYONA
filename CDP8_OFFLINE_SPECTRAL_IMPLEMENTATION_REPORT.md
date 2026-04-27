@@ -180,9 +180,34 @@ Current proven capability:
   the CDP pack exports `xyona_pack_get_offline_whole_buffer_prototype_api`, and
   Lab resolves that symbol explicitly.
 
+Gate D handoff state for Gate E work:
+
+- `xyona-lab` must include:
+  - `b4149bf0 feat(lab): add materialized layer player adapter`
+  - `fbfa6e35 feat(lab): route materialized clips into realtime graph`
+  - `439ce5f2 docs(lab): mark layer player bridge implemented`
+- Workspace root must include:
+  - `40daf13 docs: close gate d layer player bridge`
+- Gate D is closed for valid resident materialized audio clips. The remaining
+  materialized-audio work is future artifact/source coverage and product UX,
+  not a blocker for Gate E.
+- Handoff revalidation on 2026-04-28:
+  - `xyona-lab`: `XYONA_CORE_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-core cmake --build build/macos-dev --target xyona_lab_tests`
+    passed; target was already up to date.
+  - `xyona-lab`: `build/macos-dev/tests/xyona_lab_tests --test="AudioEngineManager" --summary-only --xyona-only`
+    passed; 40 tests, 586 passes, 0 failures. The CDP whole-file subtest was
+    skipped because `XYONA_OPERATOR_PACK_PATH` was unset.
+  - `xyona-lab`: `build/macos-dev/tests/xyona_lab_tests --test="LayerPlayerHostAdapter" --summary-only --xyona-only`
+    passed; 4 tests, 37 passes, 0 failures.
+  - `xyona-lab`: `XYONA_RT_ALLOC_TRAP=2 build/macos-dev/tests/xyona_lab_tests --test="RT Safety Smoke" --summary-only --xyona-only`
+    passed; 2 tests, 4 passes, 0 failures.
+  - `xyona-lab`: `build/macos-dev/tests/xyona_lab_tests --test="Materialized Audio Store" --summary-only --xyona-only`
+    passed; 6 tests, 145 passes, 0 failures.
+
 Resume commands on a fresh machine:
 
 ```powershell
+git fetch --all --prune
 git -C xyona-core switch feature/cdp8-offline-foundation
 git -C xyona-core pull
 git -C xyona-cdp-pack switch feature/cdp8-offline-foundation
@@ -215,24 +240,19 @@ $env:XYONA_OPERATOR_PACK_PATH='D:\GITHUB\XYONA\xyona-cdp-pack\build\windows-msvc
 
 Next implementation steps, in order:
 
-1. Finalize the gate documentation:
-   - the current whole-buffer offline ABI is prototype/reference only.
-   - `MaterializedAudioStore` is the concrete `HQ_RT.md` Phase 7 store line.
-   - length-changing and PVOC/spectral require implemented/tested
-     Offline Session ABI.
-2. Carry forward future materialized dependency coverage:
-   - future spectral settings in dependency signatures once spectral
-     materialized artifacts exist
-3. Add CI baseline for Core, Pack, and Lab on macOS Clang and Windows MSVC.
-4. Implement the Offline Session ABI with a reference operator
+1. Start Gate E: implement the production Offline Session ABI in Core/Pack/Lab
    and tests for normal completion, progress, and cancellation.
-5. Port `cdp.modify.loudness_normalise` onto the session lifecycle and remove
+2. Port `cdp.modify.loudness_normalise` onto the session lifecycle and remove
    or internalize the prototype whole-buffer ABI surface before release.
-6. Only after the Offline Session ABI is implemented and tested, start
+3. Add CI baseline for Core, Pack, and Lab on macOS Clang and Windows MSVC.
+4. Carry forward future materialized dependency coverage:
+   - future spectral settings in dependency signatures once spectral
+     materialized artifacts exist.
+5. Only after the Offline Session ABI is implemented and tested, start
    length-changing audio.
-7. Only after the Offline Session ABI plus typed data/asset handles and CDP8
+6. Only after the Offline Session ABI plus typed data/asset handles and CDP8
    golden fixtures, start PVOC/spectral work.
-8. Before the first CDP generator, add the explicit null-upstream generator
+7. Before the first CDP generator, add the explicit null-upstream generator
    graph/render test.
 
 Hard gate summary:

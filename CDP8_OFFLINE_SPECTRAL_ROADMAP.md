@@ -1399,24 +1399,19 @@ Mitigation:
 
 ## Recommended Immediate Next Steps
 
-1. Document and enforce the gate system:
-   - the current whole-buffer offline ABI is prototype/reference only.
-   - `MaterializedAudioStore` is the concrete `HQ_RT.md` Phase 7 store line.
-   - length-changing and PVOC/spectral require implemented/tested
-     Offline Session ABI.
-2. Carry forward future materialized dependency coverage:
-   - future spectral settings in dependency signatures once spectral
-     materialized artifacts exist
-3. Add CI baseline for Core, Pack, and Lab on macOS Clang and Windows MSVC.
-4. Implement the Offline Session ABI with a reference operator
+1. Start Gate E: implement the production Offline Session ABI in Core/Pack/Lab
    and tests for normal completion, progress, and cancellation.
-5. Port `cdp.modify.loudness_normalise` onto the session lifecycle and remove
+2. Port `cdp.modify.loudness_normalise` onto the session lifecycle and remove
    or internalize the prototype whole-buffer ABI surface before release.
-6. Only after the Offline Session ABI is implemented and tested, start
+3. Add CI baseline for Core, Pack, and Lab on macOS Clang and Windows MSVC.
+4. Carry forward future materialized dependency coverage:
+   - future spectral settings in dependency signatures once spectral
+     materialized artifacts exist.
+5. Only after the Offline Session ABI is implemented and tested, start
    length-changing audio.
-7. Only after the Offline Session ABI plus typed data/asset handles and CDP8
+6. Only after the Offline Session ABI plus typed data/asset handles and CDP8
    golden fixtures, start PVOC/spectral work.
-8. Before the first CDP generator, add the explicit null-upstream generator
+7. Before the first CDP generator, add the explicit null-upstream generator
    graph/render test.
 
 ## Definition Of Done For CDP8 Rewrite Readiness
