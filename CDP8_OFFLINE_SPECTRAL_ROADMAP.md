@@ -60,7 +60,10 @@ Current state:
   feed the materialized render dependency signature. A first BottomBar status
   surface now exposes materialized clips that are `Rendering`, `Stale`,
   `Missing`, `Failed`, or otherwise not RT-playable; the summary logic is
-  separated so it can move into a later product UI.
+  separated so it can move into a later product UI. Realtime graphs can now
+  consume valid resident materialized clips through `lab.layer_player` and
+  `LayerPlayerHostAdapter`; stale, missing, or nonresident clips resolve to
+  deterministic silence plus graph diagnostics.
 
 Missing state:
 
@@ -68,7 +71,6 @@ Missing state:
   cancellation. This is the first production offline pack contract.
 - Remaining production persistence for materialized assets: future spectral
   settings once spectral materialized artifacts exist.
-- Realtime LayerPlayer consumption of materialized clips.
 - Output length negotiation for length-changing CDP programs through the Offline
   Session ABI.
 - A typed analysis/spectral data model instead of pretending PVOC/PVX is audio.
@@ -311,7 +313,11 @@ Exit criteria:
 ### Gate D - Realtime LayerPlayer Consumption
 
 The RT graph must be able to consume a materialized clip as ordinary source
-material.
+material. Gate D is complete for resident materialized audio clips:
+`lab.layer_player` resolves `MaterializedAudioStore` clip ids during graph
+build, prepares immutable resident audio outside the callback, and produces
+deterministic silence plus `MaterializedClipUnavailable` diagnostics for
+missing, stale, or nonresident material.
 
 Required behavior:
 
@@ -1401,18 +1407,16 @@ Mitigation:
 2. Carry forward future materialized dependency coverage:
    - future spectral settings in dependency signatures once spectral
      materialized artifacts exist
-3. Add realtime LayerPlayer consumption of `MaterializedAudioStore` clips with
-   no disk I/O or pack calls in the audio callback.
-4. Add CI baseline for Core, Pack, and Lab on macOS Clang and Windows MSVC.
-5. Implement the Offline Session ABI with a reference operator
+3. Add CI baseline for Core, Pack, and Lab on macOS Clang and Windows MSVC.
+4. Implement the Offline Session ABI with a reference operator
    and tests for normal completion, progress, and cancellation.
-6. Port `cdp.modify.loudness_normalise` onto the session lifecycle and remove
+5. Port `cdp.modify.loudness_normalise` onto the session lifecycle and remove
    or internalize the prototype whole-buffer ABI surface before release.
-7. Only after the Offline Session ABI is implemented and tested, start
+6. Only after the Offline Session ABI is implemented and tested, start
    length-changing audio.
-8. Only after the Offline Session ABI plus typed data/asset handles and CDP8
+7. Only after the Offline Session ABI plus typed data/asset handles and CDP8
    golden fixtures, start PVOC/spectral work.
-9. Before the first CDP generator, add the explicit null-upstream generator
+8. Before the first CDP generator, add the explicit null-upstream generator
    graph/render test.
 
 ## Definition Of Done For CDP8 Rewrite Readiness
@@ -1427,8 +1431,8 @@ XYONA is ready for broad CDP8 rewrite work when:
 - Offline Session ABI execution exists and is tested for normal completion,
   progress, and cancellation.
 - Length-changing operators negotiate output length without truncation.
-- Completed offline results can re-enter RT atomically as ordinary Lab
-  source/value artifacts.
+- Completed audio offline results can re-enter RT atomically as ordinary Lab
+  source artifacts.
 - Materialized assets persist through normal project save/open and stale results
   are detected before RT treats them as valid.
 - Typed spectral data exists as a first-class graph or asset value.

@@ -63,6 +63,11 @@ fingerprints into materialized render-dependency signatures.
 Lab now also exposes materialized clips that are `Rendering`, `Stale`,
 `Missing`, `Failed`, or otherwise not RT-playable through a BottomBar status
 surface backed by a separate `MaterializedAudioStatusSummary` model.
+Realtime graphs can now consume valid resident materialized clips through the
+registered `lab.layer_player` operator and `LayerPlayerHostAdapter`. Missing,
+stale, or nonresident clips resolve to deterministic silence with a
+`MaterializedClipUnavailable` graph diagnostic instead of performing disk or
+pack work in the audio callback.
 
 Latest implementation commits:
 
@@ -76,9 +81,12 @@ Latest implementation commits:
 - `xyona-lab`: `1d24ef1a feat(lab): fingerprint materialized audio asset files`
 - `xyona-lab`: `a9271660 feat(lab): fingerprint audio file source dependencies`
 - `xyona-lab`: `48a79a0a feat(lab): surface materialized audio status`
+- `xyona-lab`: `b4149bf0 feat(lab): add materialized layer player adapter`
+- `xyona-lab`: `fbfa6e35 feat(lab): route materialized clips into realtime graph`
 - workspace root: this report update records the latest Lab render-dependency
   signature, orphan-cleanup, materialized asset file-fingerprint, and
-  `lab.audio_file_in` source-fingerprint/status-surface slices.
+  `lab.audio_file_in` source-fingerprint/status-surface and Gate D LayerPlayer
+  slices.
 
 Current proven capability:
 
@@ -151,6 +159,18 @@ Current proven capability:
   counts and diagnostics, and the BottomBar displays that summary whenever
   materialized clips need attention. This is intentionally a small replaceable
   status surface, not the final clip/render-queue UI.
+- `LayerPlayerHostAdapter` can play a prepared immutable materialized audio
+  source in the realtime graph, including clip offset, length, gain, cursor
+  advance, bypass behavior, and mono fanout without allocating in the callback.
+- `lab.layer_player` is a registered realtime custom operator. GraphBuilder
+  resolves its `clip_id` against `MaterializedAudioStore` during graph build and
+  prepares a playback source from valid resident layers before RT processing.
+- Missing, stale, failed, or nonresident materialized clips stay deterministic:
+  the realtime plan remains buildable, outputs silence, and records a
+  `MaterializedClipUnavailable` diagnostic.
+- A headless integration test now proves the Gate D path:
+  offline `lab.grid_source` render -> materialized clip -> realtime
+  `lab.layer_player` -> `lab.audio_out` playback.
 - The plan is now gated: the current whole-buffer offline ABI, currently named
   `offline_whole_buffer_prototype`, is a prototype/reference bridge. Length-changing,
   PVOC/spectral, multi-output, and production-scale long-file CDP work require
@@ -203,18 +223,16 @@ Next implementation steps, in order:
 2. Carry forward future materialized dependency coverage:
    - future spectral settings in dependency signatures once spectral
      materialized artifacts exist
-3. Make the realtime LayerPlayer consume the materialized layer/clip store with
-   no disk I/O or pack calls in the audio callback.
-4. Add CI baseline for Core, Pack, and Lab on macOS Clang and Windows MSVC.
-5. Implement the Offline Session ABI with a reference operator
+3. Add CI baseline for Core, Pack, and Lab on macOS Clang and Windows MSVC.
+4. Implement the Offline Session ABI with a reference operator
    and tests for normal completion, progress, and cancellation.
-6. Port `cdp.modify.loudness_normalise` onto the session lifecycle and remove
+5. Port `cdp.modify.loudness_normalise` onto the session lifecycle and remove
    or internalize the prototype whole-buffer ABI surface before release.
-7. Only after the Offline Session ABI is implemented and tested, start
+6. Only after the Offline Session ABI is implemented and tested, start
    length-changing audio.
-8. Only after the Offline Session ABI plus typed data/asset handles and CDP8
+7. Only after the Offline Session ABI plus typed data/asset handles and CDP8
    golden fixtures, start PVOC/spectral work.
-9. Before the first CDP generator, add the explicit null-upstream generator
+8. Before the first CDP generator, add the explicit null-upstream generator
    graph/render test.
 
 Hard gate summary:
@@ -226,10 +244,116 @@ Hard gate summary:
 - Current materialized-audio persistence/staleness is complete for Gate C:
   stale/missing assets produce visible status, and future materialized artifact
   dependencies are added as those artifact types appear.
+- Realtime consumption of valid resident materialized audio clips is complete
+  for Gate D through `lab.layer_player`; missing/stale/nonresident clips are
+  diagnosable silence, not hidden RT work.
 - PVOC/spectral has an explicit hard dependency on implemented/tested
   Offline Session ABI, typed data or asset handles, and CDP8 golden fixtures.
 
 ## Commit Log
+
+### Realtime Materialized Clip Graph Routing
+
+Repository: `xyona-lab`
+
+Branch: `feature/cdp8-offline-foundation`
+
+Commit: `fbfa6e35`
+
+Subject: `feat(lab): route materialized clips into realtime graph`
+
+Files changed:
+
+- `src/app/lab/operators/io/MaterializedAudioClipOperator.h`
+- `src/app/lab/operators/io/MaterializedAudioClipOperator.cpp`
+- `src/app/lab/operators/io/IOOperatorRegistration.cpp`
+- `src/app/lab/audio/builder/AudioGraphBuilder.h`
+- `src/app/lab/audio/builder/AudioGraphBuilder.cpp`
+- `src/app/lab/audio/builder/GraphPlanDiagnostics.h`
+- `src/app/lab/audio/builder/GraphPlanDiagnostics.cpp`
+- `src/app/lab/audio/engine/AudioEngineManager.cpp`
+- `tests/AudioEngineManagerTests.cpp`
+
+Technical change:
+
+- Added the registered realtime custom operator `lab.layer_player`.
+- `AudioEngineManager` now passes its active `MaterializedAudioStore` into the
+  realtime `GraphBuilder`.
+- GraphBuilder resolves `clip_id` against the store during graph build and
+  creates a prepared `LayerPlayerHostAdapter` source for valid resident clips.
+- Missing, stale, failed, or nonresident materialized clips keep the realtime
+  graph deterministic: the node outputs silence and emits a
+  `MaterializedClipUnavailable` diagnostic.
+- Added headless coverage for offline render -> materialized clip -> realtime
+  `LayerPlayer` playback, and for stale clips producing diagnosed silence.
+
+Verification:
+
+- `xyona-lab`: `git diff --check`
+  - Result: passed.
+- `xyona-lab`: `XYONA_CORE_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-core cmake --build build/macos-dev --target xyona_lab_tests`
+  - Result: passed.
+- `xyona-lab`: `build/macos-dev/tests/xyona_lab_tests --test="AudioEngineManager" --summary-only --xyona-only`
+  - Result: passed; 40 tests, 586 passes, 0 failures. The CDP whole-file
+    subtest was skipped because `XYONA_OPERATOR_PACK_PATH` was unset.
+- `xyona-lab`: `build/macos-dev/tests/xyona_lab_tests --test="LayerPlayerHostAdapter" --summary-only --xyona-only`
+  - Result: passed; 4 tests, 37 passes, 0 failures.
+- `xyona-lab`: `XYONA_RT_ALLOC_TRAP=2 build/macos-dev/tests/xyona_lab_tests --test="RT Safety Smoke" --summary-only --xyona-only`
+  - Result: passed; 2 tests, 4 passes, 0 failures.
+- `xyona-lab`: `build/macos-dev/tests/xyona_lab_tests --test="Materialized Audio Store" --summary-only --xyona-only`
+  - Result: passed; 6 tests, 145 passes, 0 failures.
+- Full Lab CTest was intentionally not run; the focused Gate D coverage includes
+  the graph path, adapter behavior, store behavior, and RT allocation smoke.
+
+Follow-up:
+
+- Keep future materialized source/asset types on the same graph-build
+  resolution rule: prepare outside RT, diagnose invalid material, and output
+  deterministic silence in RT.
+- Product UI for clip placement/render queues remains a separate UX decision.
+
+### Materialized Layer Player Adapter
+
+Repository: `xyona-lab`
+
+Branch: `feature/cdp8-offline-foundation`
+
+Commit: `b4149bf0`
+
+Subject: `feat(lab): add materialized layer player adapter`
+
+Files changed:
+
+- `src/app/lab/audio/adapter/LayerPlayerHostAdapter.h`
+- `src/app/lab/audio/adapter/LayerPlayerHostAdapter.cpp`
+- `tests/AudioHostAdapterTests.cpp`
+- `tests/RTSafetySmokeTests.cpp`
+
+Technical change:
+
+- Added `LayerPlayerHostAdapter`, an RT-safe playback adapter for prebuilt
+  materialized audio sources.
+- The adapter copies resident materialized audio into an immutable shared buffer
+  before RT processing and only reads that prepared source in `processWired`.
+- Playback supports clip source offset, clip length, gain, cursor advance,
+  bypass timeline advance, and mono fanout to multiple outputs.
+- Added RT safety smoke coverage for the graph path under the allocation trap.
+
+Verification:
+
+- `xyona-lab`: `XYONA_CORE_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-core cmake --build build/macos-dev --target xyona_lab_tests`
+  - Result: passed.
+- `xyona-lab`: `build/macos-dev/tests/xyona_lab_tests --test="LayerPlayerHostAdapter" --summary-only --xyona-only`
+  - Result: passed; 4 tests, 37 passes, 0 failures.
+- `xyona-lab`: `XYONA_RT_ALLOC_TRAP=2 build/macos-dev/tests/xyona_lab_tests --test="RT Safety Smoke" --summary-only --xyona-only`
+  - Result: passed; 2 tests, 4 passes, 0 failures.
+- `xyona-lab`: `build/macos-dev/tests/xyona_lab_tests --test="Materialized Audio Store" --summary-only --xyona-only`
+  - Result: passed; 6 tests, 145 passes, 0 failures.
+
+Follow-up:
+
+- Wire the adapter into realtime graph construction through a registered
+  operator and `MaterializedAudioStore` clip lookup.
 
 ### Materialized Audio Status Surface
 
@@ -602,8 +726,8 @@ Follow-up:
 - Materialized asset dependency signatures, stale detection, and first visible
   `Re-render required` state were completed later in the Gate C slices through
   `48a79a0a`.
-- Add realtime LayerPlayer consumption of materialized clips without disk I/O in
-  the audio callback.
+- Realtime LayerPlayer consumption was completed later in Gate D through
+  `b4149bf0` and `fbfa6e35`.
 
 ### Prototype Whole-Buffer ABI Rename
 
@@ -962,8 +1086,9 @@ Follow-up:
 
 - Completed in part by `e44c0d7f feat(lab): materialize offline renders as
   clips`.
-- Finish file-backed artifact persistence and realtime LayerPlayer consumption
-  through the existing `HQ_RT.md` layer/clip architecture.
+- File-backed artifact persistence was completed later in Gate C; realtime
+  LayerPlayer consumption was completed later in Gate D through `b4149bf0` and
+  `fbfa6e35`.
 - Keep length-changing and typed spectral CDP operators gated until output
   length negotiation and typed artifact semantics exist.
 
@@ -1108,7 +1233,8 @@ Technical change:
   materialized audio asset persistence API.
 - Clarified that the current slice persists store assets/manifests through
   explicit APIs, while normal project save/open orchestration and realtime
-  LayerPlayer playback remain open.
+  LayerPlayer playback remained open at that point. Those follow-ups were later
+  completed through Gate C and Gate D slices.
 
 Verification:
 
@@ -1138,11 +1264,12 @@ Technical change:
 
 - Updated the implementation report to record the first materialized layer/clip
   bridge slice in `xyona-lab`.
-- Clarified that current materialization is in-memory audio plus metadata
-  manifest, not yet file-backed ProjectState persistence or realtime
-  LayerPlayer playback.
-- Updated the next implementation step to focus on file-backed artifact assets
-  and RT LayerPlayer consumption.
+- Clarified that current materialization was in-memory audio plus metadata
+  manifest at that point, not yet file-backed ProjectState persistence or
+  realtime LayerPlayer playback. Those follow-ups were later completed through
+  Gate C and Gate D slices.
+- Updated the next implementation step at that time to focus on file-backed
+  artifact assets and RT LayerPlayer consumption.
 
 Verification:
 
@@ -1683,6 +1810,21 @@ Follow-up:
   failures.
 - Full Lab CTest was intentionally not run for the focused Gate C status-surface
   slice.
+- `xyona-lab`: `build/macos-dev/tests/xyona_lab_tests --test="LayerPlayerHostAdapter" --summary-only --xyona-only`
+  passed after adding the materialized layer player adapter; 4 tests, 37
+  passes, 0 failures.
+- `xyona-lab`: `XYONA_RT_ALLOC_TRAP=2 build/macos-dev/tests/xyona_lab_tests --test="RT Safety Smoke" --summary-only --xyona-only`
+  passed after adding the materialized layer player adapter and graph path; 2
+  tests, 4 passes, 0 failures.
+- `xyona-lab`: `build/macos-dev/tests/xyona_lab_tests --test="AudioEngineManager" --summary-only --xyona-only`
+  passed after routing materialized clips into the realtime graph; 40 tests,
+  586 passes, 0 failures. The CDP whole-file subtest was skipped because
+  `XYONA_OPERATOR_PACK_PATH` was unset.
+- `xyona-lab`: `build/macos-dev/tests/xyona_lab_tests --test="Materialized Audio Store" --summary-only --xyona-only`
+  passed after Gate D graph routing; 6 tests, 145 passes, 0 failures.
+- Full Lab CTest was intentionally not run for the Gate D LayerPlayer slices;
+  the focused test set covered adapter behavior, store behavior, graph
+  integration, stale-clip diagnostics, and RT allocation smoke.
 
 ## Open Risks
 
@@ -1698,9 +1840,9 @@ Follow-up:
 - `Missing` and `Stale` states are persisted, diagnosable, and visible through
   the BottomBar status surface. A richer materialized clip/render-queue UI is
   still a later product UX decision.
-- Materialized clips are not yet consumed by the realtime LayerPlayer path, so
-  the bridge proves storage, metadata, and file-backed reload but not RT
-  playback.
+- Materialized clips are consumed by the realtime LayerPlayer path for valid
+  resident audio. Later UX work still needs to decide how users place, inspect,
+  and re-render those clips in a richer product surface.
 - Same-length whole-file CDP operators now have a first execution and
   materialization path through the prototype whole-buffer offline ABI. Before
   release, that reference slice should move onto the Offline Session ABI or the
