@@ -37,7 +37,7 @@ report update can backfill prior report commit hashes.
 | Repository | Branch | Base |
 |---|---|---|
 | workspace root | `docs/cdp8-offline-spectral-roadmap` | `master` |
-| `xyona-lab` | `docs/cdp8-offline-crossrefs` | `master` |
+| `xyona-lab` | `feature/cdp8-offline-foundation` | `docs/cdp8-offline-crossrefs` |
 | `xyona-cdp-pack` | `feature/cdp8-offline-foundation` | `cdp8-rewrite-infra` |
 
 ## Commit Log
@@ -48,9 +48,9 @@ Repository: workspace root
 
 Branch: `docs/cdp8-offline-spectral-roadmap`
 
-Commit: to be backfilled by a later report update if needed.
+Commit: `6daa5c9`
 
-Subject planned for this commit: `chore: track CDP pack foundation pointer`
+Subject: `chore: track CDP pack foundation pointer`
 
 Files changed:
 
@@ -111,6 +111,71 @@ Follow-up:
 
 - This report update backfills the root commit hash. This report-update commit
   can be backfilled by a later report update if needed.
+
+### `xyona-lab`
+
+Repository: `xyona-lab`
+
+Branch: `feature/cdp8-offline-foundation`
+
+Commit: `2733f133`
+
+Subject: `feat(lab): validate operator process metadata`
+
+Files changed:
+
+- `src/app/lab/adapters/OperatorProcessMetadata.h`
+- `src/app/lab/adapters/OperatorProcessMetadata.cpp`
+- `src/app/lab/audio/builder/AudioGraphBuilder.cpp`
+- `src/app/CMakeLists.txt`
+- `tests/OperatorProcessMetadataTests.cpp`
+- `tests/CdpPackCanvasSmokeTests.cpp`
+- `tests/CMakeLists.txt`
+
+Technical change:
+
+- Added Lab-side parsing for optional Core/pack operator `engine` metadata.
+- Added explicit process-shape, output-length, and ABI-support enums for:
+  block length-preserving, block stateful, whole-file, generator, analysis data,
+  typed-data, and multi-output/multi-file operators.
+- Kept operators with no `engine` metadata on the existing capability-driven
+  path so current Core/Lab functionality remains compatible.
+- Made invalid `engine` metadata fail closed instead of silently entering the
+  RT/HQ block graph.
+- Taught the current RT builder to reject whole-file, length-changing,
+  no-audio/analysis, multi-output, and non-direct ABI operators before adapter
+  construction.
+- Taught the current HQ block builder the same guardrail. Whole-file and
+  length-changing CDP operators remain blocked until the future offline session
+  contract exists.
+- Extended the CDP Canvas smoke test to verify that current CDP operators expose
+  direct `block_length_preserving` / `same_as_input` metadata and remain eligible
+  for the current RT and HQ block graphs.
+- Added synthetic metadata unit tests for legacy descriptors, direct block
+  operators, future whole-file length-changing operators, analysis-only output,
+  and invalid metadata.
+
+Verification:
+
+- `cmake --build --preset windows-dev --target xyona_lab_tests`
+  - Result: passed. Build succeeded with existing warning classes only.
+- `.\build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="Operator Process Metadata" --xyona-only --summary-only`
+  - Result: passed; 5 tests, 36 passes, 0 failures.
+- `$env:XYONA_OPERATOR_PACK_PATH='D:\GITHUB\XYONA\xyona-cdp-pack\build\windows-msvc-debug\Debug'; .\build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="CDP Pack Canvas Smoke" --xyona-only --summary-only`
+  - Result: passed; 6 tests, 194 passes, 0 failures.
+- `ctest --test-dir build\windows-dev -C Debug -R "^xyona_lab_tests$" --output-on-failure`
+  - Result: passed; 1/1 CTest tests passed.
+- `git diff --check`
+  - Result: passed. Git reported only line-ending normalization warnings.
+
+Follow-up:
+
+- Add user-facing graph-plan diagnostics for unsupported process shapes. The
+  current builder keeps RT/HQ safety by skipping unsupported nodes, matching the
+  existing capability-filter behavior, but users should eventually see a precise
+  reason in the UI.
+- Implement the offline session/artifact contract before enabling whole-file or
+  length-changing CDP operators in HQ plans.
 
 ### `xyona-lab`
 
@@ -263,10 +328,24 @@ Follow-up:
   passed without manual runtime DLL `PATH`; 11/11 CTest tests passed.
 - `xyona-cdp-pack`: `.\build-and-test-dev.bat` passed after process-shape
   metadata publication; 11/11 CTest tests passed.
+- `xyona-lab`: `cmake --build --preset windows-dev --target xyona_lab_tests`
+  passed after Lab-side metadata validation was added.
+- `xyona-lab`: `.\build\windows-dev\tests\Debug\xyona_lab_tests.exe
+  --test="Operator Process Metadata" --xyona-only --summary-only` passed; 5
+  tests, 36 passes, 0 failures.
+- `xyona-lab`: CDP Pack Canvas Smoke passed with
+  `XYONA_OPERATOR_PACK_PATH=D:\GITHUB\XYONA\xyona-cdp-pack\build\windows-msvc-debug\Debug`;
+  6 tests, 194 passes, 0 failures.
+- `xyona-lab`: `ctest --test-dir build\windows-dev -C Debug -R
+  "^xyona_lab_tests$" --output-on-failure` passed; 1/1 CTest tests passed.
 
 ## Open Risks
 
 - The first implementation slice must not fork a CDP-only RT re-entry path. It
   must align with `xyona-lab/docs/architecture/HQ_RT.md` Phase 5-7.
-- Windows CDP pack tests currently require explicit configuration/runtime DLL
-  handling and are the first implementation target.
+- Unsupported process shapes are currently kept out of RT/HQ block plans by
+  builder guardrails and debug logs. Before exposing whole-file CDP operators to
+  normal users, Lab needs user-facing graph-plan diagnostics.
+- Whole-file and length-changing CDP operators must remain HQ/offline-session
+  work until the artifact/result contract exists. They must not be forced
+  through the current block adapter path.
