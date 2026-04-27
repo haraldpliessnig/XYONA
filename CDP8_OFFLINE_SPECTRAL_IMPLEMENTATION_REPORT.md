@@ -37,10 +37,196 @@ report update can backfill prior report commit hashes.
 | Repository | Branch | Base |
 |---|---|---|
 | workspace root | `docs/cdp8-offline-spectral-roadmap` | `master` |
+| `xyona-core` | `feature/cdp8-offline-foundation` | `main` |
 | `xyona-lab` | `feature/cdp8-offline-foundation` | `docs/cdp8-offline-crossrefs` |
 | `xyona-cdp-pack` | `feature/cdp8-offline-foundation` | `cdp8-rewrite-infra` |
 
 ## Commit Log
+
+### `xyona-core`
+
+Repository: `xyona-core`
+
+Branch: `feature/cdp8-offline-foundation`
+
+Commit: `d4d437b`
+
+Subject: `feat(core): add offline pack ABI contract`
+
+Files changed:
+
+- `include/xyona/api/offline_packs_v1.h`
+- `CMakeLists.txt`
+- `tests/CMakeLists.txt`
+- `tests/test_operator_packs.cpp`
+
+Technical change:
+
+- Added a small optional C ABI for whole-file/offline pack execution:
+  query, process, parameter values, immutable/mutable audio views, output
+  artifact classification, length model, materialization, and RT re-entry
+  policy.
+- Installed the new public API header with the existing Core package headers.
+- Fixed the Core Windows test harness so CTest copies runtime DLLs for
+  Core-linked tests and passes the generated pack output directory into
+  `test_operator_packs`.
+
+Verification:
+
+- `cmake --build --preset windows-msvc-debug`
+  - Result: passed. Build succeeded with existing warning classes only.
+- `ctest --test-dir build\windows-msvc-debug -C Debug --output-on-failure`
+  - Result: passed; 7/7 CTest tests passed.
+- `git diff --check`
+  - Result: passed. Git reported only line-ending normalization warnings.
+
+Follow-up:
+
+- Future offline ABI revisions should remain optional and additive so existing
+  block-only packs keep working unchanged.
+
+### `xyona-cdp-pack`
+
+Repository: `xyona-cdp-pack`
+
+Branch: `feature/cdp8-offline-foundation`
+
+Commit: `57105fa`
+
+Subject: `feat(cdp-pack): add whole-file loudness normalise`
+
+Files changed:
+
+- `src/operators/cdp_modify_loudness_normalise.h`
+- `src/operators/cdp_modify_loudness_normalise.cpp`
+- `src/offline_api.cpp`
+- `src/pack_registration.cpp`
+- `src/support/pack_descriptors.h`
+- `CMakeLists.txt`
+- `tests/test_cdp_modify_loudness_normalise.cpp`
+- `specs/cdp8_inventory.yaml`
+- `ROADMAP_CDP8_REWRITE.md`
+- `REPORT_CDP8_REWRITE_STATUS.md`
+
+Technical change:
+
+- Added `cdp.modify.loudness_normalise` as the first whole-file,
+  length-preserving, HQ-only CDP8 operator.
+- The descriptor advertises `canRealtime=false`, `canHQ=true`, CDP8 provenance
+  for `modify loudness 3` / `LOUDNESS_NORM`, and
+  `whole_file_length_preserving` engine metadata.
+- The block v2 process path deliberately returns unsupported for this operator;
+  actual execution goes through `xyona_pack_get_offline_api_v1`.
+- The offline process scans the full input for peak level, sanitizes non-finite
+  boundary samples, materializes same-length audio, and rejects invalid target
+  peak parameters.
+- Updated pack inventory, roadmap, and status report so normalise is no longer
+  incorrectly listed as infrastructure-blocked.
+
+Verification:
+
+- `$env:XYONA_CORE_ROOT='D:\GITHUB\XYONA\xyona-core'; cmake --build --preset windows-msvc-debug --target test_cdp_modify_loudness_normalise`
+  - Result: passed.
+- `ctest --preset windows-msvc-debug -R cdp_modify_loudness_normalise_tests --output-on-failure`
+  - Result: passed; 1/1 targeted test passed.
+- `ctest --preset windows-msvc-debug --output-on-failure`
+  - Result: passed; 12/12 CTest tests passed.
+- `git diff --check`
+  - Result: passed. Git reported only line-ending normalization warnings.
+
+Follow-up:
+
+- Use this operator as the reference implementation for additional same-length
+  whole-file CDP tools.
+- Do not move length-changing or spectral tools onto this path until output
+  length negotiation and typed data artifacts are implemented.
+
+### `xyona-lab`
+
+Repository: `xyona-lab`
+
+Branch: `feature/cdp8-offline-foundation`
+
+Commit: `a83cf769`
+
+Subject: `feat(lab): render whole-file offline pack artifacts`
+
+Files changed:
+
+- `src/app/lab/audio/engine/OfflinePackProcessorClient.h`
+- `src/app/lab/audio/engine/OfflinePackProcessorClient.cpp`
+- `src/app/lab/audio/engine/OfflineRenderEngine.h`
+- `src/app/lab/audio/engine/OfflineRenderEngine.cpp`
+- `src/app/CMakeLists.txt`
+- `tests/OfflinePackProcessorClientTests.cpp`
+- `tests/CMakeLists.txt`
+
+Technical change:
+
+- Added a Lab-side offline pack client that resolves a loaded pack by operator
+  namespace, opens its dynamic library, obtains `xyona_pack_get_offline_api_v1`,
+  queries the output contract, materializes an audio buffer, validates the
+  `OfflineSessionContract`, and returns an RT re-entry-capable audio artifact.
+- Added `OfflineRenderEngine::renderWholeFileOperatorToBuffer` as the first
+  explicit host entry point for whole-file pack work.
+- Added an optional Lab unit test that runs
+  `cdp.modify.loudness_normalise` against the local CDP pack build and verifies
+  descriptor capabilities, rendered samples, session flags, artifact length
+  model, and RT re-entry eligibility.
+
+Verification:
+
+- `$env:XYONA_CORE_PATH='D:\GITHUB\XYONA\xyona-core'; cmake --build --preset windows-dev --target xyona_lab_tests`
+  - Result: passed. Build succeeded with existing warning classes only.
+- `$env:XYONA_OPERATOR_PACK_PATH='D:\GITHUB\XYONA\xyona-cdp-pack\build\windows-msvc-debug\Debug'; .\build\windows-dev\tests\Debug\xyona_lab_tests.exe --test='Offline Pack Processor Client' --xyona-only --summary-only`
+  - Result: passed; 1 test, 22 passes, 0 failures.
+- Same pack path, `--test='CDP Pack Canvas Smoke' --xyona-only --summary-only`
+  - Result: passed; 6 tests, 194 passes, 0 failures.
+- Same pack path, `.\build\windows-dev\tests\Debug\xyona_lab_tests.exe --xyona-only --summary-only`
+  - Result: passed; 1155 tests, 943516 passes, 0 failures.
+- `git diff --check`
+  - Result: passed. Git reported only line-ending normalization warnings.
+
+Follow-up:
+
+- Promote the direct whole-file render entry point into graph-level scheduling
+  for offline-only nodes.
+- Persist materialized artifacts through the HQ/RT layer/clip bridge described
+  in `xyona-lab/docs/architecture/HQ_RT.md`.
+
+### Workspace Root
+
+Repository: workspace root
+
+Branch: `docs/cdp8-offline-spectral-roadmap`
+
+Commit: pending report commit
+
+Subject: `docs: record whole-file normalise slice`
+
+Files changed:
+
+- `CDP8_OFFLINE_SPECTRAL_ROADMAP.md`
+- `CDP8_OFFLINE_SPECTRAL_IMPLEMENTATION_REPORT.md`
+- `xyona-cdp-pack` gitlink
+
+Technical change:
+
+- Updated the cross-repo roadmap to record that the first same-length
+  whole-file CDP/HQ slice now exists.
+- Recorded the Core, Pack, and Lab implementation commits and verification.
+- Updated the workspace gitlink for `xyona-cdp-pack` to the commit that contains
+  `cdp.modify.loudness_normalise`.
+
+Verification:
+
+- `git diff --check`
+  - Result: passed before commit; only line-ending normalization warnings.
+
+Follow-up:
+
+- Backfill this root commit hash in a later report update if exact root-report
+  self-reference becomes necessary.
 
 ### Workspace Root
 
@@ -423,13 +609,27 @@ Follow-up:
 - `xyona-lab`: `ctest --test-dir build\windows-dev -C Debug -R
   "^xyona_lab_tests$" --output-on-failure` passed after graph diagnostics and
   offline artifact contract; 1/1 CTest tests passed.
+- `xyona-core`: `cmake --build --preset windows-msvc-debug` passed after adding
+  the optional offline pack ABI.
+- `xyona-core`: `ctest --test-dir build\windows-msvc-debug -C Debug
+  --output-on-failure` passed after fixing the Windows test runtime path and
+  pack-test directory; 7/7 CTest tests passed.
+- `xyona-cdp-pack`: `ctest --preset windows-msvc-debug --output-on-failure`
+  passed after `cdp.modify.loudness_normalise`; 12/12 CTest tests passed.
+- `xyona-lab`: `.\build\windows-dev\tests\Debug\xyona_lab_tests.exe
+  --test="Offline Pack Processor Client" --xyona-only --summary-only` passed
+  with `XYONA_OPERATOR_PACK_PATH=D:\GITHUB\XYONA\xyona-cdp-pack\build\windows-msvc-debug\Debug`;
+  1 test, 22 passes, 0 failures.
+- `xyona-lab`: `.\build\windows-dev\tests\Debug\xyona_lab_tests.exe
+  --xyona-only --summary-only` passed with the same pack path; 1155 tests,
+  943516 passes, 0 failures.
 
 ## Open Risks
 
 - The first implementation slice must not fork a CDP-only RT re-entry path. It
   must align with `xyona-lab/docs/architecture/HQ_RT.md` Phase 5-7.
-- Whole-file and length-changing CDP operators still need an execution path that
-  materializes artifacts through the new offline contract. They must not be
-  forced through the current block adapter path.
+- Same-length whole-file CDP operators now have a first execution path.
+  Length-changing CDP operators still need output length negotiation before
+  they are allowed to materialize artifacts.
 - The first real length-changing vertical slice still needs layer/clip
   persistence and RT re-entry wiring after artifact materialization.

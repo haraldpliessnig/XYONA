@@ -30,14 +30,20 @@ Current state:
   block into a known render range.
 - Core pack ABI v2 supports block-based audio operators with fixed `num_samples`
   per process call.
+- Core now also exposes an optional `offline_packs_v1` C ABI for whole-file pack
+  query/process calls that do not fit the block callback.
 - The CDP pack has the first dynamic pack, descriptor, buffer, validation, and
   block-safe operator infrastructure.
 - The CDP pack already classifies future process shapes such as whole-file,
   length-changing, analysis-output, multi-output, and generator operators.
+- The first whole-file, length-preserving CDP slice exists:
+  `cdp.modify.loudness_normalise` performs a full-file peak scan through the
+  optional offline ABI and Lab can materialize the result as an RT-reentry-safe
+  audio artifact.
 
 Missing state:
 
-- A host/pack execution contract for whole-file operators.
+- Graph-level scheduling for offline-only pack nodes.
 - Output length negotiation for length-changing CDP programs.
 - A typed analysis/spectral data model instead of pretending PVOC/PVX is audio.
 - Lab graph planning rules for offline-only and non-audio-producing nodes.
