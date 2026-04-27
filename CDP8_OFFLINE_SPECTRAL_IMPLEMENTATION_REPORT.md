@@ -54,6 +54,9 @@ current render-dependency fingerprints.
 Project save now also cleans orphaned materialized audio assets and stale,
 missing, or failed layers are not silently promoted back to valid RT-playable
 audio during project asset reload.
+Materialized WAV asset files now also carry content fingerprints so external
+asset edits reload as `Stale` / `Re-render required` instead of valid resident
+audio.
 
 Latest implementation commits:
 
@@ -64,8 +67,9 @@ Latest implementation commits:
 - `xyona-lab`: `6b71007b feat(lab): track materialized asset staleness`
 - `xyona-lab`: `5adbcb97 feat(lab): fingerprint materialized render dependencies`
 - `xyona-lab`: `f87b14aa feat(lab): clean orphaned materialized audio assets`
+- `xyona-lab`: `1d24ef1a feat(lab): fingerprint materialized audio asset files`
 - workspace root: this report update records the latest Lab render-dependency
-  signature and orphan-cleanup slices.
+  signature, orphan-cleanup, and materialized asset file-fingerprint slices.
 
 Current proven capability:
 
@@ -125,6 +129,10 @@ Current proven capability:
   manifest layers are deleted, empty materialized-audio directories are removed
   when the store has no layers, and stale/missing/failed layers are not
   rehydrated as `Valid` from old WAV files.
+- Materialized WAV asset files now persist a content fingerprint
+  (size/mtime/FNV-64). If an external edit changes the stored asset, project
+  reload marks the layer `Stale`, records `Re-render required`, and leaves it
+  nonresident/non-RT-playable.
 - The plan is now gated: the current whole-buffer offline ABI, currently named
   `offline_whole_buffer_prototype`, is a prototype/reference bridge. Length-changing,
   PVOC/spectral, multi-output, and production-scale long-file CDP work require
@@ -175,7 +183,7 @@ Next implementation steps, in order:
    - length-changing and PVOC/spectral require implemented/tested
      Offline Session ABI.
 2. Finish materialized asset production persistence:
-   - external source/dependent asset file fingerprints
+   - external source file fingerprints
    - future spectral settings in dependency signatures once spectral
      materialized artifacts exist
    - dedicated UI surface for `Re-render required` / `Missing` materialized clips
@@ -250,8 +258,8 @@ Verification:
 
 Follow-up:
 
-- Feed the store API with external source/dependent asset fingerprints and
-  future spectral settings once those materialized artifact types exist.
+- Feed the store API with external source file fingerprints and future spectral
+  settings once those materialized artifact types exist.
 - Add the user-facing Lab UI surface for `Missing` / `Re-render required`
   materialized clips.
 
@@ -288,8 +296,8 @@ Technical change:
   signature changes, and proves the old layer transitions to `Stale` with
   `Re-render required` and `isRealtimePlayable() == false`.
 - `HQ_RT.md` now marks the graph/job/parameter side of current signatures as
-  implemented and keeps external source/dependent asset file fingerprints,
-  spectral settings, UI, and LayerPlayer RT consumption open.
+  implemented and keeps external source file fingerprints, spectral settings,
+  UI, and LayerPlayer RT consumption open.
 
 Verification:
 
@@ -305,8 +313,7 @@ Verification:
 
 Follow-up:
 
-- Add external source/dependent asset file fingerprints before Gate C is
-  considered complete.
+- Add external source file fingerprints before Gate C is considered complete.
 - Add the dedicated Lab UI surface for `Missing` / `Re-render required`
   materialized clips.
 
@@ -352,8 +359,54 @@ Verification:
 
 Follow-up:
 
-- Add external source/dependent asset file fingerprints before Gate C is
-  considered complete.
+- Add external source file fingerprints before Gate C is considered complete.
+- Add the dedicated Lab UI surface for `Missing` / `Re-render required`
+  materialized clips.
+
+### Materialized WAV Asset File Fingerprints
+
+Repository: `xyona-lab`
+
+Branch: `feature/cdp8-offline-foundation`
+
+Commit: `1d24ef1a`
+
+Subject: `feat(lab): fingerprint materialized audio asset files`
+
+Files changed:
+
+- `src/app/lab/audio/engine/MaterializedAudioStore.h`
+- `src/app/lab/audio/engine/MaterializedAudioStore.cpp`
+- `tests/MaterializedAudioStoreTests.cpp`
+- `docs/architecture/HQ_RT.md`
+
+Technical change:
+
+- Added a persisted `fileFingerprint` field to `MaterializedAudioLayer`
+  manifests.
+- After saving a resident materialized layer as WAV, Lab now fingerprints the
+  closed file using size, mtime, and FNV-64 content hashing.
+- Project asset reload compares the persisted fingerprint with the current WAV
+  file before decoding it. A mismatch marks the layer `Stale`, records
+  `Re-render required`, clears resident audio, and keeps
+  `isRealtimePlayable() == false`.
+- Existing manifests without `fileFingerprint` remain load-compatible.
+- `HQ_RT.md` now distinguishes implemented materialized WAV dependent-asset
+  fingerprints from still-open external source file fingerprints.
+
+Verification:
+
+- `xyona-lab`: `git diff --check`
+  - Result: passed.
+- `xyona-lab`: `XYONA_CORE_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-core cmake --build build/macos-dev --target xyona_lab_tests`
+  - Result: passed. Build succeeded with existing warning classes only.
+- `xyona-lab`: `build/macos-dev/tests/xyona_lab_tests --test="Materialized Audio Store" --summary-only --xyona-only`
+  - Result: passed; 5 tests, 123 passes, 0 failures.
+- Full Lab CTest was intentionally not run for this focused persistence slice.
+
+Follow-up:
+
+- Add external source file fingerprints before Gate C is considered complete.
 - Add the dedicated Lab UI surface for `Missing` / `Re-render required`
   materialized clips.
 
@@ -1463,6 +1516,11 @@ Follow-up:
 - `xyona-lab`: `build/macos-dev/tests/xyona_lab_tests --test="Materialized Audio Store" --summary-only --xyona-only`
   passed after materialized asset orphan cleanup; 5 tests, 112 passes, 0
   failures.
+- `xyona-lab`: `XYONA_CORE_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-core cmake --build build/macos-dev --target xyona_lab_tests`
+  passed after adding materialized WAV asset file fingerprints.
+- `xyona-lab`: `build/macos-dev/tests/xyona_lab_tests --test="Materialized Audio Store" --summary-only --xyona-only`
+  passed after materialized WAV asset file fingerprints; 5 tests, 123 passes,
+  0 failures.
 
 ## Open Risks
 
@@ -1471,9 +1529,8 @@ Follow-up:
   store-owned asset directory.
 - Materialized layers now carry store-level dependency signatures and the
   AudioEngineManager materialize path computes current graph/job/parameter
-  signatures, but external source/dependent asset file fingerprints, future
-  spectral settings, and pack binary identity beyond descriptor/artifact
-  versions are still open.
+  signatures, but external source file fingerprints, future spectral settings,
+  and pack binary identity beyond descriptor/artifact versions are still open.
 - `Missing` and `Stale` states are persisted and diagnosable, but there is not
   yet a dedicated UI surface for re-rendering those clips.
 - Materialized clips are not yet consumed by the realtime LayerPlayer path, so
