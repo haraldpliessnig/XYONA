@@ -100,6 +100,7 @@ explicitly scoped as an internal test helper instead of a pack contract.
 - provider namespace
 - family and module name
 - label, summary, description, category, icon, version
+- short UI labels and default Canvas instance naming
 - operator type
 - RT/HQ capabilities
 - engine/process shape
@@ -132,6 +133,10 @@ operatorType: processor
 category: CDP/Modify
 icon: volume-2
 version: 0.1.0
+
+ui:
+  shortLabel: Loudness Gain
+  nodeNameStem: loud_gain
 
 ownership:
   repository: xyona-cdp-pack
@@ -204,6 +209,71 @@ cdp.modify.space_mirror
 ```
 
 The filesystem path is not authoritative. `op.yaml:id` is authoritative.
+
+## Display And Instance Naming Rules
+
+Operator IDs are machine identity, not Canvas display names.
+
+This distinction is mandatory for packs. A namespaced pack ID such as
+`cdp.modify.loudness_gain` is correct for persistence, lookup, help IDs, tests,
+and provenance, but it is not acceptable as the default visible node instance
+name. Core currently hides this problem only because Core IDs such as `gain`
+are already short.
+
+Every public operator should therefore expose three separate naming surfaces:
+
+```yaml
+id: cdp.modify.loudness_gain
+label: Modify Loudness Gain
+category: CDP/Modify
+
+ui:
+  shortLabel: Loudness Gain
+  nodeNameStem: loud_gain
+```
+
+Meanings:
+
+- `id`: immutable machine ID. It may be long and namespaced.
+- `label`: human operator name for browsers, descriptors, help titles, and
+  search results. It should not mechanically repeat provider and family if the
+  UI already shows those separately.
+- `category`: browser/grouping path such as `CDP/Modify`.
+- `ui.shortLabel`: compact label for constrained UI surfaces.
+- `ui.nodeNameStem`: default Canvas instance-name prefix.
+
+Canvas default names must be generated from `ui.nodeNameStem`, not from `id`.
+
+Examples:
+
+| Operator ID | Label | Category | Node Name Stem | Default Instances |
+|---|---|---|---|---|
+| `gain` | `Gain` | `Amplitude` | `gain` | `gain1`, `gain2` |
+| `cdp.modify.loudness_gain` | `Modify Loudness Gain` | `CDP/Modify` | `loud_gain` | `loud_gain1` |
+| `cdp.modify.space_mirror` | `Space Mirror` | `CDP/Modify` | `mirror` | `mirror1` |
+| `cdp.distort.waveset_density` | `Waveset Density` | `CDP/Distort` | `density` | `density1` |
+
+Rules:
+
+- `ui.nodeNameStem` must be short, lowercase, ASCII, and stable.
+- `ui.nodeNameStem` must not contain dots or provider namespace fragments such
+  as `cdp.modify`.
+- `ui.nodeNameStem` should be unique across the discovered operator set. If a
+  collision is unavoidable, add the smallest useful qualifier, for example
+  `cdp_gain` rather than `cdp.modify.loudness_gain`.
+- Persisted projects must keep both the immutable operator `id` and the editable
+  node instance name. Renaming a node must not change the operator ID.
+- Hosts may show provider/family context in menus, breadcrumbs, tooltips, and
+  search filters. They should not force that context into the Canvas node name.
+
+Fallback during migration:
+
+1. Use `ui.nodeNameStem` when present.
+2. Otherwise derive from a future descriptor `shortLabel` only if it can be
+   sanitized without ambiguity.
+3. As a last resort, derive from `id` by dropping provider/family segments and
+   sanitizing the final module segment.
+4. Never display a dotted provider-qualified ID as the default Canvas node name.
 
 ## Help ID Rules
 
@@ -334,6 +404,9 @@ A repository-level validator should fail if:
 - RT/HQ capability docs disagree with metadata
 - a pack operator ID does not start with `<provider>.`
 - a CDP operator lacks provenance
+- `ui.nodeNameStem` is missing, contains dots, duplicates another public
+  operator without an explicit exception, or is derived from the full namespaced
+  ID
 - a whole-file or length-changing operator claims realtime without an explicit
   realtime contract
 - a prototype whole-buffer adapter is used for length-changing, PVOC/spectral,

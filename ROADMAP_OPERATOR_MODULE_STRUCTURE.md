@@ -386,6 +386,58 @@ moduleName: loudness_gain
 
 The path is organizational. `op.yaml:id` is authoritative.
 
+### UI And Canvas Instance Naming
+
+Canonical IDs must not be reused as default Canvas instance names.
+
+Current Lab behavior generates TouchDesigner-style node names from the operator
+ID. That works for short Core IDs such as `gain`, because the visible instance
+becomes `gain1`. It breaks for namespaced pack IDs such as
+`cdp.modify.loudness_gain`, because the UI leaks the internal namespace into
+the node header.
+
+This is a structure issue, not a reason to shorten pack IDs. Pack IDs need the
+provider namespace for persistence, discovery, help IDs, and collision
+avoidance. The missing layer is a separate short node-name stem.
+
+The target contract is:
+
+```yaml
+id: cdp.modify.loudness_gain       # stable machine ID
+label: Modify Loudness Gain        # browser/help label
+category: CDP/Modify               # grouping context
+
+ui:
+  shortLabel: Loudness Gain
+  nodeNameStem: loud_gain           # Canvas instance prefix
+```
+
+Default instances should be:
+
+```text
+gain1
+loud_gain1
+mirror1
+density1
+```
+
+not:
+
+```text
+cdp.modify.loudness_gain1
+cdp.modify.cdp.loudness.density1
+```
+
+Migration rule:
+
+1. Add `ui.nodeNameStem` to `op.yaml`.
+2. Generate or validate descriptor/UI metadata from it.
+3. Lab should generate new node instance names from `nodeNameStem`.
+4. Existing persisted node names remain user data and must not be rewritten
+   automatically.
+5. Menus and search can show provider/family context, but Canvas node headers
+   should stay short.
+
 ### Required `op.yaml`
 
 `op.yaml` should become the canonical operator contract.
