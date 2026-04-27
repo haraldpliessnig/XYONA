@@ -118,6 +118,86 @@ Repository: `xyona-lab`
 
 Branch: `feature/cdp8-offline-foundation`
 
+Commit: `6e232d87`
+
+Subject: `feat(lab): add graph diagnostics and offline artifact contract`
+
+Files changed:
+
+- `src/app/lab/audio/builder/GraphPlanDiagnostics.h`
+- `src/app/lab/audio/builder/GraphPlanDiagnostics.cpp`
+- `src/app/lab/audio/builder/AudioGraphBuilder.h`
+- `src/app/lab/audio/builder/AudioGraphBuilder.cpp`
+- `src/app/lab/audio/engine/AudioEngineManager.h`
+- `src/app/lab/audio/engine/AudioEngineManager.cpp`
+- `src/app/lab/audio/engine/OfflineArtifactContract.h`
+- `src/app/lab/audio/engine/OfflineArtifactContract.cpp`
+- `src/app/lab/audio/engine/OfflineRenderEngine.h`
+- `src/app/lab/audio/engine/OfflineRenderEngine.cpp`
+- `src/app/lab/debugbar/DebugBar.cpp`
+- `src/app/CMakeLists.txt`
+- `tests/AudioEngineManagerTests.cpp`
+- `tests/OfflineArtifactContractTests.cpp`
+- `tests/CMakeLists.txt`
+
+Technical change:
+
+- Added structured graph-plan diagnostics for RT and HQ/offline graph builds.
+- Builder diagnostics now record skipped nodes for missing capabilities,
+  unsupported process shapes, invalid process metadata, empty live graphs after
+  pruning, and bus-dependency cycles.
+- `AudioEngineManager` stores the latest RT and offline diagnostics and exposes
+  them through `getGraphPlanDiagnostics()`.
+- Offline render failures now include the most relevant graph diagnostic instead
+  of only a generic "failed to build HQ graph plan" message.
+- DebugBar's Audio view now shows graph diagnostics, including formatted
+  per-domain diagnostic entries.
+- Added a typed offline session/artifact contract for:
+  - audio buffers
+  - audio files
+  - breakpoint/text tables
+  - spectral/PVOC analysis artifacts
+  - analysis reports
+  - file collections
+- The contract records output length model, materialization policy, RT re-entry
+  policy, producer identity, sample rate, channel count, expected sample count,
+  whole-file requirement, length-changing status, and spectral status.
+- Current block-based offline renders now declare and validate a block-audio
+  session artifact before rendering.
+- Contract validation rejects invalid future states such as a length-changing
+  artifact claiming `same_as_render_range`, or PVOC/spectral data trying to
+  re-enter RT as an audio layer.
+
+Verification:
+
+- `cmake --build --preset windows-dev --target xyona_lab_tests`
+  - Result: passed. Build succeeded with existing warning classes only.
+- `.\build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="Offline Artifact Contract" --xyona-only --summary-only`
+  - Result: passed; 5 tests, 18 passes, 0 failures.
+- `.\build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="AudioEngineManager Minimal Plan" --xyona-only --summary-only`
+  - Result: passed; 34 tests, 514 passes, 0 failures.
+- `.\build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="Operator Process Metadata" --xyona-only --summary-only`
+  - Result: passed; 5 tests, 36 passes, 0 failures.
+- `$env:XYONA_OPERATOR_PACK_PATH='D:\GITHUB\XYONA\xyona-cdp-pack\build\windows-msvc-debug\Debug'; .\build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="CDP Pack Canvas Smoke" --xyona-only --summary-only`
+  - Result: passed; 6 tests, 194 passes, 0 failures.
+- `ctest --test-dir build\windows-dev -C Debug -R "^xyona_lab_tests$" --output-on-failure`
+  - Result: passed; 1/1 CTest tests passed.
+- `git diff --check`
+  - Result: passed. Git reported only line-ending normalization warnings.
+
+Follow-up:
+
+- Use the offline artifact contract as the input to the first real whole-file
+  CDP execution path.
+- Add materialized layer/clip persistence once the first length-changing CDP
+  render produces an audio artifact.
+
+### `xyona-lab`
+
+Repository: `xyona-lab`
+
+Branch: `feature/cdp8-offline-foundation`
+
 Commit: `2733f133`
 
 Subject: `feat(lab): validate operator process metadata`
@@ -170,12 +250,8 @@ Verification:
 
 Follow-up:
 
-- Add user-facing graph-plan diagnostics for unsupported process shapes. The
-  current builder keeps RT/HQ safety by skipping unsupported nodes, matching the
-  existing capability-filter behavior, but users should eventually see a precise
-  reason in the UI.
-- Implement the offline session/artifact contract before enabling whole-file or
-  length-changing CDP operators in HQ plans.
+- Completed by `6e232d87 feat(lab): add graph diagnostics and offline artifact
+  contract`.
 
 ### `xyona-lab`
 
@@ -338,14 +414,22 @@ Follow-up:
   6 tests, 194 passes, 0 failures.
 - `xyona-lab`: `ctest --test-dir build\windows-dev -C Debug -R
   "^xyona_lab_tests$" --output-on-failure` passed; 1/1 CTest tests passed.
+- `xyona-lab`: `.\build\windows-dev\tests\Debug\xyona_lab_tests.exe
+  --test="Offline Artifact Contract" --xyona-only --summary-only` passed; 5
+  tests, 18 passes, 0 failures.
+- `xyona-lab`: `.\build\windows-dev\tests\Debug\xyona_lab_tests.exe
+  --test="AudioEngineManager Minimal Plan" --xyona-only --summary-only` passed;
+  34 tests, 514 passes, 0 failures.
+- `xyona-lab`: `ctest --test-dir build\windows-dev -C Debug -R
+  "^xyona_lab_tests$" --output-on-failure` passed after graph diagnostics and
+  offline artifact contract; 1/1 CTest tests passed.
 
 ## Open Risks
 
 - The first implementation slice must not fork a CDP-only RT re-entry path. It
   must align with `xyona-lab/docs/architecture/HQ_RT.md` Phase 5-7.
-- Unsupported process shapes are currently kept out of RT/HQ block plans by
-  builder guardrails and debug logs. Before exposing whole-file CDP operators to
-  normal users, Lab needs user-facing graph-plan diagnostics.
-- Whole-file and length-changing CDP operators must remain HQ/offline-session
-  work until the artifact/result contract exists. They must not be forced
-  through the current block adapter path.
+- Whole-file and length-changing CDP operators still need an execution path that
+  materializes artifacts through the new offline contract. They must not be
+  forced through the current block adapter path.
+- The first real length-changing vertical slice still needs layer/clip
+  persistence and RT re-entry wiring after artifact materialization.
