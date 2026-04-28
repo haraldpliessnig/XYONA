@@ -1,6 +1,6 @@
 # CDP8 Offline And Spectral Implementation Report
 
-Last updated: 2026-04-27
+Last updated: 2026-04-28
 
 Companion roadmap:
 
@@ -83,10 +83,16 @@ Latest implementation commits:
 - `xyona-lab`: `48a79a0a feat(lab): surface materialized audio status`
 - `xyona-lab`: `b4149bf0 feat(lab): add materialized layer player adapter`
 - `xyona-lab`: `fbfa6e35 feat(lab): route materialized clips into realtime graph`
+- `xyona-core`: `ed0982a5 feat(core): add offline session abi`
+- `xyona-cdp-pack`: `5c39e098 feat(cdp-pack): implement offline session normalise`
+- `xyona-lab`: `50abd15f feat(lab): render whole-file packs through sessions`
 - workspace root: this report update records the latest Lab render-dependency
   signature, orphan-cleanup, materialized asset file-fingerprint, and
   `lab.audio_file_in` source-fingerprint/status-surface and Gate D LayerPlayer
   slices.
+- workspace root: this report/roadmap update records the Gate E Offline Session
+  ABI close-out and advances the `xyona-cdp-pack` Gitlink to the Gate E pack
+  commit.
 
 Current proven capability:
 
@@ -94,9 +100,9 @@ Current proven capability:
   operator.
 - The pack advertises the operator as HQ-only and rejects block processing for
   it.
-- Lab can call the pack's optional offline API directly, materialize the output
-  audio buffer, validate the `OfflineSessionContract`, and mark the artifact as
-  RT re-entry-capable.
+- Lab can call the pack's production Offline Session ABI directly, stream input
+  blocks, materialize output audio blocks, validate the `OfflineSessionContract`,
+  and mark the artifact as RT re-entry-capable.
 - Lab can now also schedule same-length whole-file pack nodes inside the
   offline/HQ graph for the first supported graph shape:
   source/block region -> one whole-file node -> direct terminal audio targets.
@@ -240,26 +246,23 @@ $env:XYONA_OPERATOR_PACK_PATH='D:\GITHUB\XYONA\xyona-cdp-pack\build\windows-msvc
 
 Next implementation steps, in order:
 
-1. Start Gate E: implement the production Offline Session ABI in Core/Pack/Lab
-   and tests for normal completion, progress, and cancellation.
-2. Port `cdp.modify.loudness_normalise` onto the session lifecycle and remove
-   or internalize the prototype whole-buffer ABI surface before release.
-3. Add CI baseline for Core, Pack, and Lab on macOS Clang and Windows MSVC.
-4. Carry forward future materialized dependency coverage:
+1. Add CI baseline for Core, Pack, and Lab on macOS Clang and Windows MSVC
+   (Gate F).
+2. Carry forward future materialized dependency coverage:
    - future spectral settings in dependency signatures once spectral
      materialized artifacts exist.
-5. Only after the Offline Session ABI is implemented and tested, start
+3. Only after the Offline Session ABI is implemented and tested, start
    length-changing audio.
-6. Only after the Offline Session ABI plus typed data/asset handles and CDP8
+4. Only after the Offline Session ABI plus typed data/asset handles and CDP8
    golden fixtures, start PVOC/spectral work.
-7. Before the first CDP generator, add the explicit null-upstream generator
+5. Before the first CDP generator, add the explicit null-upstream generator
    graph/render test.
 
 Hard gate summary:
 
-- The current whole-buffer offline ABI remains usable only as a temporary
-  prototype/reference path for existing same-length work. It is not a release
-  production path for length-changing, PVOC/spectral, multi-output, or
+- The current whole-buffer offline ABI remains usable only as an internal
+  prototype/reference path for existing same-length reference tests. It is not a
+  release production path for length-changing, PVOC/spectral, multi-output, or
   long-running CDP operators.
 - Current materialized-audio persistence/staleness is complete for Gate C:
   stale/missing assets produce visible status, and future materialized artifact
@@ -267,8 +270,79 @@ Hard gate summary:
 - Realtime consumption of valid resident materialized audio clips is complete
   for Gate D through `lab.layer_player`; missing/stale/nonresident clips are
   diagnosable silence, not hidden RT work.
-- PVOC/spectral has an explicit hard dependency on implemented/tested
-  Offline Session ABI, typed data or asset handles, and CDP8 golden fixtures.
+- PVOC/spectral has an explicit hard dependency on the implemented/tested
+  Offline Session ABI plus future typed data or asset handles and CDP8 golden
+  fixtures.
+
+## Gate E Close-Out - Offline Session ABI
+
+Date: 2026-04-28
+
+Commits:
+
+- `xyona-core`: `ed0982a5 feat(core): add offline session abi`
+- `xyona-cdp-pack`: `5c39e098 feat(cdp-pack): implement offline session normalise`
+- `xyona-lab`: `50abd15f feat(lab): render whole-file packs through sessions`
+- workspace root: this report/roadmap close-out commit
+
+Repositories changed:
+
+- `xyona-core`
+- `xyona-cdp-pack`
+- `xyona-lab`
+
+Technical change:
+
+- Core now has the first production `xyona/api/offline_session.h` C ABI surface:
+  session create/feed/finish/output-count/output-desc/read-audio/cancel/destroy,
+  progress and cancellation callbacks, and host scratch policy fields.
+- The CDP pack exports `xyona_pack_get_offline_session_api`. The normal build no
+  longer exports `xyona_pack_get_offline_whole_buffer_prototype_api`; that getter
+  is gated behind the explicit `XYONA_CDP_PACK_ENABLE_OFFLINE_PROTOTYPE_EXPORT`
+  option for legacy/debug builds.
+- `cdp.modify.loudness_normalise` now has a session-backed implementation that
+  accepts streaming input blocks, finalizes whole-file peak normalization,
+  reports progress, supports cancellation, discovers one same-length audio
+  output, and reads output audio blocks.
+- Lab's `OfflinePackProcessorClient` now requires the production Offline Session
+  ABI for whole-file pack processing and no longer falls back to
+  `offline_whole_buffer_prototype`.
+- Lab now forwards whole-file graph render progress and cancellation into the
+  Offline Session ABI. A cancelled CDP session render fails deterministically and
+  does not publish a partial `MaterializedAudioStore` clip.
+- `cdp.modify.loudness_normalise` validates session scratch-policy shape. Pack
+  tests keep the prototype query/process logic only as an internal reference
+  path, while the exported DLL surface is session-only by default.
+
+Verification:
+
+- `xyona-core`: `ctest --test-dir build\windows-msvc-debug -C Debug --output-on-failure`
+  passed; 8 tests, 0 failures.
+- `xyona-cdp-pack`: `ctest --preset windows-msvc-debug --output-on-failure`
+  passed; 12 tests, 0 failures.
+- `xyona-cdp-pack`: `objdump -p build\windows-msvc-debug\Debug\xyona_pack_cdp_ops.dll | Select-String -Pattern "xyona_pack_get_offline"`
+  showed only `xyona_pack_get_offline_session_api` in the normal Debug export
+  table.
+- `xyona-lab`: `xyona_lab_tests.exe --test="Offline Pack Processor Client" --xyona-only --summary-only`
+  passed with `XYONA_OPERATOR_PACK_PATH=D:\GITHUB\XYONA\xyona-cdp-pack\build\windows-msvc-debug\Debug`;
+  3 tests, 30 passes, 0 failures.
+- `xyona-lab`: `xyona_lab_tests.exe --test="AudioEngineManager" --xyona-only --summary-only`
+  passed with `XYONA_OPERATOR_PACK_PATH=D:\GITHUB\XYONA\xyona-cdp-pack\build\windows-msvc-debug\Debug`;
+  40 tests, 644 passes, 0 failures.
+- `xyona-lab`: `xyona_lab_tests.exe --test="CDP Pack Canvas Smoke" --xyona-only --summary-only`
+  passed with `XYONA_OPERATOR_PACK_PATH=D:\GITHUB\XYONA\xyona-cdp-pack\build\windows-msvc-debug\Debug`;
+  7 tests, 220 passes, 0 failures.
+
+Gate E exit status:
+
+- Gate E exit criteria are met in the working tree: Core exposes the Offline
+  Session ABI, the CDP pack exercises the full lifecycle with the normalise
+  reference operator, Lab routes the supported whole-file graph shape through
+  sessions, progress/cancellation are covered, and cancelled renders do not
+  publish partial materialized RT artifacts.
+- Remaining work moves to later gates: CI baseline is Gate F; length-changing
+  output negotiation is Gate G; typed data/asset handles for PVOC/spectral work
+  remain blocked until the later typed-data/asset phase.
 
 ## Commit Log
 

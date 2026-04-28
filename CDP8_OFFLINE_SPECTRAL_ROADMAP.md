@@ -1,6 +1,6 @@
 # CDP8 Offline And Spectral Rewrite Roadmap
 
-Last updated: 2026-04-27
+Last updated: 2026-04-28
 
 ## Purpose
 
@@ -30,17 +30,18 @@ Current state:
   block into a known render range.
 - The current block pack ABI (`packs_v2.h`) supports block-based audio
   operators with fixed `num_samples` per process call.
-- Core currently exposes a prototype whole-buffer offline C ABI, currently
-  named `offline_whole_buffer_prototype`, for the first simple same-length
-  whole-file query/process slice.
+- Core now exposes the first production Offline Session C ABI for offline pack
+  create/feed/finish/output-discovery/read/cancel/destroy work. The older
+  `offline_whole_buffer_prototype` ABI remains only as a named reference/test
+  bridge, not the Lab production path.
 - The CDP pack has the first dynamic pack, descriptor, buffer, validation, and
   block-safe operator infrastructure.
 - The CDP pack already classifies future process shapes such as whole-file,
   length-changing, analysis-output, multi-output, and generator operators.
 - The first whole-file, length-preserving CDP slice exists:
-  `cdp.modify.loudness_normalise` performs a full-file peak scan through the
-  prototype whole-buffer offline ABI and Lab can materialize the result as an
-  RT-reentry-safe audio artifact.
+  `cdp.modify.loudness_normalise` performs streaming offline-session input,
+  whole-file peak finalization, output-block reads, progress/cancellation, and
+  Lab materialization as an RT-reentry-safe audio artifact.
 - Lab has a first `MaterializedAudioStore` for materialized layer/clip metadata,
   in-memory resident audio, WAV-backed asset persistence APIs, a ProjectState
   manifest anchor, and automatic Project save/open/save-as orchestration via a
@@ -67,8 +68,7 @@ Current state:
 
 Missing state:
 
-- Offline Session ABI implemented and tested with streaming, progress, and
-  cancellation. This is the first production offline pack contract.
+- CI baseline for Core, Pack, and Lab on the target platforms.
 - Remaining production persistence for materialized assets: future spectral
   settings once spectral materialized artifacts exist.
 - Output length negotiation for length-changing CDP programs through the Offline
@@ -83,9 +83,9 @@ Conclusion:
 This is cleanly achievable by extending the current HQ renderer and pack ABI. It
 should not be solved by special-case hacks inside individual CDP operators.
 The current whole-buffer offline ABI is a prototype/reference bridge for the
-existing same-length whole-file slice. It is not the release production offline
-contract for length-changing, PVOC/spectral, multi-output, or long-running CDP
-work.
+existing same-length whole-file reference tests. It is not the release
+production offline contract for length-changing, PVOC/spectral, multi-output,
+or long-running CDP work.
 
 ## Why This Architecture Is Required
 
@@ -234,8 +234,8 @@ dependency gate is complete.
 The current whole-buffer offline ABI, currently named
 `offline_whole_buffer_prototype`, is a temporary prototype/reference bridge. It
 remains valid only for bounded same-length, whole-buffer operators such as the
-current `cdp.modify.loudness_normalise` reference slice while the production
-Offline Session ABI is being built.
+current `cdp.modify.loudness_normalise` reference tests. The production path is
+the Offline Session ABI.
 
 Allowed on the prototype:
 
@@ -256,9 +256,9 @@ Exit criteria:
   prototype/reference ABI.
 - New CDP inventory entries for length-changing, PVOC/spectral, or multi-output
   work are blocked unless they target the production Offline Session ABI.
-- Before release, the current `cdp.modify.loudness_normalise` slice is ported to
-  the Offline Session ABI and the public prototype ABI surface is removed or
-  explicitly downgraded to an internal test helper.
+- The current `cdp.modify.loudness_normalise` slice is ported to the Offline
+  Session ABI and the normal pack export no longer exposes the prototype getter.
+  Any remaining prototype code is an internal reference/test helper.
 
 ### Gate B - Converge `MaterializedAudioStore` With `HQ_RT.md` Phase 7
 
@@ -334,6 +334,13 @@ Exit criteria:
 - The RT playback path performs no blocking file or pack work in the callback.
 
 ### Gate E - Implemented Offline Session ABI
+
+Status: implemented, locally verified, and committed on 2026-04-28:
+`xyona-core` `ed0982a5`, `xyona-cdp-pack` `5c39e098`, and `xyona-lab`
+`50abd15f`. The normal CDP pack DLL exports
+`xyona_pack_get_offline_session_api` only. The prototype whole-buffer getter is
+behind the explicit `XYONA_CDP_PACK_ENABLE_OFFLINE_PROTOTYPE_EXPORT` CMake
+option, and Lab no longer falls back to the prototype path.
 
 This gate is not satisfied by a design document. It requires implementation and
 tests.
@@ -1406,12 +1413,11 @@ Mitigation:
 
 - Keep the prototype whole-buffer offline ABI limited to bounded
   simple/reference operators.
-- Implement the Offline Session ABI with memory/spooling policy
-  before length-changing, PVOC/spectral, multi-output, or production-scale
-  long-file operators.
-- Port `cdp.modify.loudness_normalise` to the Offline Session ABI and remove the
-  public prototype ABI surface before release unless an explicit internal-helper
-  exception is made.
+- Use the Offline Session ABI memory/spooling policy before length-changing,
+  PVOC/spectral, multi-output, or production-scale long-file operators.
+- Keep `cdp.modify.loudness_normalise` on the Offline Session ABI and keep the
+  prototype whole-buffer code internal to reference tests unless an explicit
+  legacy/debug export is requested.
 
 ### Risk: Stale Materialized Assets
 
@@ -1433,19 +1439,16 @@ Mitigation:
 
 ## Recommended Immediate Next Steps
 
-1. Start Gate E: implement the production Offline Session ABI in Core/Pack/Lab
-   and tests for normal completion, progress, and cancellation.
-2. Port `cdp.modify.loudness_normalise` onto the session lifecycle and remove
-   or internalize the prototype whole-buffer ABI surface before release.
-3. Add CI baseline for Core, Pack, and Lab on macOS Clang and Windows MSVC.
-4. Carry forward future materialized dependency coverage:
+1. Start Gate F: add CI baseline for Core, Pack, and Lab on macOS Clang and
+   Windows MSVC.
+2. Carry forward future materialized dependency coverage:
    - future spectral settings in dependency signatures once spectral
      materialized artifacts exist.
-5. Only after the Offline Session ABI is implemented and tested, start
+3. Only after the Offline Session ABI is implemented and tested, start
    length-changing audio.
-6. Only after the Offline Session ABI plus typed data/asset handles and CDP8
+4. Only after the Offline Session ABI plus typed data/asset handles and CDP8
    golden fixtures, start PVOC/spectral work.
-7. Before the first CDP generator, add the explicit null-upstream generator
+5. Before the first CDP generator, add the explicit null-upstream generator
    graph/render test.
 
 ## Definition Of Done For CDP8 Rewrite Readiness
