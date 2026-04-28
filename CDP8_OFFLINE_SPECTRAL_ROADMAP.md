@@ -84,6 +84,10 @@ Current state:
   for data-only, multi-artifact, file-collection, typed-data, multi-output, and
   unsupported mixed-shape artifact/graph contracts. This does not implement
   PVOC/spectral operators; it establishes the rules they must use in Gate I.
+  The first post-Gate-H production operator slice is also in place:
+  `cdp.edit.cutend` implements CDP8 `sfedit cutend` mode 1 through the same
+  param-dependent length-changing Offline Session path, keeps the requested end
+  segment, applies the CDP start splice rule, and is covered in Pack and Lab CI.
 
 Missing state:
 
@@ -92,7 +96,7 @@ Missing state:
 - Remaining production persistence for materialized assets: future spectral
   settings once spectral materialized artifacts exist.
 - Additional CDP8 length-changing operator ports and broader CDP8 golden
-  fixture coverage beyond the initial `sfedit cut` slice.
+  fixture coverage beyond the current `sfedit cut` / `sfedit cutend` slices.
 - Additional CDP8 production operator families beyond the current representative
   slices.
 - The concrete typed analysis/spectral implementation for PVOC/PVX data. The
@@ -515,6 +519,10 @@ Current status:
 - No further production length-changing operator is required to close Gate G.
   The next real non-spectral length-changing family can now be selected after
   Gate H close-out.
+- After Gate H, `cdp.edit.cutend` was added as the second real `sfedit`
+  length-changing slice. It reused the same host contract, confirming no new
+  Lab/Core infrastructure was needed for another param-dependent end-segment
+  editor.
 
 ### Gate H - Infrastructure Completion Before More Operator Ports
 
@@ -1597,9 +1605,9 @@ Mitigation:
 ## Recommended Immediate Next Steps
 
 1. Treat Gate H as closed for the current shared infrastructure contract.
-2. Choose the next non-spectral CDP8 family; likely candidates remain
-   `extend`/`iterate`, `cutend`, or a non-spectral waveset-style
-   length-changing family depending on fixture cost.
+2. Choose the next non-spectral CDP8 family; likely candidates are now
+   `extend`/`iterate` or a non-spectral waveset-style length-changing family
+   depending on fixture cost.
 3. Before porting that family, confirm it fits the proven same-length or
    length-changing Offline Session contracts and add family-specific golden
    fixtures.

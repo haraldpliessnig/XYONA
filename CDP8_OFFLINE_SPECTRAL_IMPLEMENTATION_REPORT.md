@@ -79,7 +79,11 @@ includes the first real CDP8 length-changing operator:
 length and analytical golden coverage in the CDP pack, plus a Lab Offline
 Session materialization smoke for the `ParamDependent` artifact contract. The
 roadmap now closes the hard Gate H infrastructure contract before any further
-production CDP8 operator families are ported.
+production CDP8 operator families are ported. The first post-Gate-H production
+slice is now also implemented: `cdp.edit.cutend` maps CDP8 `sfedit cutend`
+mode 1 onto the same Offline Session path, keeps the requested end segment,
+uses the CDP start-splice rule, and is covered by Pack conformance/metadata
+tests plus Lab materialization and Canvas smoke tests.
 
 Latest implementation commits:
 
@@ -116,6 +120,8 @@ Latest implementation commits:
 - `xyona-lab`: `af776c1e ci(lab): smoke test cdp edit cut`
 - `xyona-cdp-pack`: `49c42cc test(cdp-pack): add gate h conformance coverage`
 - `xyona-lab`: `0df30e03 test(lab): cover gate h artifact contracts`
+- `xyona-cdp-pack`: `f6f5a1d feat(cdp-pack): add edit cutend offline session`
+- `xyona-lab`: `d45fc1d1 test(lab): cover cdp edit cutend offline session`
 - workspace root: this report update records the latest Lab render-dependency
   signature, orphan-cleanup, materialized asset file-fingerprint, and
   `lab.audio_file_in` source-fingerprint/status-surface and Gate D LayerPlayer
@@ -126,6 +132,8 @@ Latest implementation commits:
 - workspace root: this report/roadmap update records the Gate F CI close-out.
 - workspace root: this report/roadmap update records the Gate H close-out and
   advances the `xyona-cdp-pack` Gitlink to the Gate H pack commit.
+- workspace root: this report/roadmap update records the post-Gate-H
+  `cdp.edit.cutend` slice and advances the `xyona-cdp-pack` Gitlink.
 
 Current proven capability:
 
@@ -154,6 +162,16 @@ Current proven capability:
 - Lab's Offline Pack Processor Client now proves `cdp.edit.cut` materializes
   the `end - start` output length through the production Offline Session ABI and
   records a `ParamDependent` RT-reentry-capable audio artifact.
+- The CDP pack now also has `cdp.edit.cutend`, a second real CDP8
+  length-changing `sfedit` slice. It maps CDP8 `sfedit cutend` mode 1 to the
+  production Offline Session ABI, publishes `param_dependent` output length,
+  keeps the requested final segment, applies the start splice only, and rejects
+  invalid keep/splice windows according to CDP8 consistency rules.
+- Lab's Offline Pack Processor Client and CDP Pack Canvas smoke tests now prove
+  `cdp.edit.cutend` materializes the negotiated end-segment output length,
+  preserves the `ParamDependent` artifact contract, is Canvas-discoverable as
+  an offline whole-file length-changing node, and remains outside RT/HQ block
+  processing.
 - Lab has a headless integration test that proves the real graph path:
   `lab.grid_source -> cdp.utility.db_gain -> cdp.modify.loudness_normalise -> lab.mainbus_out`.
 - Lab has a headless integration test that proves the synthetic Gate G graph
@@ -345,6 +363,9 @@ Next implementation steps, in order:
 1. Treat Gate H as closed for the current shared infrastructure contract.
 2. Choose the next non-spectral production CDP8 family only if it fits the
    proven same-length or length-changing Offline Session contracts.
+   `cdp.edit.cutend` is already implemented; likely next candidates are
+   `extend`/`iterate` or a non-spectral waveset-style length-changing family,
+   depending on CDP8 fixture cost.
 3. Keep PVOC/spectral work in Gate I until the concrete typed spectral data
    model and ports/assets are implemented.
 4. Carry forward future materialized dependency coverage:
@@ -354,9 +375,9 @@ Next implementation steps, in order:
    graph/render test.
 
 Additional production operators are not required to prove the current shared
-infrastructure. If a missing host shape cannot be tested through the three
-representative operators above, add a test-only fixture operator or conformance
-stub rather than starting another CDP8 production port prematurely.
+infrastructure. If a missing host shape cannot be tested through the current
+representative operators, add a test-only fixture operator or conformance stub
+rather than starting another CDP8 production port prematurely.
 
 Hard gate summary:
 
@@ -377,6 +398,61 @@ Hard gate summary:
 - PVOC/spectral remains Gate I work and still depends on the implemented/tested
   Offline Session ABI, the Gate H contracts, concrete typed data or asset
   handles, and CDP8 golden fixtures.
+
+## Post-Gate-H Slice - CDP Edit Cutend
+
+Date: 2026-04-28
+
+Commits:
+
+- `xyona-cdp-pack`: `f6f5a1d feat(cdp-pack): add edit cutend offline session`
+- `xyona-lab`: `d45fc1d1 test(lab): cover cdp edit cutend offline session`
+- workspace root: this report/roadmap update records the `cutend` slice and
+  advances the `xyona-cdp-pack` Gitlink.
+
+Technical result:
+
+- `cdp.edit.cutend` implements CDP8 `sfedit cutend` mode 1 as a
+  param-dependent length-changing Offline Session operator.
+- The pack descriptor records CDP provenance, command shape, process number
+  `207`, length-changing metadata, validation strategy, and the Offline Session
+  engine contract.
+- The session keeps the final `length_seconds` of input, applies the CDP
+  start-splice rule only, rejects invalid keep/splice windows, reports
+  `ParamDependent` output length, and exposes one RT-reentry-capable in-memory
+  audio artifact.
+- Lab coverage proves the operator loads from the dynamic pack, materializes
+  the negotiated shorter end segment, sanitizes audio consistently, and is
+  Canvas-classified as offline whole-file length-changing rather than RT/HQ
+  block-processable.
+
+Verification:
+
+- `xyona-cdp-pack`: `cmake --build build/macos-clang-debug --target xyona_pack_cdp_ops test_cdp_edit_cut test_cdp_descriptor_metadata test_cdp_offline_session_conformance -j 6`
+  passed.
+- `xyona-cdp-pack`: `ctest --test-dir build/macos-clang-debug -R "cdp_edit_cut_tests|cdp_descriptor_metadata_tests|cdp_offline_session_conformance_tests" --output-on-failure`
+  passed; 3/3 tests.
+- `xyona-cdp-pack`: `ctest --test-dir build/macos-clang-debug --output-on-failure`
+  passed; 16/16 tests.
+- `xyona-lab`: `cmake --build build/macos-dev --target xyona_lab_tests xyona_lab_cdp_offline_smoke -j 6`
+  passed.
+- `xyona-lab`: `XYONA_OPERATOR_PACK_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-cdp-pack/build/macos-clang-debug build/macos-dev/tests/xyona_lab_tests --test="Offline Pack Processor Client" --summary-only --xyona-only`
+  passed; 6 tests, 80 passes, 0 failures.
+- `xyona-lab`: `XYONA_OPERATOR_PACK_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-cdp-pack/build/macos-clang-debug build/macos-dev/tests/xyona_lab_tests --test="CDP Pack Canvas Smoke" --summary-only --xyona-only`
+  passed; 9 tests, 259 passes, 0 failures.
+- `xyona-lab`: `XYONA_OPERATOR_PACK_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-cdp-pack/build/macos-clang-debug build/macos-dev/tests/xyona_lab_cdp_offline_smoke`
+  passed.
+- Remote: CDP pack GitHub Actions run `25075159320` passed for `f6f5a1d`,
+  with `macOS Clang Debug` and `Windows MSVC Debug` successful.
+- Remote: Lab GitHub Actions run `25075158292` passed for `d45fc1d1`, with
+  `macOS Clang Debug` and `Windows MSVC Debug` successful.
+
+Remaining risk:
+
+- This confirms another real param-dependent audio editor on the existing host
+  contract. It does not change the Gate I constraint: PVOC/spectral still needs
+  concrete typed data or asset handles and CDP8 spectral goldens before real
+  spectral ports start.
 
 ## Gate H Close-Out - Infrastructure Contract
 
