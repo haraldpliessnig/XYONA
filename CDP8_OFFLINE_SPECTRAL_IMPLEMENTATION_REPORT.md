@@ -403,6 +403,16 @@ Technical change:
 - Lab's macOS leg still builds `xyona_lab_tests` and runs the three Gate E CDP
   smoke subsets: `Offline Pack Processor Client`, `AudioEngineManager`, and
   `CDP Pack Canvas Smoke`.
+- Gate F scope is intentionally asymmetric:
+  - Windows: Core CTest, Pack CTest, and Lab `OfflinePackProcessorClientSmoke`
+    through dynamic pack discovery and the Offline Session ABI.
+  - macOS: Core CTest, Pack CTest, and Lab's full CDP smoke suite
+    (`Offline Pack Processor Client`, `AudioEngineManager`, and
+    `CDP Pack Canvas Smoke`) from `xyona_lab_tests`.
+  The asymmetry is deliberate because hosted Windows runner build time for the
+  full JUCE/Lab test bundle is too high for the first CI baseline, while the
+  focused Windows smoke still proves the CDP pack loading and offline-session
+  contract that Gate F needs.
 - Pack and Lab workflows require a private sibling-repo token named
   `XYONA_CI_REPO_TOKEN`; without it, GitHub Actions cannot clone private sibling
   repositories from another repo's workflow token.
@@ -434,6 +444,9 @@ Gate F exit status:
 - Gate F exit criteria are met: Core, Pack, and Lab are covered by GitHub
   Actions on Windows MSVC Debug and macOS Clang Debug, and CDP pack runtime
   discovery/offline-session execution is covered in Lab CI.
+- Non-blocking follow-up: improve hosted Windows coverage throughput with
+  `sccache` or split the CDP-focused Lab tests into a dedicated
+  `xyona_lab_cdp_tests` target.
 - Linux CI expansion remains planned later and does not block the Gate F
   baseline.
 - The next major block is Gate G: length-changing audio through the Offline
