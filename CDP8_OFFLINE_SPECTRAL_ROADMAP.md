@@ -73,7 +73,11 @@ Current state:
   Lab schedules it as an offline whole-file node, and materialized audio uses
   the negotiated output length instead of the original render range. The
   materialized result is also consumed by `lab.layer_player` in a realtime graph
-  with the synthetic tail samples still reachable.
+  with the synthetic tail samples still reachable. Gate G now also has the
+  first real CDP8 length-changing operator slice: `cdp.edit.cut` implements
+  CDP8 `sfedit cut` mode 1 with param-dependent output length, CDP-style
+  time rounding/reversed-time handling/splice windows, pack-local analytical
+  golden coverage, and a Lab Offline Session materialization smoke.
 
 Missing state:
 
@@ -81,8 +85,8 @@ Missing state:
   not block the first Gate F baseline.
 - Remaining production persistence for materialized assets: future spectral
   settings once spectral materialized artifacts exist.
-- Real CDP8 length-changing operator ports and CDP8 golden fixtures beyond the
-  synthetic Gate G reference operator.
+- Additional CDP8 length-changing operator ports and broader CDP8 golden
+  fixture coverage beyond the initial `sfedit cut` slice.
 - A typed analysis/spectral data model instead of pretending PVOC/PVX is audio.
 - Lab graph planning rules for offline-only and non-audio-producing nodes.
 - Golden reference tooling at CDP8 family scale.
@@ -477,6 +481,11 @@ Exit criteria:
 Current status:
 
 - Implemented for the synthetic `cdp.utility.length_change` reference operator.
+- Implemented for the first real CDP8 length-changing operator slice:
+  `cdp.edit.cut` maps CDP8 `sfedit cut` mode 1 to the production Offline
+  Session ABI, publishes `param_dependent` output length, and is covered by a
+  pack-local analytical golden fixture for CDP-style rounding, reversed times,
+  and linear splice windows.
 - Lab accepts audio-only `whole_file_length_changing` metadata for the offline
   whole-file host contract when the output length model is `fixed_tail`,
   `param_dependent`, or `analysis_dependent`.
@@ -485,11 +494,15 @@ Current status:
 - Realtime `lab.layer_player` playback consumes the resulting materialized clip
   and reaches the synthetic tail samples without truncation or hidden nonzero
   padding.
+- Lab's Offline Pack Processor Client now proves `cdp.edit.cut` materializes
+  the param-dependent `end - start` output length and preserves the
+  `ParamDependent` artifact contract.
 
-Remaining before enabling real CDP8 length-changing programs:
+Remaining before broadening Gate G:
 
-- Add at least one real CDP8 length-changing operator with golden fixtures.
 - Extend CI evidence for the synthetic and real length-changing paths.
+- Decide the next real length-changing family after `sfedit cut` only after
+  the current slice is CI-backed.
 
 ### Gate H - PVOC/Spectral
 
@@ -1498,16 +1511,19 @@ Mitigation:
 
 ## Recommended Immediate Next Steps
 
-1. Promote Gate G from the synthetic reference operator to the first real CDP8
-   length-changing operator with golden fixtures.
-2. Carry forward future materialized dependency coverage:
+1. CI-verify the first real Gate G `cdp.edit.cut` slice across the Pack and Lab
+   baseline.
+2. Choose the next Gate G family only after that evidence is green; likely
+   candidates are still `extend`/`iterate`, `cutend`, or a waveset/PVOC
+   length-changing family depending on fixture cost.
+3. Carry forward future materialized dependency coverage:
    - future spectral settings in dependency signatures once spectral
      materialized artifacts exist.
-3. Only after length-changing audio is proven through the Offline Session ABI,
+4. Only after length-changing audio is proven through the Offline Session ABI,
    start typed analysis/spectral data handles.
-4. Only after the Offline Session ABI plus typed data/asset handles and CDP8
+5. Only after the Offline Session ABI plus typed data/asset handles and CDP8
    golden fixtures, start PVOC/spectral work.
-5. Before the first CDP generator, add the explicit null-upstream generator
+6. Before the first CDP generator, add the explicit null-upstream generator
    graph/render test.
 
 ## Definition Of Done For CDP8 Rewrite Readiness

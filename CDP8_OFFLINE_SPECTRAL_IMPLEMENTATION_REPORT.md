@@ -73,7 +73,11 @@ Gate G now has a synthetic length-changing audio reference slice:
 Lab accepts it as an offline whole-file node, and bus captures/materialized
 clips retain the negotiated output length instead of being truncated to the
 original render range. A realtime `lab.layer_player` graph consumes the
-materialized result and reaches the synthetic tail samples.
+materialized result and reaches the synthetic tail samples. Gate G now also
+includes the first real CDP8 length-changing operator:
+`cdp.edit.cut` implements CDP8 `sfedit cut` mode 1 with param-dependent output
+length and analytical golden coverage in the CDP pack, plus a Lab Offline
+Session materialization smoke for the `ParamDependent` artifact contract.
 
 Latest implementation commits:
 
@@ -105,6 +109,8 @@ Latest implementation commits:
 - `xyona-lab`: `2eec1b8f ci(lab): add minimal windows cdp smoke`
 - `xyona-cdp-pack`: `49520b6 feat(cdp-pack): add length-changing offline reference`
 - `xyona-lab`: `1e275d18 feat(lab): support length-changing offline audio`
+- `xyona-cdp-pack`: `a982283 feat(cdp-pack): add edit cut offline session`
+- `xyona-lab`: `3fd86fa4 test(lab): cover cdp edit cut offline session`
 - workspace root: this report update records the latest Lab render-dependency
   signature, orphan-cleanup, materialized asset file-fingerprint, and
   `lab.audio_file_in` source-fingerprint/status-surface and Gate D LayerPlayer
@@ -133,6 +139,14 @@ Current proven capability:
 - Lab now proves the synthetic length-changing materialized clip can re-enter a
   realtime `lab.layer_player` graph and expose its tail samples without hidden
   truncation or nonzero padding.
+- The CDP pack now has the first real CDP8 length-changing operator slice:
+  `cdp.edit.cut` maps CDP8 `sfedit cut` mode 1 onto the production Offline
+  Session ABI, publishes `param_dependent` output length, and validates CDP-style
+  time rounding, reversed-time swapping, and linear splice windows with an
+  analytical golden buffer.
+- Lab's Offline Pack Processor Client now proves `cdp.edit.cut` materializes
+  the `end - start` output length through the production Offline Session ABI and
+  records a `ParamDependent` RT-reentry-capable audio artifact.
 - Lab has a headless integration test that proves the real graph path:
   `lab.grid_source -> cdp.utility.db_gain -> cdp.modify.loudness_normalise -> lab.mainbus_out`.
 - Lab has a headless integration test that proves the synthetic Gate G graph
@@ -281,16 +295,19 @@ $env:XYONA_OPERATOR_PACK_PATH='D:\GITHUB\XYONA\xyona-cdp-pack\build\windows-msvc
 
 Next implementation steps, in order:
 
-1. Promote Gate G from the synthetic reference operator to the first real CDP8
-   length-changing operator with golden fixtures.
-2. Carry forward future materialized dependency coverage:
+1. CI-verify the first real Gate G `cdp.edit.cut` slice across the Pack and Lab
+   baseline.
+2. Choose the next Gate G family only after that evidence is green; likely
+   candidates are still `extend`/`iterate`, `cutend`, or a waveset/PVOC
+   length-changing family depending on fixture cost.
+3. Carry forward future materialized dependency coverage:
    - future spectral settings in dependency signatures once spectral
      materialized artifacts exist.
-3. Only after length-changing audio is proven through the Offline Session ABI,
+4. Only after length-changing audio is proven through the Offline Session ABI,
    start typed analysis/spectral data handles.
-4. Only after the Offline Session ABI plus typed data/asset handles and CDP8
+5. Only after the Offline Session ABI plus typed data/asset handles and CDP8
    golden fixtures, start PVOC/spectral work.
-5. Before the first CDP generator, add the explicit null-upstream generator
+6. Before the first CDP generator, add the explicit null-upstream generator
    graph/render test.
 
 Hard gate summary:
