@@ -42,6 +42,9 @@ Current state:
   `cdp.modify.loudness_normalise` performs streaming offline-session input,
   whole-file peak finalization, output-block reads, progress/cancellation, and
   Lab materialization as an RT-reentry-safe audio artifact.
+- Gate F CI is green for Core, Pack, and Lab on Windows MSVC Debug and macOS
+  Clang Debug. Lab's hosted Windows baseline uses a focused CDP offline smoke
+  executable while macOS continues to build the full `xyona_lab_tests` target.
 - Lab has a first `MaterializedAudioStore` for materialized layer/clip metadata,
   in-memory resident audio, WAV-backed asset persistence APIs, a ProjectState
   manifest anchor, and automatic Project save/open/save-as orchestration via a
@@ -68,7 +71,8 @@ Current state:
 
 Missing state:
 
-- CI baseline for Core, Pack, and Lab on the target platforms.
+- Linux CI expansion for the baseline matrix is still future work, but it does
+  not block the first Gate F baseline.
 - Remaining production persistence for materialized assets: future spectral
   settings once spectral materialized artifacts exist.
 - Output length negotiation for length-changing CDP programs through the Offline
@@ -76,7 +80,6 @@ Missing state:
 - A typed analysis/spectral data model instead of pretending PVOC/PVX is audio.
 - Lab graph planning rules for offline-only and non-audio-producing nodes.
 - Golden reference tooling at CDP8 family scale.
-- Robust Windows pack test execution and CI coverage.
 
 Conclusion:
 
@@ -406,14 +409,38 @@ Planned commit slices:
 
 ### Gate F - CI Baseline
 
-Status: baseline workflows committed on 2026-04-28: `xyona-core`
-`d9e2024d`, `xyona-cdp-pack` `31a6a176`, and `xyona-lab` `75c116a4`.
-They cover Windows MSVC Debug and macOS Clang Debug for Core, Pack, and Lab CDP
-smoke tests. First remote GitHub Actions results: Core passed; Pack and Lab are
-blocked on private sibling repository checkout until the `XYONA_CI_REPO_TOKEN`
-repository secret is configured with read access to the required private repos.
+Status: closed on 2026-04-28.
 
-Local manual verification is not enough for this branch.
+Baseline workflows and follow-up hardening commits:
+
+- `xyona-core`: `d9e2024d ci(core): add windows and macos baseline`
+- `xyona-core`: `6cbd68b fix(core): create generated include dirs during configure`
+- `xyona-cdp-pack`: `31a6a176 ci(cdp-pack): add windows and macos baseline`
+- `xyona-cdp-pack`: `50563ad4 ci(cdp-pack): require token for private core checkout`
+- `xyona-lab`: `75c116a4 ci(lab): add cdp smoke baseline`
+- `xyona-lab`: `5a65fbca ci(lab): require token for private sibling checkouts`
+- `xyona-lab`: `06865527 fix(lab): avoid atomic_ref in control output mirror`
+- `xyona-lab`: `d30d3498 ci(lab): enable parallel msvc compilation`
+- `xyona-lab`: `9cee3505 ci(lab): use ninja for windows baseline`
+- `xyona-lab`: `fae01fec ci(lab): accept current vcpkg eigen package`
+- `xyona-lab`: `2eec1b8f ci(lab): add minimal windows cdp smoke`
+
+Remote GitHub Actions results:
+
+- Core run `25048402759` passed for `6cbd68b`.
+- CDP pack run `25046455344` passed for `50563ad4`.
+- Lab run `25057837762` passed for `2eec1b8f` on both Windows MSVC Debug and
+  macOS Clang Debug.
+
+Lab's Windows hosted baseline intentionally builds only
+`xyona_lab_cdp_offline_smoke`, a focused executable that loads the dynamic CDP
+pack, runs `cdp.modify.loudness_normalise` through the Offline Session ABI,
+checks output/progress/session contract/cancellation, and avoids building the
+full Lab test bundle on the slow hosted MSVC runner. The macOS Lab leg still
+builds `xyona_lab_tests` and runs the Gate E CDP smoke subset.
+
+Local manual verification is not enough for this branch, but the remote
+baseline is now green.
 
 Exit criteria:
 
@@ -422,6 +449,8 @@ Exit criteria:
 - Linux GCC/Clang is planned next but does not block the first baseline.
 - CDP pack runtime discovery is covered by CI or a documented equivalent smoke
   command.
+
+Gate F exit criteria are met. The next major block is Gate G.
 
 ### Gate G - Length-Changing Audio
 
@@ -1446,13 +1475,13 @@ Mitigation:
 
 ## Recommended Immediate Next Steps
 
-1. Start Gate F: add CI baseline for Core, Pack, and Lab on macOS Clang and
-   Windows MSVC.
+1. Start Gate G: add length-changing audio negotiation through the Offline
+   Session ABI.
 2. Carry forward future materialized dependency coverage:
    - future spectral settings in dependency signatures once spectral
      materialized artifacts exist.
-3. Only after the Offline Session ABI is implemented and tested, start
-   length-changing audio.
+3. Only after length-changing audio is proven through the Offline Session ABI,
+   start typed analysis/spectral data handles.
 4. Only after the Offline Session ABI plus typed data/asset handles and CDP8
    golden fixtures, start PVOC/spectral work.
 5. Before the first CDP generator, add the explicit null-upstream generator

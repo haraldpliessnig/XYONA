@@ -91,6 +91,12 @@ Latest implementation commits:
 - `xyona-lab`: `75c116a4 ci(lab): add cdp smoke baseline`
 - `xyona-cdp-pack`: `50563ad4 ci(cdp-pack): require token for private core checkout`
 - `xyona-lab`: `5a65fbca ci(lab): require token for private sibling checkouts`
+- `xyona-core`: `6cbd68b fix(core): create generated include dirs during configure`
+- `xyona-lab`: `06865527 fix(lab): avoid atomic_ref in control output mirror`
+- `xyona-lab`: `d30d3498 ci(lab): enable parallel msvc compilation`
+- `xyona-lab`: `9cee3505 ci(lab): use ninja for windows baseline`
+- `xyona-lab`: `fae01fec ci(lab): accept current vcpkg eigen package`
+- `xyona-lab`: `2eec1b8f ci(lab): add minimal windows cdp smoke`
 - workspace root: this report update records the latest Lab render-dependency
   signature, orphan-cleanup, materialized asset file-fingerprint, and
   `lab.audio_file_in` source-fingerprint/status-surface and Gate D LayerPlayer
@@ -98,6 +104,7 @@ Latest implementation commits:
 - workspace root: this report/roadmap update records the Gate E Offline Session
   ABI close-out and advances the `xyona-cdp-pack` Gitlink to the Gate E pack
   commit.
+- workspace root: this report/roadmap update records the Gate F CI close-out.
 
 Current proven capability:
 
@@ -182,6 +189,11 @@ Current proven capability:
 - A headless integration test now proves the Gate D path:
   offline `lab.grid_source` render -> materialized clip -> realtime
   `lab.layer_player` -> `lab.audio_out` playback.
+- Gate F CI is green on GitHub Actions for Core, Pack, and Lab on Windows MSVC
+  Debug and macOS Clang Debug. Lab's Windows leg uses the focused
+  `xyona_lab_cdp_offline_smoke` executable for dynamic CDP pack discovery and
+  Offline Session ABI coverage; macOS still builds `xyona_lab_tests` and runs
+  the Gate E CDP smoke subset.
 - The plan is now gated: the current whole-buffer offline ABI, currently named
   `offline_whole_buffer_prototype`, is a prototype/reference bridge. Length-changing,
   PVOC/spectral, multi-output, and production-scale long-file CDP work require
@@ -251,13 +263,13 @@ $env:XYONA_OPERATOR_PACK_PATH='D:\GITHUB\XYONA\xyona-cdp-pack\build\windows-msvc
 
 Next implementation steps, in order:
 
-1. Add CI baseline for Core, Pack, and Lab on macOS Clang and Windows MSVC
-   (Gate F).
+1. Start Gate G: add length-changing audio negotiation through the Offline
+   Session ABI.
 2. Carry forward future materialized dependency coverage:
    - future spectral settings in dependency signatures once spectral
      materialized artifacts exist.
-3. Only after the Offline Session ABI is implemented and tested, start
-   length-changing audio.
+3. Only after length-changing audio is proven through the Offline Session ABI,
+   start typed analysis/spectral data handles.
 4. Only after the Offline Session ABI plus typed data/asset handles and CDP8
    golden fixtures, start PVOC/spectral work.
 5. Before the first CDP generator, add the explicit null-upstream generator
@@ -349,18 +361,24 @@ Gate E exit status:
   output negotiation is Gate G; typed data/asset handles for PVOC/spectral work
   remain blocked until the later typed-data/asset phase.
 
-## Gate F Working Tree Start - CI Baseline
+## Gate F Close-Out - CI Baseline
 
 Date: 2026-04-28
 
 Commits:
 
 - `xyona-core`: `d9e2024d ci(core): add windows and macos baseline`
+- `xyona-core`: `6cbd68b fix(core): create generated include dirs during configure`
 - `xyona-cdp-pack`: `31a6a176 ci(cdp-pack): add windows and macos baseline`
-- `xyona-lab`: `75c116a4 ci(lab): add cdp smoke baseline`
 - `xyona-cdp-pack`: `50563ad4 ci(cdp-pack): require token for private core checkout`
+- `xyona-lab`: `75c116a4 ci(lab): add cdp smoke baseline`
 - `xyona-lab`: `5a65fbca ci(lab): require token for private sibling checkouts`
-- workspace root: this report/roadmap update and `xyona-cdp-pack` Gitlink
+- `xyona-lab`: `06865527 fix(lab): avoid atomic_ref in control output mirror`
+- `xyona-lab`: `d30d3498 ci(lab): enable parallel msvc compilation`
+- `xyona-lab`: `9cee3505 ci(lab): use ninja for windows baseline`
+- `xyona-lab`: `fae01fec ci(lab): accept current vcpkg eigen package`
+- `xyona-lab`: `2eec1b8f ci(lab): add minimal windows cdp smoke`
+- workspace root: this report/roadmap update
 
 Technical change:
 
@@ -373,8 +391,18 @@ Technical change:
   as a sibling repo, builds Core first, then configures/builds/tests the pack on
   Windows MSVC Debug and macOS Clang Debug.
 - Lab now has a GitHub Actions workflow that checks out sibling Core and CDP
-  Pack repos, builds the pack, builds `xyona_lab_tests`, and runs the Gate E CDP
-  smoke tests with `XYONA_OPERATOR_PACK_PATH` pointing at the built pack.
+  Pack repos, builds the pack, and runs Gate E CDP smoke coverage with
+  `XYONA_OPERATOR_PACK_PATH` pointing at the built pack.
+- Lab's Windows leg uses a Ninja/MSVC `windows-ci` preset and builds
+  `xyona_lab_cdp_offline_smoke`, a small executable that links only the offline
+  pack client/contract code plus Core/JUCE. It loads the dynamic CDP pack, runs
+  `cdp.modify.loudness_normalise` through the Offline Session ABI, verifies the
+  normalized samples, progress span, session/artifact contract, RT re-entry
+  policy, and cancellation behavior. This keeps the hosted Windows baseline
+  focused and avoids the full `xyona_lab_lib` test-bundle compile bottleneck.
+- Lab's macOS leg still builds `xyona_lab_tests` and runs the three Gate E CDP
+  smoke subsets: `Offline Pack Processor Client`, `AudioEngineManager`, and
+  `CDP Pack Canvas Smoke`.
 - Pack and Lab workflows require a private sibling-repo token named
   `XYONA_CI_REPO_TOKEN`; without it, GitHub Actions cannot clone private sibling
   repositories from another repo's workflow token.
@@ -383,25 +411,33 @@ Verification:
 
 - Local: `xyona-core` `ctest --preset windows-msvc-debug --output-on-failure`
   passed; 8 tests, 0 failures.
+- Local: `xyona-cdp-pack` `ctest --preset windows-msvc-debug --output-on-failure`
+  passed; 12 tests, 0 failures.
+- Local: `xyona-lab` `cmake --preset windows-dev` passed after adding the
+  minimal smoke target.
+- Local: `xyona-lab`
+  `cmake --build --preset windows-dev --target xyona_lab_cdp_offline_smoke`
+  passed.
+- Local: `xyona-lab`
+  `XYONA_OPERATOR_PACK_PATH=D:\GITHUB\XYONA\xyona-cdp-pack\build\windows-msvc-debug\Debug .\build\windows-dev\tests\Debug\xyona_lab_cdp_offline_smoke.exe`
+  passed with `xyona_lab_cdp_offline_smoke passed`.
 - Local: `git diff --check` passed for Core, Pack, and Lab CI edits.
-- Remote: Core CI run `25042457413` completed successfully for commit
-  `d9e2024d`.
-- Remote: initial Pack run `25042457315` and Lab run `25042457378` failed
-  because the hosted runners could not clone private sibling repos with the
-  default per-repo `GITHUB_TOKEN`.
-- Repo secret check: `XYONA_CI_REPO_TOKEN` was not present in `xyona-cdp-pack`
-  or `xyona-lab` at the time of this report update.
+- Remote: Core CI run `25048402759` completed successfully for commit
+  `6cbd68b`.
+- Remote: CDP pack CI run `25046455344` completed successfully for commit
+  `50563ad4`.
+- Remote: Lab CI run `25057837762` completed successfully for commit
+  `2eec1b8f`; Windows MSVC Debug and macOS Clang Debug both passed.
 
-Remaining Gate F work:
+Gate F exit status:
 
-- Add `XYONA_CI_REPO_TOKEN` as a repository secret in `xyona-cdp-pack` with
-  read access to `haraldpliessnig/xyona-core`.
-- Add `XYONA_CI_REPO_TOKEN` as a repository secret in `xyona-lab` with read
-  access to `haraldpliessnig/xyona-core` and
-  `haraldpliessnig/xyona-cdp-pack`.
-- Re-run the Pack and Lab Windows/macOS workflows after the secret is present.
-- If hosted macOS Lab exposes runner-specific Vcpkg/JUCE issues, adjust the Lab
-  workflow without changing the Gate E runtime contract.
+- Gate F exit criteria are met: Core, Pack, and Lab are covered by GitHub
+  Actions on Windows MSVC Debug and macOS Clang Debug, and CDP pack runtime
+  discovery/offline-session execution is covered in Lab CI.
+- Linux CI expansion remains planned later and does not block the Gate F
+  baseline.
+- The next major block is Gate G: length-changing audio through the Offline
+  Session ABI.
 
 ## Commit Log
 
