@@ -113,6 +113,7 @@ Latest implementation commits:
 - `xyona-lab`: `1e275d18 feat(lab): support length-changing offline audio`
 - `xyona-cdp-pack`: `a982283 feat(cdp-pack): add edit cut offline session`
 - `xyona-lab`: `3fd86fa4 test(lab): cover cdp edit cut offline session`
+- `xyona-lab`: `af776c1e ci(lab): smoke test cdp edit cut`
 - workspace root: this report update records the latest Lab render-dependency
   signature, orphan-cleanup, materialized asset file-fingerprint, and
   `lab.audio_file_in` source-fingerprint/status-surface and Gate D LayerPlayer
@@ -295,33 +296,54 @@ $env:XYONA_OPERATOR_PACK_PATH='D:\GITHUB\XYONA\xyona-cdp-pack\build\windows-msvc
 .\build\windows-dev\tests\Debug\xyona_lab_tests.exe --xyona-only --summary-only
 ```
 
+Gate G close-out state:
+
+- Gate G is closed on 2026-04-28.
+- Pack CI coverage runs full `ctest`, including `cdp_edit_cut_tests`, so the
+  real `sfedit cut` length-changing slice is in the Pack baseline.
+- Lab macOS CI coverage runs the full `Offline Pack Processor Client` smoke,
+  including `cdp.utility.length_change` and `cdp.edit.cut`.
+- Lab Windows/minimal CI coverage now runs
+  `xyona_lab_cdp_offline_smoke`, which covers:
+  - `cdp.modify.loudness_normalise`
+  - `cdp.utility.length_change`
+  - `cdp.edit.cut`
+- Local close-out verification on 2026-04-28:
+  - `xyona-cdp-pack`: `ctest --preset macos-clang-debug --output-on-failure`
+    passed; 14/14 tests.
+  - `xyona-lab`: `XYONA_OPERATOR_PACK_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-cdp-pack/build/macos-clang-debug build/macos-dev/tests/xyona_lab_tests --xyona-test "Offline Pack Processor Client" --summary-only`
+    passed; 5 tests, 64 passes, 0 failures.
+  - `xyona-lab`: `XYONA_OPERATOR_PACK_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-cdp-pack/build/macos-clang-debug build/macos-dev/tests/xyona_lab_cdp_offline_smoke`
+    passed.
+- The GitHub CLI is not authenticated in this environment, so remote Actions
+  run ids were not queried here. The pushed Lab commit triggers the branch CI
+  and the workflow now includes the Gate G smoke paths.
+
 Next implementation steps, in order:
 
-1. CI-verify the first real Gate G `cdp.edit.cut` slice across the Pack and Lab
-   baseline.
-2. Close Gate H, the infrastructure-completion gate, before adding any further
+1. Close Gate H, the infrastructure-completion gate, before adding any further
    production CDP8 operator families.
-3. Implement the Descriptor/Metadata validator in the CDP pack.
-4. Implement the Offline Session conformance suite and run it against the
+2. Implement the Descriptor/Metadata validator in the CDP pack.
+3. Implement the Offline Session conformance suite and run it against the
    current representative operators:
    - `cdp.modify.loudness_normalise`
    - `cdp.utility.length_change`
    - `cdp.edit.cut`
-5. Standardize the Golden fixture harness for analytical and
+4. Standardize the Golden fixture harness for analytical and
    CDP8-reference-generated goldens.
-6. Generalize the Materialized artifact contract beyond audio-only clips.
-7. Define Lab graph-planning rules for offline-only, length-changing,
+5. Generalize the Materialized artifact contract beyond audio-only clips.
+6. Define Lab graph-planning rules for offline-only, length-changing,
    non-audio, data/asset-producing, and unsupported mixed shapes.
-8. Design the typed data / spectral asset model before PVOC/spectral ports.
-9. Carry forward future materialized dependency coverage:
+7. Design the typed data / spectral asset model before PVOC/spectral ports.
+8. Carry forward future materialized dependency coverage:
    - future spectral settings in dependency signatures once spectral
      materialized artifacts exist.
-10. Only after Gate H is closed, choose the next Gate G operator family; likely
-    candidates remain `extend`/`iterate`, `cutend`, or a waveset/PVOC
-    length-changing family depending on fixture cost.
-11. Only after the Offline Session ABI plus typed data/asset handles and CDP8
+9. Only after Gate H is closed, choose the next Gate G operator family; likely
+   candidates remain `extend`/`iterate`, `cutend`, or a waveset/PVOC
+   length-changing family depending on fixture cost.
+10. Only after the Offline Session ABI plus typed data/asset handles and CDP8
     golden fixtures, start PVOC/spectral work.
-12. Before the first CDP generator, add the explicit null-upstream generator
+11. Before the first CDP generator, add the explicit null-upstream generator
    graph/render test.
 
 Additional production operators are not required to prove the current shared

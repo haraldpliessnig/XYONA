@@ -462,9 +462,11 @@ Exit criteria:
 - CDP pack runtime discovery is covered by CI or a documented equivalent smoke
   command.
 
-Gate F exit criteria are met. The next major block is Gate G.
+Gate F and Gate G exit criteria are met. The next major block is Gate H.
 
 ### Gate G - Length-Changing Audio
+
+Status: closed on 2026-04-28.
 
 Hard dependencies:
 
@@ -499,11 +501,11 @@ Current status:
 - Lab's Offline Pack Processor Client now proves `cdp.edit.cut` materializes
   the param-dependent `end - start` output length and preserves the
   `ParamDependent` artifact contract.
-
-Remaining before broadening Gate G:
-
-- Extend CI evidence for the synthetic and real length-changing paths.
-- Do not choose the next real length-changing family until Gate H is closed.
+- CI coverage has been extended so Pack `ctest` covers `cdp_edit_cut_tests`
+  and Lab's minimal CDP offline smoke covers `cdp.modify.loudness_normalise`,
+  `cdp.utility.length_change`, and `cdp.edit.cut` for the baseline CI path.
+- No further production length-changing operator is required to close Gate G.
+  The next real length-changing family remains blocked by Gate H.
 
 ### Gate H - Infrastructure Completion Before More Operator Ports
 
@@ -1565,27 +1567,25 @@ Mitigation:
 
 ## Recommended Immediate Next Steps
 
-1. CI-verify the first real Gate G `cdp.edit.cut` slice across the Pack and Lab
-   baseline.
-2. Close Gate H before adding any further production CDP8 operator families.
-3. Implement the Descriptor/Metadata validator in the CDP pack.
-4. Implement the Offline Session conformance suite and run it against the
+1. Start Gate H.
+2. Implement the Descriptor/Metadata validator in the CDP pack.
+3. Implement the Offline Session conformance suite and run it against the
    current representative operators.
-5. Standardize the Golden fixture harness for analytical and CDP8-reference
+4. Standardize the Golden fixture harness for analytical and CDP8-reference
    goldens.
-6. Generalize the Materialized artifact contract beyond audio-only clips.
-7. Define Lab graph-planning rules for offline-only, length-changing,
+5. Generalize the Materialized artifact contract beyond audio-only clips.
+6. Define Lab graph-planning rules for offline-only, length-changing,
    non-audio, data/asset-producing, and unsupported mixed shapes.
-8. Design the typed data / spectral asset model before PVOC/spectral ports.
-9. Carry forward future materialized dependency coverage:
+7. Design the typed data / spectral asset model before PVOC/spectral ports.
+8. Carry forward future materialized dependency coverage:
    - future spectral settings in dependency signatures once spectral
      materialized artifacts exist.
-10. Only after Gate H is closed, choose the next Gate G operator family; likely
-    candidates remain `extend`/`iterate`, `cutend`, or a waveset/PVOC
-    length-changing family depending on fixture cost.
-11. Only after the Offline Session ABI plus typed data/asset handles and CDP8
+9. Only after Gate H is closed, choose the next Gate G operator family; likely
+   candidates remain `extend`/`iterate`, `cutend`, or a waveset/PVOC
+   length-changing family depending on fixture cost.
+10. Only after the Offline Session ABI plus typed data/asset handles and CDP8
     golden fixtures, start PVOC/spectral work.
-12. Before the first CDP generator, add the explicit null-upstream generator
+11. Before the first CDP generator, add the explicit null-upstream generator
    graph/render test.
 
 ## Definition Of Done For CDP8 Rewrite Readiness
