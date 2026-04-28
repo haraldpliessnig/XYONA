@@ -308,6 +308,13 @@ Gate G close-out state:
   - `cdp.modify.loudness_normalise`
   - `cdp.utility.length_change`
   - `cdp.edit.cut`
+- Remote close-out CI on 2026-04-28:
+  - `xyona-cdp-pack`: GitHub Actions run `25071434999` passed for
+    `a982283c0506697119cf4107a5a7656d6022e081`, with `macOS Clang Debug` and
+    `Windows MSVC Debug` jobs both successful.
+  - `xyona-lab`: GitHub Actions run `25071981136` passed for
+    `af776c1e8afe8b77795574c234b3a038153a98fe`, with `macOS Clang Debug` and
+    `Windows MSVC Debug` jobs both successful.
 - Local close-out verification on 2026-04-28:
   - `xyona-cdp-pack`: `ctest --preset macos-clang-debug --output-on-failure`
     passed; 14/14 tests.
@@ -315,9 +322,6 @@ Gate G close-out state:
     passed; 5 tests, 64 passes, 0 failures.
   - `xyona-lab`: `XYONA_OPERATOR_PACK_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-cdp-pack/build/macos-clang-debug build/macos-dev/tests/xyona_lab_cdp_offline_smoke`
     passed.
-- The GitHub CLI is not authenticated in this environment, so remote Actions
-  run ids were not queried here. The pushed Lab commit triggers the branch CI
-  and the workflow now includes the Gate G smoke paths.
 
 Next implementation steps, in order:
 
