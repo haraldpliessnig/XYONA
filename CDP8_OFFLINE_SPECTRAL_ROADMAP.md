@@ -28,8 +28,8 @@ Current state:
 
 - Lab has an offline/HQ renderer that builds an HQ graph and renders it block by
   block into a known render range.
-- Core pack ABI v2 supports block-based audio operators with fixed `num_samples`
-  per process call.
+- The current block pack ABI (`packs_v2.h`) supports block-based audio
+  operators with fixed `num_samples` per process call.
 - Core currently exposes a prototype whole-buffer offline C ABI, currently
   named `offline_whole_buffer_prototype`, for the first simple same-length
   whole-file query/process slice.
@@ -446,7 +446,7 @@ Exit criteria:
 ### Gate I - Generator Edge Case
 
 Before the first CDP generator operator is added, Lab must have an explicit test
-for a `processShape=generator`, `abiV2Support=direct` pack operator with no
+for a direct block-process `processShape=generator` pack operator with no
 upstream audio input.
 
 Exit criteria:
@@ -488,7 +488,7 @@ Current limitation:
 - A node cannot currently emit typed non-audio analysis data as a first-class
   graph value.
 
-### Core Pack ABI v2
+### Current Block Pack ABI
 
 Relevant implementation:
 
@@ -547,8 +547,8 @@ Current behavior:
 Current limitation:
 
 - Whole-file helpers are pack-local utilities, not a host execution contract.
-- Length-changing operators are intentionally not registerable through current
-  ABI v2.
+- Length-changing operators are intentionally not registerable through the
+  current block pack ABI.
 - Analysis-output and multi-output shapes are classified but not executable.
 - PVOC/PVX data model is not implemented.
 
@@ -767,9 +767,8 @@ Move process shape metadata from pack-local intent into a host-visible contract.
 Tasks:
 
 - Define a stable descriptor schema for process shape metadata.
-- Decide whether the first transport is:
-  - structured `meta_json` in ABI v2, or
-  - a new ABI revision with typed fields.
+- Decide whether the first transport is structured `meta_json` on the current
+  descriptor path or a typed descriptor extension on the Offline Session ABI.
 - Include:
   - process shape
   - realtime/HQ eligibility
