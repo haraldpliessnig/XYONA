@@ -77,7 +77,9 @@ materialized result and reaches the synthetic tail samples. Gate G now also
 includes the first real CDP8 length-changing operator:
 `cdp.edit.cut` implements CDP8 `sfedit cut` mode 1 with param-dependent output
 length and analytical golden coverage in the CDP pack, plus a Lab Offline
-Session materialization smoke for the `ParamDependent` artifact contract.
+Session materialization smoke for the `ParamDependent` artifact contract. The
+roadmap now adds a hard infrastructure-completion gate before any further
+production CDP8 operator families are ported.
 
 Latest implementation commits:
 
@@ -297,18 +299,35 @@ Next implementation steps, in order:
 
 1. CI-verify the first real Gate G `cdp.edit.cut` slice across the Pack and Lab
    baseline.
-2. Choose the next Gate G family only after that evidence is green; likely
-   candidates are still `extend`/`iterate`, `cutend`, or a waveset/PVOC
-   length-changing family depending on fixture cost.
-3. Carry forward future materialized dependency coverage:
+2. Close Gate H, the infrastructure-completion gate, before adding any further
+   production CDP8 operator families.
+3. Implement the Descriptor/Metadata validator in the CDP pack.
+4. Implement the Offline Session conformance suite and run it against the
+   current representative operators:
+   - `cdp.modify.loudness_normalise`
+   - `cdp.utility.length_change`
+   - `cdp.edit.cut`
+5. Standardize the Golden fixture harness for analytical and
+   CDP8-reference-generated goldens.
+6. Generalize the Materialized artifact contract beyond audio-only clips.
+7. Define Lab graph-planning rules for offline-only, length-changing,
+   non-audio, data/asset-producing, and unsupported mixed shapes.
+8. Design the typed data / spectral asset model before PVOC/spectral ports.
+9. Carry forward future materialized dependency coverage:
    - future spectral settings in dependency signatures once spectral
      materialized artifacts exist.
-4. Only after length-changing audio is proven through the Offline Session ABI,
-   start typed analysis/spectral data handles.
-5. Only after the Offline Session ABI plus typed data/asset handles and CDP8
-   golden fixtures, start PVOC/spectral work.
-6. Before the first CDP generator, add the explicit null-upstream generator
+10. Only after Gate H is closed, choose the next Gate G operator family; likely
+    candidates remain `extend`/`iterate`, `cutend`, or a waveset/PVOC
+    length-changing family depending on fixture cost.
+11. Only after the Offline Session ABI plus typed data/asset handles and CDP8
+    golden fixtures, start PVOC/spectral work.
+12. Before the first CDP generator, add the explicit null-upstream generator
    graph/render test.
+
+Additional production operators are not required to prove the current shared
+infrastructure. If a missing host shape cannot be tested through the three
+representative operators above, add a test-only fixture operator or conformance
+stub rather than starting another CDP8 production port prematurely.
 
 Hard gate summary:
 
@@ -322,9 +341,13 @@ Hard gate summary:
 - Realtime consumption of valid resident materialized audio clips is complete
   for Gate D through `lab.layer_player`; missing/stale/nonresident clips are
   diagnosable silence, not hidden RT work.
+- Gate H now blocks further production CDP8 operator families until shared
+  infrastructure is complete: descriptor validation, Offline Session
+  conformance, golden fixtures, materialized artifact contracts, Lab
+  offline-graph planning rules, typed data/spectral assets, and CI coverage.
 - PVOC/spectral has an explicit hard dependency on the implemented/tested
-  Offline Session ABI plus future typed data or asset handles and CDP8 golden
-  fixtures.
+  Offline Session ABI, Gate H, future typed data or asset handles, and CDP8
+  golden fixtures.
 
 ## Gate E Close-Out - Offline Session ABI
 

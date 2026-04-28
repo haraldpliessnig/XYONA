@@ -87,6 +87,8 @@ Missing state:
   settings once spectral materialized artifacts exist.
 - Additional CDP8 length-changing operator ports and broader CDP8 golden
   fixture coverage beyond the initial `sfedit cut` slice.
+- A hard infrastructure-completion gate before adding more production CDP8
+  operator families.
 - A typed analysis/spectral data model instead of pretending PVOC/PVX is audio.
 - Lab graph planning rules for offline-only and non-audio-producing nodes.
 - Golden reference tooling at CDP8 family scale.
@@ -501,14 +503,66 @@ Current status:
 Remaining before broadening Gate G:
 
 - Extend CI evidence for the synthetic and real length-changing paths.
-- Decide the next real length-changing family after `sfedit cut` only after
-  the current slice is CI-backed.
+- Do not choose the next real length-changing family until Gate H is closed.
 
-### Gate H - PVOC/Spectral
+### Gate H - Infrastructure Completion Before More Operator Ports
 
 Hard dependencies:
 
 - Gate E
+- Gate G representative slices:
+  - synthetic `cdp.utility.length_change`
+  - real CDP8 `cdp.edit.cut`
+
+No additional production CDP8 operator family should start until this gate is
+closed. The current representatives are enough to prove the audio
+length-changing host path. More real operators would mostly add algorithm
+surface area before the shared contracts are hardened.
+
+Allowed before this gate closes:
+
+- test-only pack fixtures or synthetic operators whose only purpose is to
+  exercise a missing host contract shape
+- conformance tests that reuse `cdp.modify.loudness_normalise`,
+  `cdp.utility.length_change`, and `cdp.edit.cut`
+- metadata/descriptor validators and golden-harness infrastructure
+
+Not allowed before this gate closes:
+
+- new production CDP8 operator families beyond `cdp.edit.cut`
+- PVOC/spectral operator ports
+- multi-output/file-collection operator ports
+- generator operator ports beyond an explicit generator-shape test fixture
+
+Exit criteria:
+
+- Descriptor/metadata validator exists and runs in the CDP pack test suite.
+  It rejects contradictory engine metadata, missing CDP provenance, missing
+  validation strategy, and capability/shape mismatches.
+- Offline Session conformance suite exists for generic lifecycle behavior:
+  create, feed, finish, output discovery, block reads, cancellation, progress,
+  wrong offsets, short buffers, invalid params, and unknown/final output
+  lengths.
+- Golden fixture harness is standardized for CDP operators, including the
+  distinction between analytical goldens and CDP8-reference-generated goldens.
+- Materialized artifact contract is generalized beyond the current audio path:
+  memory-backed audio, file-backed audio, future typed/spectral assets, and
+  multi-artifact results have explicit metadata, dependency signatures,
+  persistence, staleness, and RT-reentry rules.
+- Lab graph planning has explicit rules and diagnostics for offline-only nodes,
+  length-changing nodes, non-audio-producing nodes, asset/data-producing nodes,
+  and unsupported mixed shapes.
+- Typed data / spectral asset model is designed before spectral ports start,
+  so PVOC/PVX is not represented as fake audio.
+- CI covers the conformance/validator/golden/materialization smoke path on the
+  baseline Pack and Lab matrix.
+
+### Gate I - PVOC/Spectral
+
+Hard dependencies:
+
+- Gate E
+- Gate H
 - typed data ports or asset handles
 - CDP8 golden fixture harness for PVOC/PVX behavior
 
@@ -522,7 +576,7 @@ Exit criteria:
   serialization policies are explicit.
 - CDP8-compatible golden tests exist before real spectral families are ported.
 
-### Gate I - Generator Edge Case
+### Gate J - Generator Edge Case
 
 Before the first CDP generator operator is added, Lab must have an explicit test
 for a direct block-process `processShape=generator` pack operator with no
@@ -1513,17 +1567,25 @@ Mitigation:
 
 1. CI-verify the first real Gate G `cdp.edit.cut` slice across the Pack and Lab
    baseline.
-2. Choose the next Gate G family only after that evidence is green; likely
-   candidates are still `extend`/`iterate`, `cutend`, or a waveset/PVOC
-   length-changing family depending on fixture cost.
-3. Carry forward future materialized dependency coverage:
+2. Close Gate H before adding any further production CDP8 operator families.
+3. Implement the Descriptor/Metadata validator in the CDP pack.
+4. Implement the Offline Session conformance suite and run it against the
+   current representative operators.
+5. Standardize the Golden fixture harness for analytical and CDP8-reference
+   goldens.
+6. Generalize the Materialized artifact contract beyond audio-only clips.
+7. Define Lab graph-planning rules for offline-only, length-changing,
+   non-audio, data/asset-producing, and unsupported mixed shapes.
+8. Design the typed data / spectral asset model before PVOC/spectral ports.
+9. Carry forward future materialized dependency coverage:
    - future spectral settings in dependency signatures once spectral
      materialized artifacts exist.
-4. Only after length-changing audio is proven through the Offline Session ABI,
-   start typed analysis/spectral data handles.
-5. Only after the Offline Session ABI plus typed data/asset handles and CDP8
-   golden fixtures, start PVOC/spectral work.
-6. Before the first CDP generator, add the explicit null-upstream generator
+10. Only after Gate H is closed, choose the next Gate G operator family; likely
+    candidates remain `extend`/`iterate`, `cutend`, or a waveset/PVOC
+    length-changing family depending on fixture cost.
+11. Only after the Offline Session ABI plus typed data/asset handles and CDP8
+    golden fixtures, start PVOC/spectral work.
+12. Before the first CDP generator, add the explicit null-upstream generator
    graph/render test.
 
 ## Definition Of Done For CDP8 Rewrite Readiness
@@ -1542,6 +1604,9 @@ XYONA is ready for broad CDP8 rewrite work when:
   source artifacts.
 - Materialized assets persist through normal project save/open and stale results
   are detected before RT treats them as valid.
+- Descriptor validation and Offline Session conformance are generic enough that
+  a new CDP8 operator does not need bespoke host-contract tests for the shared
+  lifecycle.
 - Typed spectral data exists as a first-class graph or asset value.
 - PVOC analysis/synthesis identity roundtrip is deterministic.
 - CDP8 golden reference tooling is repeatable.
