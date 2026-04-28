@@ -78,7 +78,7 @@ includes the first real CDP8 length-changing operator:
 `cdp.edit.cut` implements CDP8 `sfedit cut` mode 1 with param-dependent output
 length and analytical golden coverage in the CDP pack, plus a Lab Offline
 Session materialization smoke for the `ParamDependent` artifact contract. The
-roadmap now adds a hard infrastructure-completion gate before any further
+roadmap now closes the hard Gate H infrastructure contract before any further
 production CDP8 operator families are ported.
 
 Latest implementation commits:
@@ -114,6 +114,8 @@ Latest implementation commits:
 - `xyona-cdp-pack`: `a982283 feat(cdp-pack): add edit cut offline session`
 - `xyona-lab`: `3fd86fa4 test(lab): cover cdp edit cut offline session`
 - `xyona-lab`: `af776c1e ci(lab): smoke test cdp edit cut`
+- `xyona-cdp-pack`: `49c42cc test(cdp-pack): add gate h conformance coverage`
+- `xyona-lab`: `0df30e03 test(lab): cover gate h artifact contracts`
 - workspace root: this report update records the latest Lab render-dependency
   signature, orphan-cleanup, materialized asset file-fingerprint, and
   `lab.audio_file_in` source-fingerprint/status-surface and Gate D LayerPlayer
@@ -122,6 +124,8 @@ Latest implementation commits:
   ABI close-out and advances the `xyona-cdp-pack` Gitlink to the Gate E pack
   commit.
 - workspace root: this report/roadmap update records the Gate F CI close-out.
+- workspace root: this report/roadmap update records the Gate H close-out and
+  advances the `xyona-cdp-pack` Gitlink to the Gate H pack commit.
 
 Current proven capability:
 
@@ -229,6 +233,19 @@ Current proven capability:
   `xyona_lab_cdp_offline_smoke` executable for dynamic CDP pack discovery and
   Offline Session ABI coverage; macOS still builds `xyona_lab_tests` and runs
   the Gate E CDP smoke subset.
+- Gate H is closed for the current shared infrastructure contract:
+  - the CDP pack validates all current CDP descriptors for shape/capability
+    consistency, CDP provenance, validation strategy, parameter metadata, and
+    port metadata;
+  - generic Offline Session conformance now covers create/feed/finish/output
+    discovery/block reads/cancel/progress/error paths across the same-length,
+    fixed-tail length-changing, and param-dependent length-changing
+    representative operators;
+  - the golden fixture harness now has an explicit metadata contract separating
+    analytical goldens from CDP8-reference-generated goldens;
+  - Lab tests now cover data-only artifacts, multi-artifact sessions,
+    file-collection data artifacts, typed-data/multi-output descriptor shapes,
+    and current unsupported mixed-shape graph planning diagnostics.
 - The plan is now gated: the current whole-buffer offline ABI, currently named
   `offline_whole_buffer_prototype`, is a prototype/reference bridge. Length-changing,
   PVOC/spectral, multi-output, and production-scale long-file CDP work require
@@ -325,29 +342,15 @@ Gate G close-out state:
 
 Next implementation steps, in order:
 
-1. Close Gate H, the infrastructure-completion gate, before adding any further
-   production CDP8 operator families.
-2. Implement the Descriptor/Metadata validator in the CDP pack.
-3. Implement the Offline Session conformance suite and run it against the
-   current representative operators:
-   - `cdp.modify.loudness_normalise`
-   - `cdp.utility.length_change`
-   - `cdp.edit.cut`
-4. Standardize the Golden fixture harness for analytical and
-   CDP8-reference-generated goldens.
-5. Generalize the Materialized artifact contract beyond audio-only clips.
-6. Define Lab graph-planning rules for offline-only, length-changing,
-   non-audio, data/asset-producing, and unsupported mixed shapes.
-7. Design the typed data / spectral asset model before PVOC/spectral ports.
-8. Carry forward future materialized dependency coverage:
+1. Treat Gate H as closed for the current shared infrastructure contract.
+2. Choose the next non-spectral production CDP8 family only if it fits the
+   proven same-length or length-changing Offline Session contracts.
+3. Keep PVOC/spectral work in Gate I until the concrete typed spectral data
+   model and ports/assets are implemented.
+4. Carry forward future materialized dependency coverage:
    - future spectral settings in dependency signatures once spectral
      materialized artifacts exist.
-9. Only after Gate H is closed, choose the next Gate G operator family; likely
-   candidates remain `extend`/`iterate`, `cutend`, or a waveset/PVOC
-   length-changing family depending on fixture cost.
-10. Only after the Offline Session ABI plus typed data/asset handles and CDP8
-    golden fixtures, start PVOC/spectral work.
-11. Before the first CDP generator, add the explicit null-upstream generator
+5. Before the first CDP generator, add the explicit null-upstream generator
    graph/render test.
 
 Additional production operators are not required to prove the current shared
@@ -367,13 +370,66 @@ Hard gate summary:
 - Realtime consumption of valid resident materialized audio clips is complete
   for Gate D through `lab.layer_player`; missing/stale/nonresident clips are
   diagnosable silence, not hidden RT work.
-- Gate H now blocks further production CDP8 operator families until shared
-  infrastructure is complete: descriptor validation, Offline Session
-  conformance, golden fixtures, materialized artifact contracts, Lab
-  offline-graph planning rules, typed data/spectral assets, and CI coverage.
-- PVOC/spectral has an explicit hard dependency on the implemented/tested
-  Offline Session ABI, Gate H, future typed data or asset handles, and CDP8
-  golden fixtures.
+- Gate H is closed for the current non-spectral infrastructure contract:
+  descriptor validation, Offline Session conformance, golden fixture metadata,
+  materialized artifact contracts, Lab offline-graph planning rules, and
+  baseline Pack/Lab CI coverage are in place.
+- PVOC/spectral remains Gate I work and still depends on the implemented/tested
+  Offline Session ABI, the Gate H contracts, concrete typed data or asset
+  handles, and CDP8 golden fixtures.
+
+## Gate H Close-Out - Infrastructure Contract
+
+Date: 2026-04-28
+
+Commits:
+
+- `xyona-cdp-pack`: `49c42cc test(cdp-pack): add gate h conformance coverage`
+- `xyona-lab`: `0df30e03 test(lab): cover gate h artifact contracts`
+- workspace root: this report/roadmap update records the Gate H close-out and
+  advances the `xyona-cdp-pack` Gitlink.
+
+Technical result:
+
+- CDP pack descriptor/metadata validation now covers the exact current CDP
+  operator set, shape/capability consistency, provenance, validation strategy,
+  parameter metadata, port metadata, and technical-role exceptions.
+- Offline Session conformance now exercises lifecycle and error contracts across
+  `cdp.modify.loudness_normalise`, `cdp.utility.length_change`, and
+  `cdp.edit.cut`.
+- Golden fixture metadata now distinguishes analytical fixtures from
+  CDP8-reference-generated fixtures.
+- Lab artifact-contract tests now cover data-only, multi-artifact,
+  file-collection, typed-data, multi-output, and unsupported mixed-shape
+  contracts.
+
+Verification:
+
+- `xyona-cdp-pack`: `ctest --test-dir build/macos-clang-debug --output-on-failure`
+  passed; 16/16 tests.
+- `xyona-lab`: `cmake --build build/macos-dev --target xyona_lab_tests -j 6`
+  passed.
+- `xyona-lab`: `build/macos-dev/tests/xyona_lab_tests --test="Offline Artifact Contract" --summary-only --xyona-only`
+  passed; 8 tests, 27 passes, 0 failures.
+- `xyona-lab`: `build/macos-dev/tests/xyona_lab_tests --test="Operator Process Metadata" --summary-only --xyona-only`
+  passed; 7 tests, 65 passes, 0 failures.
+- `xyona-lab`: `XYONA_OPERATOR_PACK_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-cdp-pack/build/macos-clang-debug build/macos-dev/tests/xyona_lab_tests --test="Offline Pack Processor Client" --summary-only --xyona-only`
+  passed; 5 tests, 64 passes, 0 failures.
+- `xyona-lab`: `XYONA_OPERATOR_PACK_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-cdp-pack/build/macos-clang-debug build/macos-dev/tests/xyona_lab_tests --test="CDP Pack Canvas Smoke" --summary-only --xyona-only`
+  passed; 8 tests, 240 passes, 0 failures.
+- `xyona-lab`: `XYONA_OPERATOR_PACK_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-cdp-pack/build/macos-clang-debug build/macos-dev/tests/xyona_lab_tests --test="AudioEngineManager" --summary-only --xyona-only`
+  passed; 42 tests, 695 passes, 0 failures.
+- Remote: CDP pack GitHub Actions run `25073486854` passed for
+  `49c42cc`, with `macOS Clang Debug` and `Windows MSVC Debug` successful.
+- Remote: Lab GitHub Actions run `25073495548` passed for `0df30e03`, with
+  `macOS Clang Debug` and `Windows MSVC Debug` successful.
+
+Remaining risk:
+
+- Gate H does not implement real PVOC/spectral operators. It defines and tests
+  the contract that typed data/spectral artifacts must obey in Gate I.
+- Additional CDP8 families should add family-specific golden fixtures as they
+  are ported.
 
 ## Gate E Close-Out - Offline Session ABI
 
