@@ -2,7 +2,7 @@
 
 **Status:** Workspace standard  
 **Version:** 1.0-draft  
-**Date:** 2026-04-27  
+**Date:** 2026-04-28
 **Applies to:** `xyona-core`, `xyona-cdp-pack`, future operator packs, Lab help consumption
 
 ## Intent
@@ -104,6 +104,7 @@ explicitly scoped as an internal test helper instead of a pack contract.
 - operator type
 - RT/HQ capabilities
 - engine/process shape
+- execution/domain classification and materialization contract
 - input/output port descriptors
 - parameter descriptors
 - parameter availability and scope
@@ -113,6 +114,117 @@ explicitly scoped as an internal test helper instead of a pack contract.
 - host boundary and ownership
 
 C++ code is the source of truth only for behavior.
+
+## Operator Execution And Domain Taxonomy
+
+Operator classification is intentionally multi-axis. Do not collapse execution
+mode, process shape, signal domain, and host materialization into one enum or
+into provider-specific categories such as "CDP audio" vs. "CDP spectral".
+
+### Axis 1: Execution Capability
+
+Execution capability is represented by `capabilities.canRealtime` and
+`capabilities.canHQ`.
+
+| Label | Meaning |
+|---|---|
+| `RT` | The operator can run in the realtime graph, block by block, under realtime-safety constraints. |
+| `HQ` | The operator can run in an offline/HQ graph or offline session. |
+| `RT+HQ` | The normal case for deterministic block audio DSP that can preview live and render offline. |
+| `RT-only` | Host/live/device-bound operation that has no deterministic or useful HQ render path. |
+| `HQ-only` | Offline-only operation, usually because it is heavy, whole-file, length-changing, analysis-producing, or requires a host artifact contract. |
+
+`RT-only` does not mean "currently used in a realtime patch"; it means
+`canRealtime=true` and `canHQ=false`. For example, Audio In and Audio Out are
+typically realtime-only host I/O nodes. A gain, pan, filter, or block-safe CDP
+effect used between them is usually `RT+HQ`, even when the current signal path is
+pure realtime.
+
+### Axis 2: Process Shape
+
+Process shape describes scheduling and I/O behavior, not audio domain.
+
+| Shape | Meaning | Typical capability |
+|---|---|---|
+| `block_length_preserving` | Processes bounded blocks and emits the same number of samples. | Usually `RT+HQ` |
+| `block_stateful_length_preserving` | Processes bounded blocks with state, latency, tails, or history. | `RT+HQ` if realtime-safe; otherwise `HQ-only` |
+| `whole_file_length_preserving` | Requires the full input/render range but emits same-length audio. | `HQ-only` until an explicit realtime contract exists |
+| `whole_file_length_changing` | Requires whole-file scheduling and can change output length. | `HQ-only` |
+| `generator` | Produces output from parameters, time, data, or host context. | `RT+HQ`, `RT-only`, or `HQ-only` depending on determinism and host requirements |
+| `analysis_data_output` | Produces analysis data or reports rather than ordinary audio. | Usually `HQ-only` |
+| `typed_data_transform` | Transforms non-audio artifacts such as breakpoint, text, or spectral data. | Usually `HQ-only` until typed realtime contracts exist |
+| `multi_output_or_multi_file_output` | Produces multiple artifacts or files. | `HQ-only` until a host contract exists |
+
+Whole-file and length-changing operators must not claim realtime support unless
+there is an explicit realtime/preview contract. A dual-mode operator may expose
+a bounded realtime preview plus an authoritative HQ whole-file path, but that is
+a hybrid contract and must be documented as such.
+
+### Axis 3: Signal Or Artifact Domain
+
+Domain describes what the algorithm consumes, transforms, or emits.
+
+| Domain | Meaning |
+|---|---|
+| `time_audio` | Ordinary sample-domain audio. |
+| `spectral_pvoc` | Spectral, FFT, PVOC/PVX, or related analysis/resynthesis data. |
+| `control_data` | Breakpoint tables, text tables, envelopes, reports, control streams, or other typed data. |
+| `generator` | Generates audio or data from parameters, models, randomness, or host time. |
+| `hybrid` | Crosses domains, for example audio -> spectral analysis -> transformed data -> resynthesized audio. |
+
+Domain is independent from `RT` and `HQ`:
+
+- `HQ / time_audio` is valid, for example whole-file normalise, cut, or length
+  change.
+- `HQ / spectral_pvoc` is valid, for example PVOC analysis, spectral transform,
+  and resynthesis.
+- `RT+HQ / spectral_pvoc` is possible only for streaming spectral algorithms
+  with bounded latency and realtime-safe resource use.
+- `RT+HQ / time_audio` is the common case for block-safe audio DSP.
+
+Do not infer domain from provider alone. CDP can contain time-domain audio,
+spectral/PVOC, analysis, text/data, generator, and hybrid processes. Non-CDP
+packs and Core operators can have the same domains.
+
+### Axis 4: Materialization
+
+Materialization describes whether an offline result is turned into a host-owned
+artifact that can be cached, persisted, reused, or re-enter the realtime graph.
+
+| Label | Meaning |
+|---|---|
+| `WF` | Whole-file: the operator needs the complete input/render range before the correct output can be known. |
+| `MAT` | Materialized: the host stores the result as an artifact such as audio buffer/file, layer clip, analysis table, PVOC data, report, or file collection. |
+| `LC` | Length-changing: output duration can differ from input duration. |
+| `ANL` | Analysis/data output: output is not ordinary audio. |
+
+`WF` and `MAT` are related but not identical. `WF` is an execution requirement.
+`MAT` is a host artifact/result state. A block HQ render may stream directly
+without creating a materialized artifact, and a future freeze/generator workflow
+may materialize an artifact without requiring whole-file input.
+
+### Canonical Combination Examples
+
+| Example | Capability | Shape | Domain | Materialization |
+|---|---|---|---|---|
+| Audio In | `RT-only` | host source | `time_audio` | none |
+| Gain, pan, EQ, block-safe CDP gain | `RT+HQ` | `block_length_preserving` | `time_audio` | none |
+| Realtime FFT analyzer with bounded latency | `RT+HQ` | `block_stateful_length_preserving` | `spectral_pvoc` or `hybrid` | optional data |
+| CDP normalise | `HQ-only` | `whole_file_length_preserving` | `time_audio` | audio `MAT` |
+| CDP cut or length change | `HQ-only` | `whole_file_length_changing` | `time_audio` | audio `MAT`, `LC` |
+| PVOC analysis / spectral transform | `HQ-only` unless streaming contract exists | whole-file or typed-data transform | `spectral_pvoc` | spectral/audio/data `MAT` |
+| Analysis report | `HQ-only` | `analysis_data_output` | `control_data` or `hybrid` | data/report `MAT` |
+| Audio Out / MainBus device output | `RT-only` | host sink | `time_audio` | none |
+
+### UI Labels
+
+Hosts should present execution and domain as separate UI signals. For example,
+use execution badges such as `RT`, `HQ`, `WF`, `MAT`, `LC`, `ANL`, and separate
+domain badges such as `AUDIO`, `SPEC`, `DATA`, `GEN`, or `HYB`.
+
+Do not use a different node header style to mean both "CDP" and "offline" or
+both "spectral" and "whole-file". Header status, domain, and provider are
+separate concepts.
 
 ## Required `op.yaml` Fields
 
