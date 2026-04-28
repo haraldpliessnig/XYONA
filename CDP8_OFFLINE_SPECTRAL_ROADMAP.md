@@ -362,6 +362,41 @@ Exit criteria:
 - The current `cdp.modify.loudness_normalise` reference slice is ported onto the
   session lifecycle or the remaining prototype path is explicitly internal-only.
 
+Planned commit slices:
+
+1. `feat(core): add offline session abi`
+   - Define the production session ABI header and C surface in `xyona-core`.
+   - Include lifecycle, status/error reporting, progress, cancellation, output
+     discovery/read, and host scratch/asset policy hooks at the minimum shape
+     needed by the reference operator.
+   - Add focused Core tests or compile-contract coverage for ABI layout and
+     lifecycle invariants.
+2. `feat(cdp-pack): implement offline session normalise`
+   - Export the new session API from `xyona-cdp-pack`.
+   - Implement one reference same-length operator through create/feed/finish/
+     read/destroy.
+   - Prove normal completion and deterministic output without using the Lab
+     prototype whole-buffer path.
+3. `feat(lab): load offline session api`
+   - Add Lab-side discovery/client code for the session API.
+   - Keep it small and isolated from graph scheduling until the loader contract
+     is proven.
+4. `feat(lab): render whole-file nodes through offline sessions`
+   - Route the existing supported whole-file graph shape through the session
+     client.
+   - Port `cdp.modify.loudness_normalise` away from the productive prototype
+     whole-buffer path or make the prototype path explicitly internal-only.
+5. `test(lab): cover offline session progress and cancel`
+   - Add focused Pack/Lab coverage for progress callbacks and cancellation.
+   - Verify cancelled sessions do not publish partial materialized RT artifacts.
+6. `refactor: isolate prototype whole-buffer path`
+   - Remove release-facing prototype names and productive dependencies that
+     remain after the session path is live.
+   - Leave only internal tests/helpers if they are still useful.
+7. `docs: close gate e offline session abi`
+   - Update this roadmap and the implementation report with exact commits,
+     tests, remaining risks, and the Gate F/G start point.
+
 ### Gate F - CI Baseline
 
 Local manual verification is not enough for this branch.
