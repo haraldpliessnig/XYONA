@@ -86,6 +86,9 @@ Latest implementation commits:
 - `xyona-core`: `ed0982a5 feat(core): add offline session abi`
 - `xyona-cdp-pack`: `5c39e098 feat(cdp-pack): implement offline session normalise`
 - `xyona-lab`: `50abd15f feat(lab): render whole-file packs through sessions`
+- `xyona-core`: `d9e2024d ci(core): add windows and macos baseline`
+- `xyona-cdp-pack`: `31a6a176 ci(cdp-pack): add windows and macos baseline`
+- `xyona-lab`: `75c116a4 ci(lab): add cdp smoke baseline`
 - workspace root: this report update records the latest Lab render-dependency
   signature, orphan-cleanup, materialized asset file-fingerprint, and
   `lab.audio_file_in` source-fingerprint/status-surface and Gate D LayerPlayer
@@ -343,6 +346,44 @@ Gate E exit status:
 - Remaining work moves to later gates: CI baseline is Gate F; length-changing
   output negotiation is Gate G; typed data/asset handles for PVOC/spectral work
   remain blocked until the later typed-data/asset phase.
+
+## Gate F Working Tree Start - CI Baseline
+
+Date: 2026-04-28
+
+Commits:
+
+- `xyona-core`: `d9e2024d ci(core): add windows and macos baseline`
+- `xyona-cdp-pack`: `31a6a176 ci(cdp-pack): add windows and macos baseline`
+- `xyona-lab`: `75c116a4 ci(lab): add cdp smoke baseline`
+- workspace root: this report/roadmap update and `xyona-cdp-pack` Gitlink
+
+Technical change:
+
+- Core now has a GitHub Actions workflow for Windows MSVC Debug and macOS Clang
+  Debug configure/build/test using existing CMake presets.
+- Core's Windows CTest preset now carries `configuration: Debug`, so
+  `ctest --preset windows-msvc-debug` works for Visual Studio multi-config
+  builds.
+- The CDP pack now has a GitHub Actions workflow that checks out `xyona-core`
+  as a sibling repo, builds Core first, then configures/builds/tests the pack on
+  Windows MSVC Debug and macOS Clang Debug.
+- Lab now has a GitHub Actions workflow that checks out sibling Core and CDP
+  Pack repos, builds the pack, builds `xyona_lab_tests`, and runs the Gate E CDP
+  smoke tests with `XYONA_OPERATOR_PACK_PATH` pointing at the built pack.
+
+Verification:
+
+- Local: `xyona-core` `ctest --preset windows-msvc-debug --output-on-failure`
+  passed; 8 tests, 0 failures.
+- Local: `git diff --check` passed for Core, Pack, and Lab CI edits.
+
+Remaining Gate F work:
+
+- Push the workflow commits and observe the first Windows/macOS GitHub Actions
+  runs.
+- If hosted macOS Lab exposes runner-specific Vcpkg/JUCE issues, adjust the Lab
+  workflow without changing the Gate E runtime contract.
 
 ## Commit Log
 

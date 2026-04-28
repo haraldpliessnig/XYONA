@@ -406,6 +406,11 @@ Planned commit slices:
 
 ### Gate F - CI Baseline
 
+Status: baseline workflows committed on 2026-04-28: `xyona-core`
+`d9e2024d`, `xyona-cdp-pack` `31a6a176`, and `xyona-lab` `75c116a4`.
+They cover Windows MSVC Debug and macOS Clang Debug for Core, Pack, and Lab CDP
+smoke tests. First remote GitHub Actions results are pending after push.
+
 Local manual verification is not enough for this branch.
 
 Exit criteria:
