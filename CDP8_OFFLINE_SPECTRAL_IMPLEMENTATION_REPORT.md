@@ -68,6 +68,12 @@ registered `lab.layer_player` operator and `LayerPlayerHostAdapter`. Missing,
 stale, or nonresident clips resolve to deterministic silence with a
 `MaterializedClipUnavailable` graph diagnostic instead of performing disk or
 pack work in the audio callback.
+Gate G now has a synthetic length-changing audio reference slice:
+`cdp.utility.length_change` runs through the production Offline Session ABI,
+Lab accepts it as an offline whole-file node, and bus captures/materialized
+clips retain the negotiated output length instead of being truncated to the
+original render range. A realtime `lab.layer_player` graph consumes the
+materialized result and reaches the synthetic tail samples.
 
 Latest implementation commits:
 
@@ -97,6 +103,8 @@ Latest implementation commits:
 - `xyona-lab`: `9cee3505 ci(lab): use ninja for windows baseline`
 - `xyona-lab`: `fae01fec ci(lab): accept current vcpkg eigen package`
 - `xyona-lab`: `2eec1b8f ci(lab): add minimal windows cdp smoke`
+- `xyona-cdp-pack`: `49520b6 feat(cdp-pack): add length-changing offline reference`
+- `xyona-lab`: `1e275d18 feat(lab): support length-changing offline audio`
 - workspace root: this report update records the latest Lab render-dependency
   signature, orphan-cleanup, materialized asset file-fingerprint, and
   `lab.audio_file_in` source-fingerprint/status-surface and Gate D LayerPlayer
@@ -118,8 +126,18 @@ Current proven capability:
 - Lab can now also schedule same-length whole-file pack nodes inside the
   offline/HQ graph for the first supported graph shape:
   source/block region -> one whole-file node -> direct terminal audio targets.
+- Lab can now also schedule the synthetic `cdp.utility.length_change`
+  reference operator as a length-changing whole-file node, materialize the
+  negotiated longer output, and keep fixed-tail artifact metadata on the
+  resulting materialized clip.
+- Lab now proves the synthetic length-changing materialized clip can re-enter a
+  realtime `lab.layer_player` graph and expose its tail samples without hidden
+  truncation or nonzero padding.
 - Lab has a headless integration test that proves the real graph path:
   `lab.grid_source -> cdp.utility.db_gain -> cdp.modify.loudness_normalise -> lab.mainbus_out`.
+- Lab has a headless integration test that proves the synthetic Gate G graph
+  path:
+  `lab.grid_source -> cdp.utility.length_change -> lab.mainbus_out`.
 - Canvas nodes now derive a runtime eligibility state from descriptor
   capabilities and engine metadata, so `cdp.modify.loudness_normalise` is
   marked as valid offline whole-file work instead of an invalid RT node.
@@ -263,8 +281,8 @@ $env:XYONA_OPERATOR_PACK_PATH='D:\GITHUB\XYONA\xyona-cdp-pack\build\windows-msvc
 
 Next implementation steps, in order:
 
-1. Start Gate G: add length-changing audio negotiation through the Offline
-   Session ABI.
+1. Promote Gate G from the synthetic reference operator to the first real CDP8
+   length-changing operator with golden fixtures.
 2. Carry forward future materialized dependency coverage:
    - future spectral settings in dependency signatures once spectral
      materialized artifacts exist.
@@ -2045,12 +2063,11 @@ Follow-up:
 - Materialized clips are consumed by the realtime LayerPlayer path for valid
   resident audio. Later UX work still needs to decide how users place, inspect,
   and re-render those clips in a richer product surface.
-- Same-length whole-file CDP operators now have a first execution and
-  materialization path through the prototype whole-buffer offline ABI. Before
-  release, that reference slice should move onto the Offline Session ABI or the
-  prototype path should become an internal-only helper. Length-changing,
-  PVOC/spectral, multi-output, and long-running CDP operators must use the
-  implemented/tested Offline Session ABI.
+- Same-length whole-file CDP operators now execute and materialize through the
+  production Offline Session ABI. The whole-buffer prototype remains a
+  reference/test helper and is not exported by the normal pack build.
+  Length-changing, PVOC/spectral, multi-output, and long-running CDP operators
+  must use the implemented/tested Offline Session ABI.
 - Typed spectral/PVOC artifacts remain data-only until typed artifact ports and
   host semantics exist; they must not be routed through audio buffers. PVOC also
   has an explicit hard dependency on the Offline Session ABI and CDP8 golden

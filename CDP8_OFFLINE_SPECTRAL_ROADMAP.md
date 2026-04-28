@@ -68,6 +68,12 @@ Current state:
   consume valid resident materialized clips through `lab.layer_player` and
   `LayerPlayerHostAdapter`; stale, missing, or nonresident clips resolve to
   deterministic silence plus graph diagnostics.
+  Gate G now has a synthetic length-changing audio reference slice:
+  `cdp.utility.length_change` runs through the production Offline Session ABI,
+  Lab schedules it as an offline whole-file node, and materialized audio uses
+  the negotiated output length instead of the original render range. The
+  materialized result is also consumed by `lab.layer_player` in a realtime graph
+  with the synthetic tail samples still reachable.
 
 Missing state:
 
@@ -75,8 +81,8 @@ Missing state:
   not block the first Gate F baseline.
 - Remaining production persistence for materialized assets: future spectral
   settings once spectral materialized artifacts exist.
-- Output length negotiation for length-changing CDP programs through the Offline
-  Session ABI.
+- Real CDP8 length-changing operator ports and CDP8 golden fixtures beyond the
+  synthetic Gate G reference operator.
 - A typed analysis/spectral data model instead of pretending PVOC/PVX is audio.
 - Lab graph planning rules for offline-only and non-audio-producing nodes.
 - Golden reference tooling at CDP8 family scale.
@@ -467,6 +473,23 @@ Exit criteria:
 - Lab allocates/materializes the actual negotiated output length.
 - RT consumes the resulting materialized clip without truncation or hidden
   padding.
+
+Current status:
+
+- Implemented for the synthetic `cdp.utility.length_change` reference operator.
+- Lab accepts audio-only `whole_file_length_changing` metadata for the offline
+  whole-file host contract when the output length model is `fixed_tail`,
+  `param_dependent`, or `analysis_dependent`.
+- Offline bus captures and materialized clips now use the negotiated output
+  length for the synthetic reference slice.
+- Realtime `lab.layer_player` playback consumes the resulting materialized clip
+  and reaches the synthetic tail samples without truncation or hidden nonzero
+  padding.
+
+Remaining before enabling real CDP8 length-changing programs:
+
+- Add at least one real CDP8 length-changing operator with golden fixtures.
+- Extend CI evidence for the synthetic and real length-changing paths.
 
 ### Gate H - PVOC/Spectral
 
@@ -1475,8 +1498,8 @@ Mitigation:
 
 ## Recommended Immediate Next Steps
 
-1. Start Gate G: add length-changing audio negotiation through the Offline
-   Session ABI.
+1. Promote Gate G from the synthetic reference operator to the first real CDP8
+   length-changing operator with golden fixtures.
 2. Carry forward future materialized dependency coverage:
    - future spectral settings in dependency signatures once spectral
      materialized artifacts exist.
