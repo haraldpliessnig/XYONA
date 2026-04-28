@@ -84,6 +84,10 @@ slice is now also implemented: `cdp.edit.cutend` maps CDP8 `sfedit cutend`
 mode 1 onto the same Offline Session path, keeps the requested end segment,
 uses the CDP start-splice rule, and is covered by Pack conformance/metadata
 tests plus Lab materialization and Canvas smoke tests.
+Gate I preflight has now started at the contract level: the CDP pack defines a
+concrete PVOC/spectral artifact contract and canonical `engine.spectral`
+metadata shape, while Lab parses and validates those spectral metadata fields
+as typed data that cannot be routed as direct audio.
 
 Latest implementation commits:
 
@@ -122,6 +126,8 @@ Latest implementation commits:
 - `xyona-lab`: `0df30e03 test(lab): cover gate h artifact contracts`
 - `xyona-cdp-pack`: `f6f5a1d feat(cdp-pack): add edit cutend offline session`
 - `xyona-lab`: `d45fc1d1 test(lab): cover cdp edit cutend offline session`
+- `xyona-cdp-pack`: `d613571 feat(cdp-pack): add spectral artifact contract`
+- `xyona-lab`: `a8b02b97 feat(lab): parse spectral operator metadata`
 - workspace root: this report update records the latest Lab render-dependency
   signature, orphan-cleanup, materialized asset file-fingerprint, and
   `lab.audio_file_in` source-fingerprint/status-surface and Gate D LayerPlayer
@@ -134,6 +140,8 @@ Latest implementation commits:
   advances the `xyona-cdp-pack` Gitlink to the Gate H pack commit.
 - workspace root: this report/roadmap update records the post-Gate-H
   `cdp.edit.cutend` slice and advances the `xyona-cdp-pack` Gitlink.
+- workspace root: this report/roadmap update records the Gate I spectral
+  metadata preflight and advances the `xyona-cdp-pack` Gitlink.
 
 Current proven capability:
 
@@ -172,6 +180,14 @@ Current proven capability:
   preserves the `ParamDependent` artifact contract, is Canvas-discoverable as
   an offline whole-file length-changing node, and remains outside RT/HQ block
   processing.
+- The CDP pack now has a concrete `CdpSpectralArtifactContract` for future
+  PVOC/spectral analysis artifacts. The contract records sample rate, channel
+  count, window size, hop size, FFT size, real-FFT bin count, frame-count model,
+  bin encoding, and Offline Session artifact kind without representing PVOC as
+  audio.
+- Lab's operator process metadata parser now reads `engine.spectral` metadata,
+  validates PVOC format/bin layout/window-hop-FFT shape, and fails closed if a
+  descriptor advertises spectral data as direct audio output.
 - Lab has a headless integration test that proves the real graph path:
   `lab.grid_source -> cdp.utility.db_gain -> cdp.modify.loudness_normalise -> lab.mainbus_out`.
 - Lab has a headless integration test that proves the synthetic Gate G graph
@@ -361,17 +377,17 @@ Gate G close-out state:
 Next implementation steps, in order:
 
 1. Treat Gate H as closed for the current shared infrastructure contract.
-2. Choose the next non-spectral production CDP8 family only if it fits the
-   proven same-length or length-changing Offline Session contracts.
-   `cdp.edit.cutend` is already implemented; likely next candidates are
-   `extend`/`iterate` or a non-spectral waveset-style length-changing family,
-   depending on CDP8 fixture cost.
-3. Keep PVOC/spectral work in Gate I until the concrete typed spectral data
-   model and ports/assets are implemented.
-4. Carry forward future materialized dependency coverage:
+2. Continue Gate I by adding a data-only Offline Session artifact read/
+   materialization path for PVOC/spectral assets.
+3. Add CDP8-generated PVOC golden fixture tooling before porting the first real
+   spectral analysis/synthesis operator.
+4. Keep further non-spectral CDP8 families optional. If selected, likely next
+   candidates are `extend`/`iterate` or a non-spectral waveset-style
+   length-changing family, depending on fixture cost.
+5. Carry forward future materialized dependency coverage:
    - future spectral settings in dependency signatures once spectral
      materialized artifacts exist.
-5. Before the first CDP generator, add the explicit null-upstream generator
+6. Before the first CDP generator, add the explicit null-upstream generator
    graph/render test.
 
 Additional production operators are not required to prove the current shared
@@ -396,8 +412,61 @@ Hard gate summary:
   materialized artifact contracts, Lab offline-graph planning rules, and
   baseline Pack/Lab CI coverage are in place.
 - PVOC/spectral remains Gate I work and still depends on the implemented/tested
-  Offline Session ABI, the Gate H contracts, concrete typed data or asset
-  handles, and CDP8 golden fixtures.
+  Offline Session ABI, the Gate H contracts, data-only asset materialization,
+  and CDP8 golden fixtures.
+
+## Gate I Preflight - Spectral Metadata Contract
+
+Date: 2026-04-28
+
+Commits:
+
+- `xyona-cdp-pack`: `d613571 feat(cdp-pack): add spectral artifact contract`
+- `xyona-lab`: `a8b02b97 feat(lab): parse spectral operator metadata`
+- workspace root: this report/roadmap update records the Gate I preflight and
+  advances the `xyona-cdp-pack` Gitlink.
+
+Technical result:
+
+- The CDP pack now has `runtime/cdp_spectral_contract.h`, defining the first
+  concrete PVOC/spectral artifact contract for future data-only Offline Session
+  outputs.
+- The contract validates sample rate, channel count, power-of-two window/FFT
+  sizes, hop size, real-FFT bin count, frame-count model, PVOC artifact type,
+  and magnitude/frequency bin encoding.
+- The CDP pack descriptor helper now includes a canonical
+  `XYONA_CDP_ENGINE_PVOC_ANALYSIS_DATA_JSON` metadata shape for future
+  file-backed, data-only `pvoc_analysis` outputs.
+- The pack process contract now allows `analysis_data_output` and
+  `multi_file_output` shapes to require whole-file host execution without
+  becoming block-processable or audio-producing.
+- Lab's `OperatorProcessMetadata` now parses `engine.spectral`, records PVOC
+  format/bin/frame metadata, validates real-FFT layout, and rejects descriptors
+  that advertise spectral data as direct audio output.
+
+Verification:
+
+- `xyona-cdp-pack`: `cmake --build build/macos-clang-debug --target test_cdp_process_contract test_cdp_spectral_contract -j 6`
+  passed.
+- `xyona-cdp-pack`: `ctest --test-dir build/macos-clang-debug -R "cdp_process_contract_tests|cdp_spectral_contract_tests" --output-on-failure`
+  passed; 2/2 tests.
+- `xyona-cdp-pack`: `ctest --test-dir build/macos-clang-debug --output-on-failure`
+  passed; 17/17 tests.
+- `xyona-lab`: `cmake --build build/macos-dev --target xyona_lab_tests -j 6`
+  passed.
+- `xyona-lab`: `build/macos-dev/tests/xyona_lab_tests --test="Operator Process Metadata" --summary-only --xyona-only`
+  passed; 10 tests, 94 passes, 0 failures.
+- `git diff --check` passed for the Pack and Lab touched files.
+- Remote CI could not run code on 2026-04-28 because GitHub Actions rejected
+  both Pack run `25076365951` and Lab run `25076388018` before job startup with
+  the account billing/spending-limit annotation.
+
+Remaining risk:
+
+- This is a metadata/contract preflight only. Gate I still needs data-only
+  Offline Session artifact read APIs or host asset handles, spectral asset
+  persistence/staleness signatures, CDP8-generated PVOC golden fixtures, and
+  real PVOC analysis/synthesis operators.
 
 ## Post-Gate-H Slice - CDP Edit Cutend
 

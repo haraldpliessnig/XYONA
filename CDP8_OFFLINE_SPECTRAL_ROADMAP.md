@@ -88,6 +88,10 @@ Current state:
   `cdp.edit.cutend` implements CDP8 `sfedit cutend` mode 1 through the same
   param-dependent length-changing Offline Session path, keeps the requested end
   segment, applies the CDP start splice rule, and is covered in Pack and Lab CI.
+  Gate I preflight has started at the contract level: the CDP pack now has a
+  concrete PVOC/spectral artifact contract and descriptor metadata shape, and
+  Lab parses `engine.spectral` metadata so future PVOC analysis descriptors are
+  recognized as typed data, not audio.
 
 Missing state:
 
@@ -99,9 +103,10 @@ Missing state:
   fixture coverage beyond the current `sfedit cut` / `sfedit cutend` slices.
 - Additional CDP8 production operator families beyond the current representative
   slices.
-- The concrete typed analysis/spectral implementation for PVOC/PVX data. The
-  Gate H contract says such artifacts are data-only, not fake audio; Gate I
-  still has to implement the real spectral model and ports/assets.
+- The concrete typed analysis/spectral implementation for PVOC/PVX data beyond
+  the first metadata/contract slice. Gate I still has to implement real
+  spectral data assets, session read/materialization policy, serialization, and
+  actual PVOC analysis/synthesis ports.
 - CDP8 golden fixture coverage at family scale beyond the current analytical
   and metadata-contract harness.
 
@@ -597,6 +602,19 @@ Exit criteria:
   baseline Pack and Lab matrix.
 
 ### Gate I - PVOC/Spectral
+
+Status: started on 2026-04-28 for metadata/contract preflight only.
+
+Current preflight state:
+
+- CDP pack has `CdpSpectralArtifactContract` for PVOC/spectral analysis
+  artifacts, including sample rate, channel count, window size, hop size, FFT
+  size, real-FFT bin count, frame-count model, and bin encoding.
+- CDP pack has a canonical `engine.spectral` descriptor metadata shape for
+  file-backed, data-only `pvoc_analysis` outputs.
+- Lab parses and validates `engine.spectral`, rejects spectral metadata that is
+  advertised as direct audio output, and keeps PVOC analysis descriptors out of
+  RT/HQ block and current offline-audio host paths.
 
 Hard dependencies:
 
@@ -1605,14 +1623,13 @@ Mitigation:
 ## Recommended Immediate Next Steps
 
 1. Treat Gate H as closed for the current shared infrastructure contract.
-2. Choose the next non-spectral CDP8 family; likely candidates are now
-   `extend`/`iterate` or a non-spectral waveset-style length-changing family
-   depending on fixture cost.
-3. Before porting that family, confirm it fits the proven same-length or
-   length-changing Offline Session contracts and add family-specific golden
-   fixtures.
-4. Keep PVOC/spectral work in Gate I until the concrete typed spectral data
-   model and ports/assets are implemented.
+2. Continue Gate I by adding a data-only Offline Session artifact read/
+   materialization path for PVOC/spectral assets, not by faking PVOC as audio.
+3. Add the CDP8-generated PVOC golden fixture harness before the first real
+   spectral analysis/synthesis operator port.
+4. Keep further non-spectral CDP8 families optional; if selected, likely
+   candidates remain `extend`/`iterate` or a non-spectral waveset-style
+   length-changing family depending on fixture cost.
 5. Carry forward future materialized dependency coverage:
    - future spectral settings in dependency signatures once spectral
      materialized artifacts exist.
