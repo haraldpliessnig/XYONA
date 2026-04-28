@@ -84,10 +84,13 @@ slice is now also implemented: `cdp.edit.cutend` maps CDP8 `sfedit cutend`
 mode 1 onto the same Offline Session path, keeps the requested end segment,
 uses the CDP start-splice rule, and is covered by Pack conformance/metadata
 tests plus Lab materialization and Canvas smoke tests.
-Gate I preflight has now started at the contract level: the CDP pack defines a
-concrete PVOC/spectral artifact contract and canonical `engine.spectral`
-metadata shape, while Lab parses and validates those spectral metadata fields
-as typed data that cannot be routed as direct audio.
+Gate I has now moved past metadata preflight into the first data-only artifact
+transport slice: Core Offline Session ABI v2 exposes data descriptor/read
+callbacks, the CDP pack provides a technical `cdp.utility.pvoc_probe` fixture
+that emits a file-backed/data-only PVOC analysis artifact, and Lab materializes
+its bytes and metadata through a non-audio client path. This proves the
+host/pack transport contract; persistent spectral assets, CDP8 PVOC goldens,
+and real PVOC analysis/synthesis operators remain open.
 
 Latest implementation commits:
 
@@ -128,6 +131,9 @@ Latest implementation commits:
 - `xyona-lab`: `d45fc1d1 test(lab): cover cdp edit cutend offline session`
 - `xyona-cdp-pack`: `d613571 feat(cdp-pack): add spectral artifact contract`
 - `xyona-lab`: `a8b02b97 feat(lab): parse spectral operator metadata`
+- `xyona-core`: `a9ddb60 feat(core): add offline session data reads`
+- `xyona-cdp-pack`: `8214aa4 feat(cdp-pack): add pvoc data artifact session`
+- `xyona-lab`: `3fa12897 feat(lab): materialize offline data artifacts`
 - workspace root: this report update records the latest Lab render-dependency
   signature, orphan-cleanup, materialized asset file-fingerprint, and
   `lab.audio_file_in` source-fingerprint/status-surface and Gate D LayerPlayer
@@ -142,6 +148,9 @@ Latest implementation commits:
   `cdp.edit.cutend` slice and advances the `xyona-cdp-pack` Gitlink.
 - workspace root: this report/roadmap update records the Gate I spectral
   metadata preflight and advances the `xyona-cdp-pack` Gitlink.
+- workspace root: this report/roadmap update records the first Gate I data-only
+  Offline Session artifact materialization path and advances the
+  `xyona-cdp-pack` Gitlink.
 
 Current proven capability:
 
@@ -188,6 +197,16 @@ Current proven capability:
 - Lab's operator process metadata parser now reads `engine.spectral` metadata,
   validates PVOC format/bin layout/window-hop-FFT shape, and fails closed if a
   descriptor advertises spectral data as direct audio output.
+- Core Offline Session ABI v2 now extends the production session API with
+  `get_output_data_desc` and `read_output_data` while preserving the v1 prefix
+  for existing audio-session clients.
+- The CDP pack now has `cdp.utility.pvoc_probe`, a technical data-only fixture
+  that emits a deterministic file-backed `pvoc_analysis` JSON artifact over the
+  production Offline Session path.
+- Lab's Offline Pack Processor Client now materializes data-only artifacts via
+  `renderWholeFileDataArtifacts`, preserving artifact contract metadata,
+  media type, schema, extension, descriptor metadata, and raw bytes separately
+  from audio.
 - Lab has a headless integration test that proves the real graph path:
   `lab.grid_source -> cdp.utility.db_gain -> cdp.modify.loudness_normalise -> lab.mainbus_out`.
 - Lab has a headless integration test that proves the synthetic Gate G graph
@@ -376,18 +395,17 @@ Gate G close-out state:
 
 Next implementation steps, in order:
 
-1. Treat Gate H as closed for the current shared infrastructure contract.
-2. Continue Gate I by adding a data-only Offline Session artifact read/
-   materialization path for PVOC/spectral assets.
-3. Add CDP8-generated PVOC golden fixture tooling before porting the first real
+1. Continue Gate I by adding persistent typed/spectral asset storage for
+   data-only Offline Session artifacts, including project save/open,
+   fingerprints, and staleness signatures.
+2. Add CDP8-generated PVOC golden fixture tooling before porting the first real
    spectral analysis/synthesis operator.
+3. Port the first real PVOC analysis/synthesis operator only after the asset
+   lifecycle and golden harness are in place.
 4. Keep further non-spectral CDP8 families optional. If selected, likely next
    candidates are `extend`/`iterate` or a non-spectral waveset-style
    length-changing family, depending on fixture cost.
-5. Carry forward future materialized dependency coverage:
-   - future spectral settings in dependency signatures once spectral
-     materialized artifacts exist.
-6. Before the first CDP generator, add the explicit null-upstream generator
+5. Before the first CDP generator, add the explicit null-upstream generator
    graph/render test.
 
 Additional production operators are not required to prove the current shared
@@ -411,9 +429,75 @@ Hard gate summary:
   descriptor validation, Offline Session conformance, golden fixture metadata,
   materialized artifact contracts, Lab offline-graph planning rules, and
   baseline Pack/Lab CI coverage are in place.
-- PVOC/spectral remains Gate I work and still depends on the implemented/tested
-  Offline Session ABI, the Gate H contracts, data-only asset materialization,
-  and CDP8 golden fixtures.
+- PVOC/spectral remains Gate I work. The Offline Session data-read transport is
+  now implemented and tested; remaining blockers are persistent typed/spectral
+  asset lifecycle, CDP8 PVOC golden fixtures, and real spectral operators.
+
+## Gate I Slice - Data-Only Offline Artifacts
+
+Date: 2026-04-28
+
+Commits:
+
+- `xyona-core`: `a9ddb60 feat(core): add offline session data reads`
+- `xyona-cdp-pack`: `8214aa4 feat(cdp-pack): add pvoc data artifact session`
+- `xyona-lab`: `3fa12897 feat(lab): materialize offline data artifacts`
+- workspace root: this report/roadmap update records the Gate I data artifact
+  slice and advances the `xyona-cdp-pack` Gitlink.
+
+Technical result:
+
+- Core Offline Session ABI v2 adds `xyona_pack_offline_session_data_desc`,
+  `xyona_pack_offline_session_read_data_request`,
+  `get_output_data_desc`, and `read_output_data` while preserving the v1
+  prefix layout through `XYONA_PACK_OFFLINE_SESSION_API_SIZE_V1`.
+- The CDP pack registers `cdp.utility.pvoc_probe` as a technical, data-only
+  PVOC fixture. It requires whole-file input, emits no block audio output, and
+  returns a deterministic file-backed `pvoc_analysis` artifact with
+  `application/vnd.xyona.cdp.pvoc+json`, schema
+  `xyona.cdp.pvoc.analysis.v1`, and `xyopvoc` extension.
+- Lab's Offline Pack Processor Client now has
+  `renderWholeFileDataArtifacts`, which feeds/finishes the production Offline
+  Session, validates the data-only artifact contract, reads descriptor metadata
+  and bytes, and keeps this path separate from audio materialization and RT
+  re-entry.
+
+Verification:
+
+- `xyona-core`: `cmake --build build/macos-clang-debug --target test_offline_session_abi -j 6`
+  passed.
+- `xyona-core`: `ctest --test-dir build/macos-clang-debug --output-on-failure`
+  passed; 8/8 tests.
+- `xyona-cdp-pack`: `cmake --build build/macos-clang-debug --target xyona_pack_cdp_ops test_cdp_offline_session_conformance test_cdp_descriptor_metadata -j 6`
+  passed.
+- `xyona-cdp-pack`: `cmake --build build/macos-clang-debug -j 6`
+  passed after rebuilding stale test binaries against ABI v2.
+- `xyona-cdp-pack`: `ctest --test-dir build/macos-clang-debug --output-on-failure`
+  passed; 17/17 tests.
+- `xyona-lab`: `cmake --build build/macos-dev --target xyona_lab_tests xyona_lab_cdp_offline_smoke -j 6`
+  passed.
+- `xyona-lab`: with `XYONA_OPERATOR_PACK_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-cdp-pack/build/macos-clang-debug`,
+  `build/macos-dev/tests/xyona_lab_tests --test="Offline Pack Processor Client" --summary-only --xyona-only`
+  passed; 7 tests, 102 passes, 0 failures.
+- `xyona-lab`: with the same pack path,
+  `build/macos-dev/tests/xyona_lab_tests --test="CDP Pack Canvas Smoke" --summary-only --xyona-only`
+  passed; 10 tests, 279 passes, 0 failures.
+- `xyona-lab`: with the same pack path,
+  `build/macos-dev/tests/xyona_lab_cdp_offline_smoke` passed.
+- `git diff --check` passed for touched Core, Pack, and Lab files.
+- Remote CI could not run code on 2026-04-28 because GitHub Actions rejected
+  Core run `25077292280`, Pack run `25077304074`, and Lab run `25077315551`
+  before job startup with the account billing/spending-limit annotation.
+
+Remaining risk:
+
+- `cdp.utility.pvoc_probe` is deliberately a technical fixture, not a real CDP8
+  PVOC algorithm.
+- Data artifact bytes are materialized in Lab memory, but there is not yet a
+  persistent typed/spectral asset store, project save/open lifecycle, spectral
+  dependency signature, or stale/missing status path for PVOC assets.
+- CDP8-generated PVOC golden fixtures and real PVOC analysis/synthesis ports
+  remain required before Gate I can close.
 
 ## Gate I Preflight - Spectral Metadata Contract
 
@@ -463,10 +547,10 @@ Verification:
 
 Remaining risk:
 
-- This is a metadata/contract preflight only. Gate I still needs data-only
-  Offline Session artifact read APIs or host asset handles, spectral asset
-  persistence/staleness signatures, CDP8-generated PVOC golden fixtures, and
-  real PVOC analysis/synthesis operators.
+- This preflight only defined the descriptor/metadata contract. The follow-on
+  data-read slice proves transport, but Gate I still needs persistent spectral
+  asset lifecycle, staleness signatures, CDP8-generated PVOC golden fixtures,
+  and real PVOC analysis/synthesis operators.
 
 ## Post-Gate-H Slice - CDP Edit Cutend
 

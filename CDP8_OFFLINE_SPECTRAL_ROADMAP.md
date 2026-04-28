@@ -88,10 +88,13 @@ Current state:
   `cdp.edit.cutend` implements CDP8 `sfedit cutend` mode 1 through the same
   param-dependent length-changing Offline Session path, keeps the requested end
   segment, applies the CDP start splice rule, and is covered in Pack and Lab CI.
-  Gate I preflight has started at the contract level: the CDP pack now has a
-  concrete PVOC/spectral artifact contract and descriptor metadata shape, and
-  Lab parses `engine.spectral` metadata so future PVOC analysis descriptors are
-  recognized as typed data, not audio.
+  Gate I has now moved past metadata preflight into the first data-only
+  artifact vertical slice: Core Offline Session ABI v2 exposes data descriptor
+  and byte-read callbacks, the CDP pack provides a technical
+  `cdp.utility.pvoc_probe` fixture that emits a file-backed/data-only PVOC
+  analysis artifact, and Lab materializes its bytes and metadata without
+  treating the artifact as audio. This proves the host/pack transport path; it
+  is not yet a real CDP8 PVOC analysis/synthesis implementation.
 
 Missing state:
 
@@ -103,10 +106,10 @@ Missing state:
   fixture coverage beyond the current `sfedit cut` / `sfedit cutend` slices.
 - Additional CDP8 production operator families beyond the current representative
   slices.
-- The concrete typed analysis/spectral implementation for PVOC/PVX data beyond
-  the first metadata/contract slice. Gate I still has to implement real
-  spectral data assets, session read/materialization policy, serialization, and
-  actual PVOC analysis/synthesis ports.
+- Persistent typed/spectral asset storage and project lifecycle integration for
+  PVOC/PVX artifacts. Gate I still has to persist data artifacts, fingerprint
+  spectral settings/assets for staleness, generate CDP8 PVOC golden fixtures,
+  and implement real PVOC analysis/synthesis ports.
 - CDP8 golden fixture coverage at family scale beyond the current analytical
   and metadata-contract harness.
 
@@ -603,7 +606,10 @@ Exit criteria:
 
 ### Gate I - PVOC/Spectral
 
-Status: started on 2026-04-28 for metadata/contract preflight only.
+Status: started on 2026-04-28. The metadata contract and first data-only
+Offline Session artifact materialization path are implemented with a technical
+PVOC fixture. Persistent spectral assets, CDP8 PVOC goldens, and real spectral
+operators remain open.
 
 Current preflight state:
 
@@ -615,12 +621,19 @@ Current preflight state:
 - Lab parses and validates `engine.spectral`, rejects spectral metadata that is
   advertised as direct audio output, and keeps PVOC analysis descriptors out of
   RT/HQ block and current offline-audio host paths.
+- Core Offline Session ABI v2 adds `get_output_data_desc` and
+  `read_output_data` callbacks while preserving the v1 prefix for existing
+  audio sessions.
+- The CDP pack's `cdp.utility.pvoc_probe` fixture emits a data-only
+  `pvoc_analysis` artifact over the production Offline Session path.
+- Lab's Offline Pack Processor Client can materialize data-only artifact bytes
+  and metadata separately from audio via `renderWholeFileDataArtifacts`.
 
 Hard dependencies:
 
 - Gate E
 - Gate H
-- typed data ports or asset handles
+- persistent typed data/spectral asset handles and project lifecycle
 - CDP8 golden fixture harness for PVOC/PVX behavior
 
 PVOC/spectral work must not be started on the prototype whole-buffer offline
@@ -631,6 +644,8 @@ Exit criteria:
 - PVOC analysis data is represented as typed data or a host asset, not audio.
 - Window, hop, magnitude/frequency, phase-unwrapping/reconstruction, and
   serialization policies are explicit.
+- Spectral artifacts persist through project save/open and participate in
+  staleness signatures before RT/HQ consumers can treat them as valid.
 - CDP8-compatible golden tests exist before real spectral families are ported.
 
 ### Gate J - Generator Edge Case
@@ -1622,18 +1637,17 @@ Mitigation:
 
 ## Recommended Immediate Next Steps
 
-1. Treat Gate H as closed for the current shared infrastructure contract.
-2. Continue Gate I by adding a data-only Offline Session artifact read/
-   materialization path for PVOC/spectral assets, not by faking PVOC as audio.
-3. Add the CDP8-generated PVOC golden fixture harness before the first real
+1. Continue Gate I by adding persistent typed/spectral asset storage for
+   data-only Offline Session artifacts, including project save/open,
+   fingerprints, and staleness signatures.
+2. Add the CDP8-generated PVOC golden fixture harness before the first real
    spectral analysis/synthesis operator port.
+3. Port the first real PVOC analysis/synthesis operator only after the asset
+   lifecycle and golden harness are in place.
 4. Keep further non-spectral CDP8 families optional; if selected, likely
    candidates remain `extend`/`iterate` or a non-spectral waveset-style
    length-changing family depending on fixture cost.
-5. Carry forward future materialized dependency coverage:
-   - future spectral settings in dependency signatures once spectral
-     materialized artifacts exist.
-6. Before the first CDP generator, add the explicit null-upstream generator
+5. Before the first CDP generator, add the explicit null-upstream generator
    graph/render test.
 
 ## Definition Of Done For CDP8 Rewrite Readiness
