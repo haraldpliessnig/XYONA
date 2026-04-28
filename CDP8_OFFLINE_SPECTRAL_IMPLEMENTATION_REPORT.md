@@ -89,6 +89,8 @@ Latest implementation commits:
 - `xyona-core`: `d9e2024d ci(core): add windows and macos baseline`
 - `xyona-cdp-pack`: `31a6a176 ci(cdp-pack): add windows and macos baseline`
 - `xyona-lab`: `75c116a4 ci(lab): add cdp smoke baseline`
+- `xyona-cdp-pack`: `50563ad4 ci(cdp-pack): require token for private core checkout`
+- `xyona-lab`: `5a65fbca ci(lab): require token for private sibling checkouts`
 - workspace root: this report update records the latest Lab render-dependency
   signature, orphan-cleanup, materialized asset file-fingerprint, and
   `lab.audio_file_in` source-fingerprint/status-surface and Gate D LayerPlayer
@@ -356,6 +358,8 @@ Commits:
 - `xyona-core`: `d9e2024d ci(core): add windows and macos baseline`
 - `xyona-cdp-pack`: `31a6a176 ci(cdp-pack): add windows and macos baseline`
 - `xyona-lab`: `75c116a4 ci(lab): add cdp smoke baseline`
+- `xyona-cdp-pack`: `50563ad4 ci(cdp-pack): require token for private core checkout`
+- `xyona-lab`: `5a65fbca ci(lab): require token for private sibling checkouts`
 - workspace root: this report/roadmap update and `xyona-cdp-pack` Gitlink
 
 Technical change:
@@ -371,17 +375,31 @@ Technical change:
 - Lab now has a GitHub Actions workflow that checks out sibling Core and CDP
   Pack repos, builds the pack, builds `xyona_lab_tests`, and runs the Gate E CDP
   smoke tests with `XYONA_OPERATOR_PACK_PATH` pointing at the built pack.
+- Pack and Lab workflows require a private sibling-repo token named
+  `XYONA_CI_REPO_TOKEN`; without it, GitHub Actions cannot clone private sibling
+  repositories from another repo's workflow token.
 
 Verification:
 
 - Local: `xyona-core` `ctest --preset windows-msvc-debug --output-on-failure`
   passed; 8 tests, 0 failures.
 - Local: `git diff --check` passed for Core, Pack, and Lab CI edits.
+- Remote: Core CI run `25042457413` completed successfully for commit
+  `d9e2024d`.
+- Remote: initial Pack run `25042457315` and Lab run `25042457378` failed
+  because the hosted runners could not clone private sibling repos with the
+  default per-repo `GITHUB_TOKEN`.
+- Repo secret check: `XYONA_CI_REPO_TOKEN` was not present in `xyona-cdp-pack`
+  or `xyona-lab` at the time of this report update.
 
 Remaining Gate F work:
 
-- Push the workflow commits and observe the first Windows/macOS GitHub Actions
-  runs.
+- Add `XYONA_CI_REPO_TOKEN` as a repository secret in `xyona-cdp-pack` with
+  read access to `haraldpliessnig/xyona-core`.
+- Add `XYONA_CI_REPO_TOKEN` as a repository secret in `xyona-lab` with read
+  access to `haraldpliessnig/xyona-core` and
+  `haraldpliessnig/xyona-cdp-pack`.
+- Re-run the Pack and Lab Windows/macOS workflows after the secret is present.
 - If hosted macOS Lab exposes runner-specific Vcpkg/JUCE issues, adjust the Lab
   workflow without changing the Gate E runtime contract.
 
