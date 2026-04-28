@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C xyona-core log --oneline feature/cdp8-offline-foundation -15)",
+      "Bash(git -C xyona-cdp-pack log --oneline feature/cdp8-offline-foundation -15)",
+      "Bash(git -C xyona-lab log --oneline feature/cdp8-offline-foundation -15)"
+    ]
+  }
+}
