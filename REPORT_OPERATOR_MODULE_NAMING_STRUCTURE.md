@@ -1,6 +1,6 @@
 # Report: Operator Module Naming Structure
 
-Status: Implementation slices 1-34 landed
+Status: Implementation slices 1-35 landed
 Scope: workspace, xyona-core, xyona-cdp-pack, xyona-lab  
 Date: 2026-04-29  
 Roadmap: `ROADMAP_OPERATOR_MODULE_STRUCTURE.md`  
@@ -18,7 +18,7 @@ the physical operator-module folder migration in the CDP pack.
 
 ## Executive Status
 
-The first thirty-four cross-repository naming/metadata slices are implemented and
+The first thirty-five cross-repository naming/metadata slices are implemented and
 verified.
 
 `xyona-core` now exposes transitional operator module identity fields directly
@@ -285,6 +285,12 @@ nested `ui`/`engine` objects are read structurally. The pack v2 fixture now
 contains whitespace and nested decoy metadata to prove nested objects cannot
 pollute descriptor identity, UI labels, node-name stems, domain, or
 materialization.
+
+Slice 35 removes Core's remaining public discovery defaults. Core's operator
+API no longer derives provider, family, module name, UI labels, node-name
+stems, domain, or materialization from IDs and categories after registration.
+Current Core and pack descriptors therefore have to carry their module contract
+metadata before they reach public discovery.
 
 ## Current Baseline Before This Slice
 
@@ -863,6 +869,18 @@ Slice 34 additions:
   `operator_packs_tests|operator_module_runtime_tests|operator_module_metadata_tests`,
   and `git diff --check`
 
+Slice 35 additions:
+
+- removed Core's `applyDiscoveryDefaults()` path from
+  `src/core/operators_api.cpp`
+- removed ID/category-derived fallback assignment for `provider`,
+  `providerLabel`, `family`, `moduleName`, `shortLabel`, `nodeNameStem`,
+  `domain`, and `materialization`
+- kept public discovery sorting and lookup behavior unchanged
+- verified module validator, direct codegen, targeted MSVC build,
+  `operator_dispatcher_tests|operator_module_runtime_tests|operator_module_metadata_tests|operator_packs_tests`,
+  and `git diff --check`
+
 ### xyona-lab
 
 Updated `DiscoveryService`:
@@ -963,6 +981,8 @@ Observed on Windows / MSVC debug builds:
   - `ctest --test-dir build/windows-msvc-debug -C Debug -R "operator_module_runtime_tests|operator_module_metadata_tests|operator_packs_tests|signal_process_tests" --output-on-failure --timeout 60`
   - `cmake --build build/windows-msvc-debug --target test_operator_packs test_operator_module_runtime --config Debug`
   - `ctest --test-dir build/windows-msvc-debug -C Debug -R "operator_packs_tests|operator_module_runtime_tests|operator_module_metadata_tests" --output-on-failure --timeout 60`
+  - `cmake --build build/windows-msvc-debug --target test_operator_module_runtime test_operator_packs test_operator_dispatcher --config Debug`
+  - `ctest --test-dir build/windows-msvc-debug -C Debug -R "operator_dispatcher_tests|operator_module_runtime_tests|operator_module_metadata_tests|operator_packs_tests" --output-on-failure --timeout 60`
   - Result: passed
 
 - `xyona-cdp-pack`
@@ -1279,4 +1299,10 @@ Slice 34:
 
 - `xyona-core`: `0cdde4e52586cb3f01dea9d373da52807df67bbf`
   - `refactor(core): parse pack metadata structurally`
+- Workspace root: this report commit.
+
+Slice 35:
+
+- `xyona-core`: `6ed5a7cb1e3aef21f2a042ab5eec10463f1c9c71`
+  - `refactor(core): remove operator discovery defaults`
 - Workspace root: this report commit.
