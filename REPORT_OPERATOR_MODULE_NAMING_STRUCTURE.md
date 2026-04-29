@@ -1,6 +1,6 @@
 # Report: Operator Module Naming Structure
 
-Status: Implementation slices 1-12 landed
+Status: Implementation slices 1-13 landed
 Scope: workspace, xyona-core, xyona-cdp-pack, xyona-lab  
 Date: 2026-04-29  
 Roadmap: `ROADMAP_OPERATOR_MODULE_STRUCTURE.md`  
@@ -18,7 +18,7 @@ the physical operator-module folder migration in the CDP pack.
 
 ## Executive Status
 
-The first twelve cross-repository naming/metadata slices are implemented and
+The first thirteen cross-repository naming/metadata slices are implemented and
 verified.
 
 `xyona-core` now exposes transitional operator module identity fields directly
@@ -128,6 +128,13 @@ UI naming, `cdp`, `engine`, and `validation` objects. The adapters now only
 reference generated `XYONA_CDP_OP_META_*` macros for operator metadata; port,
 parameter, descriptor, CMake, and registration generation remain the next
 Phase-2 work.
+
+Slice 13 moves CDP port and parameter metadata JSON into the same generated
+metadata path. Module-local `op.yaml` files now declare current public ports,
+typed PVOC port data metadata, CDP stereo/channel-policy metadata, and UI
+metadata for exposed parameters. The generator emits `XYONA_CDP_PARAM_META_*`,
+`XYONA_CDP_INPUT_META_*`, and `XYONA_CDP_OUTPUT_META_*` macros, and adapters no
+longer carry hand-authored `param_meta` or `port_meta` JSON strings.
 
 ## Current Baseline Before This Slice
 
@@ -417,6 +424,21 @@ Slice 12 additions:
 - kept compatibility `XYONA_CDP_OP_ENGINE_*` fragments for focused spectral
   tests until the descriptor generator fully replaces those test macros
 
+Slice 13 additions:
+
+- added `ports.inputs`, `ports.outputs`, and detailed `params` metadata to the
+  current CDP module-local `op.yaml` files
+- corrected stale transitional parameter IDs in module specs, for example
+  `cdp.utility.db_gain` now declares `gain_db`,
+  `cdp.modify.loudness_dbgain` declares `gain_db`,
+  `cdp.modify.loudness_normalise` declares `target_peak`, and
+  `cdp.modify.space_narrow` declares `narrowing`
+- generated parameter metadata macros from `op.yaml`
+- generated input/output port metadata macros from `op.yaml`, including typed
+  PVOC data-port metadata and CDP stereo/channel-policy metadata
+- replaced all remaining hand-written adapter `param_meta` and `port_meta`
+  JSON literals with generated macros
+
 ### xyona-lab
 
 Updated `DiscoveryService`:
@@ -558,8 +580,8 @@ Remaining roadmap work:
   reintroduce flat `src/operators/cdp_*.cpp` public operator files.
 - Split the current shared Cut/CutEnd adapter if descriptor generation or
   future edit modes make separate adapters materially cleaner.
-- Operator-level CDP provenance and validation are now generated; remaining
-  CDP handwritten descriptor debt is parameter metadata, port metadata, pack
+- Operator-level CDP provenance, validation, parameter metadata, and port
+  metadata are now generated; remaining CDP handwritten descriptor debt is pack
   descriptor structs, CMake source ownership, and registration tables.
 - Promote the current focused C++ spec/runtime comparison parsers into the
   final shared validator/codegen path once descriptor generation exists.
@@ -669,5 +691,12 @@ Slice 12:
 
 - `xyona-cdp-pack`: `3a73ca81845d9285b7ccefec28fd59f0cb8ad07d`
   - `feat(cdp-pack): generate full operator metadata json`
+- Workspace root: this report commit plus the updated `xyona-cdp-pack`
+  gitlink.
+
+Slice 13:
+
+- `xyona-cdp-pack`: `4336559f963974ad58f48680f051c400721ba3e8`
+  - `feat(cdp-pack): generate port and parameter metadata`
 - Workspace root: this report commit plus the updated `xyona-cdp-pack`
   gitlink.
