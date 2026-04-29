@@ -1,6 +1,6 @@
 # Report: Operator Module Naming Structure
 
-Status: Implementation slices 1-4 landed
+Status: Implementation slices 1-5 landed
 Scope: workspace, xyona-core, xyona-cdp-pack, xyona-lab  
 Date: 2026-04-29  
 Roadmap: `ROADMAP_OPERATOR_MODULE_STRUCTURE.md`  
@@ -12,12 +12,13 @@ module validation. The initial goal was to remove Lab-side label mutation such
 as `CDP: ...` and stop deriving default node names from dotted operator IDs such
 as `cdp.modify.loudness_gain`. Later slices hardened the same surface by making
 engine domain/materialization explicit, by adding a schema-backed metadata
-gate for current Core, CDP-pack, and Lab operator surfaces, and by comparing
-those declared surfaces against runtime discovery descriptors.
+gate for current Core, CDP-pack, and Lab operator surfaces, by comparing
+those declared surfaces against runtime discovery descriptors, and by starting
+the physical operator-module folder migration in the CDP pack.
 
 ## Executive Status
 
-The first four cross-repository naming/metadata slices are implemented and
+The first five cross-repository naming/metadata slices are implemented and
 verified.
 
 `xyona-core` now exposes transitional operator module identity fields directly
@@ -63,6 +64,16 @@ descriptor category mismatch, CDP descriptor labels still repeated provider
 and family names, and Lab discovery needed full provider-local family defaults,
 explicit domain/materialization defaults, analyzer test registration, and a
 stable `grid` node-name stem for `lab.grid_source`.
+
+Slice 5 starts Roadmap Phase 3 with the lowest-risk CDP family: `utility`.
+The six current utility operators now live in provider-local module roots under
+`src/operators/utility/<operator>/`. Their C++ pack adapters live below
+`adapter/`, existing `identity` and `db_gain` HelpCenter docs moved to the
+same provider-local module roots, and their operator specs moved out of the
+temporary aggregate file into per-module `op.yaml` files. The descriptor
+runtime test now scans the repository for both remaining aggregate
+`*.op.yaml` files and migrated module `op.yaml` files, so split specs remain
+covered by the same runtime gate.
 
 ## Current Baseline Before This Slice
 
@@ -238,6 +249,22 @@ Slice 4 additions:
 - metadata-test failures now exit non-interactively instead of relying on a
   debug assert dialog
 
+Slice 5 additions:
+
+- moved `cdp.utility.db_gain`, `cdp.utility.generator_probe`,
+  `cdp.utility.identity`, `cdp.utility.length_change`,
+  `cdp.utility.pvoc_identity`, and `cdp.utility.pvoc_probe` into canonical
+  provider-local module roots under `src/operators/utility/`
+- moved utility C++ adapter files into each module's `adapter/` folder
+- moved existing `db_gain` and `identity` help docs from
+  `src/operators/cdp.utility/...` to `src/operators/utility/...`
+- split the six utility records out of `specs/operators/cdp-current.op.yaml`
+  into per-module `op.yaml`
+- updated `cdp_descriptor_metadata_tests` to scan a repository root for both
+  aggregate `*.op.yaml` and module-local `op.yaml` records
+- kept the current CMake registration explicit while changing source paths;
+  descriptor generation and generated registration remain future work
+
 ### xyona-lab
 
 Updated `DiscoveryService`:
@@ -322,9 +349,14 @@ Observed on Windows / MSVC debug builds:
 
 - `xyona-cdp-pack`
   - `cmake --preset windows-msvc-debug`
+  - `cmake --build build/windows-msvc-debug --target xyona_pack_cdp_ops test_cdp_descriptor_metadata test_cdp_utility_length_change test_cdp_pack test_cdp_pack_env_discovery --config Debug`
   - `ctest --test-dir build/windows-msvc-debug -C Debug -R cdp_operator_module_metadata_tests --output-on-failure`
   - `cmake --build build/windows-msvc-debug --target test_cdp_descriptor_metadata --config Debug`
   - `ctest --test-dir build/windows-msvc-debug -C Debug -R cdp_descriptor_metadata_tests --output-on-failure`
+  - `ctest --test-dir build/windows-msvc-debug -C Debug -R cdp_utility_length_change_tests --output-on-failure`
+  - `ctest --test-dir build/windows-msvc-debug -C Debug -R cdp_pack_loader_tests --output-on-failure`
+  - `ctest --test-dir build/windows-msvc-debug -C Debug -R cdp_pack_env_discovery_tests --output-on-failure`
+  - `ctest --test-dir build/windows-msvc-debug -C Debug -R cdp_offline_session_conformance_tests --output-on-failure`
   - Result: passed
 
 - `xyona-lab`
@@ -353,8 +385,10 @@ Remaining roadmap work:
 
 - Move transitional flat descriptor fields behind the final `op.yaml` /
   generated metadata pipeline.
-- Split transitional aggregate `*.op.yaml` files into canonical per-operator
-  module roots as folders are migrated.
+- Continue splitting transitional aggregate `*.op.yaml` records into canonical
+  per-operator module roots as the remaining CDP families are migrated.
+- Move remaining CDP families into module roots, next `modify/loudness` and
+  then `modify/space`.
 - Promote the current focused C++ spec/runtime comparison parsers into the
   final shared validator/codegen path once descriptor generation exists.
 - Compare generated descriptors against runtime discovery once the generated
@@ -409,5 +443,12 @@ Slice 4:
   - `test(cdp-pack): compare operator specs to runtime metadata`
 - `xyona-lab`: `c39c66453e7790ff19de6aabdf8fcc7db1de6cde`
   - `test(lab): compare public operator specs to discovery`
+- Workspace root: this report commit plus the updated `xyona-cdp-pack`
+  gitlink.
+
+Slice 5:
+
+- `xyona-cdp-pack`: `54f442fa8cc3384256d0bdc1067c4cd7708a5161`
+  - `refactor(cdp-pack): move utility operators into module roots`
 - Workspace root: this report commit plus the updated `xyona-cdp-pack`
   gitlink.
