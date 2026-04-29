@@ -1,6 +1,6 @@
 # Report: Operator Module Naming Structure
 
-Status: Implementation slices 1-36 landed
+Status: Implementation slices 1-37 landed
 Scope: workspace, xyona-core, xyona-cdp-pack, xyona-lab  
 Date: 2026-04-29  
 Roadmap: `ROADMAP_OPERATOR_MODULE_STRUCTURE.md`  
@@ -18,7 +18,7 @@ the physical operator-module folder migration in the CDP pack.
 
 ## Executive Status
 
-The first thirty-six cross-repository naming/metadata slices are implemented and
+The first thirty-seven cross-repository naming/metadata slices are implemented and
 verified.
 
 `xyona-core` now exposes transitional operator module identity fields directly
@@ -299,6 +299,14 @@ passes metadata through instead of deriving it, and NodeBinder refuses to create
 or restore operator nodes that lack a valid `ui.nodeNameStem`. The Lab public
 operator spec now also declares default port surfaces so the shared validator no
 longer has to accept port-less host operator records.
+
+Slice 37 splits the remaining shared CDP Cut/CutEnd adapter surface into
+module-owned registration adapters. The shared offline-session implementation
+now lives under `src/operators/edit/common/`, while `cdp.edit.cut` and
+`cdp.edit.cutend` each own their own `adapter/` header/source and their own
+generated registration include. The CDP metadata generator now supports
+explicit `adapter.sharedSources` so shared implementation files are declared
+instead of hidden behind another module's adapter path.
 
 ## Current Baseline Before This Slice
 
@@ -862,6 +870,24 @@ Slice 33 additions:
 - verified generator staleness check, module validator, full MSVC Debug pack
   build, all 21 Pack CTest tests, and `git diff --check`
 
+Slice 37 additions:
+
+- moved the shared Cut/CutEnd offline-session implementation to
+  `src/operators/edit/common/cdp_edit_cut_sessions.cpp`
+- added `src/operators/edit/common/cdp_edit_cut_sessions.h` as the shared
+  interface for Cut/CutEnd VTables and offline-session functions
+- restored `cdp.edit.cut` to a module-local registration adapter at
+  `src/operators/edit/cut/adapter/cdp_edit_cut.cpp`
+- added a dedicated `cdp.edit.cutend` registration adapter under
+  `src/operators/edit/cutend/adapter/`
+- extended `scripts/generate_operator_metadata.py` and module-local
+  `op.yaml` records with explicit `adapter.sharedSources`
+- regenerated `cdp_operator_registration.h` and `cdp_operator_sources.cmake`
+  so each operator includes its own adapter header and CMake includes the
+  shared session implementation once
+- verified generator staleness, module validation, focused MSVC Debug pack
+  build, focused CDP metadata/edit/pack/offline CTests, and `git diff --check`
+
 Slice 34 additions:
 
 - replaced the dynamic pack loader's string-needle JSON extraction with an
@@ -1035,6 +1061,10 @@ Observed on Windows / MSVC debug builds:
   - `C:\Python3.9.5\python.exe scripts\generate_operator_metadata.py --check`
   - `cmake --build build/windows-msvc-debug --target xyona_pack_cdp_ops test_cdp_descriptor_metadata test_cdp_spectral_contract test_cdp_pack test_cdp_pack_env_discovery --config Debug`
   - `ctest --test-dir build/windows-msvc-debug -C Debug -R "cdp_generated_operator_metadata_tests|cdp_operator_module_metadata_tests|cdp_descriptor_metadata_tests|cdp_spectral_contract_tests|cdp_pack_loader_tests|cdp_pack_env_discovery_tests" --output-on-failure`
+  - `C:\Python3.9.5\python.exe scripts\generate_operator_metadata.py --check`
+  - `C:\Python3.9.5\python.exe scripts\validate_operator_modules.py`
+  - `cmake --build --preset windows-msvc-debug --target xyona_pack_cdp_ops test_cdp_descriptor_metadata test_cdp_edit_cut test_cdp_pack test_cdp_pack_env_discovery --config Debug`
+  - `ctest --test-dir build/windows-msvc-debug -C Debug -R "cdp_generated_operator_metadata_tests|cdp_operator_module_metadata_tests|cdp_descriptor_metadata_tests|cdp_edit_cut_tests|cdp_pack_loader_tests|cdp_pack_env_discovery_tests|cdp_offline_session_conformance_tests" --output-on-failure --timeout 120`
   - Result: passed
 
 - `xyona-lab`
@@ -1071,19 +1101,19 @@ Observed warnings:
 
 ## Remaining Work
 
-After Slice 36, Core and the CDP pack both generate current runtime descriptor
+After Slice 37, Core and the CDP pack both generate current runtime descriptor
 metadata from module-local `op.yaml`, the pack loader requires explicit module
 metadata, Core no longer uses substring-based JSON reads for pack metadata, and
 Core/Lab discovery no longer fills missing operator-module identity fields from
-IDs, categories, labels, or private paths.
+IDs, categories, labels, or private paths. The current shared CDP Cut/CutEnd
+implementation is now declared as common implementation code, not as one
+operator module borrowing another module's adapter.
 Remaining roadmap work:
 
 - Keep Core operator modules under `src/operators/<family>/<module>/`; do not
   reintroduce `src/processes` or `meta.yaml` for public operator modules.
 - Keep new CDP operators on the module-root path from first commit; do not
   reintroduce flat `src/operators/cdp_*.cpp` public operator files.
-- Split the current shared Cut/CutEnd adapter if descriptor generation or
-  future edit modes make separate adapters materially cleaner.
 - Promote the current focused C++ spec/runtime comparison parsers into the
   final shared validator/codegen path once descriptor generation exists.
 - Compare generated descriptors against runtime discovery once the generated
@@ -1346,3 +1376,10 @@ Slice 36:
 - `xyona-lab`: `be7f1c1bb439c2e833016132445ffb6ce99f09c8`
   - `refactor(lab): require explicit operator module metadata`
 - Workspace root: this report commit.
+
+Slice 37:
+
+- `xyona-cdp-pack`: `e91e29ae0111cf0a1068bf31f30f1fe65c5753ec`
+  - `refactor(cdp-pack): split edit cut adapters`
+- Workspace root: this report commit plus the updated `xyona-cdp-pack`
+  gitlink.
