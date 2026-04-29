@@ -38,6 +38,10 @@ Current state:
   block-safe operator infrastructure.
 - The CDP pack already classifies future process shapes such as whole-file,
   length-changing, analysis-output, multi-output, and generator operators.
+- Gate J now has the explicit generator-shape host fixture:
+  `cdp.utility.generator_probe` is a synthetic no-input pack generator with
+  direct block ABI metadata, and Lab proves Canvas discovery plus offline
+  `generator -> MainBusOut` rendering without upstream audio.
 - The first whole-file, length-preserving CDP slice exists:
   `cdp.modify.loudness_normalise` performs streaming offline-session input,
   whole-file peak finalization, output-block reads, progress/cancellation, and
@@ -96,10 +100,12 @@ Current state:
   Core Offline Session ABI v3 now adds typed input data delivery, the CDP pack
   registers public `cdp.pvoc.synth` as a typed-data-input audio renderer, and
   Lab can feed a PVOC analysis payload back into the pack and materialize the
-  synthesized audio. The remaining Gate I infrastructure work is graph-native
-  typed ports or persisted artifact handles so Canvas/HQ graph execution can
-  chain analysis -> synthesis and spectral-to-spectral operators without a
-  test/client-side payload handoff.
+  synthesized audio. Lab now also has the first graph-native typed data edge:
+  an offline/HQ graph can route `cdp.pvoc.anal`'s `pvoc_analysis` output into
+  `cdp.pvoc.synth` and then into `lab.mainbus_out` without representing PVOC
+  as fake audio. The remaining Gate I infrastructure work is broader typed graph
+  coverage, persisted artifact-handle semantics, and spectral-to-spectral
+  consumers beyond this one PVOC analysis -> synthesis chain.
 
 Missing state:
 
@@ -111,11 +117,12 @@ Missing state:
   fixture coverage beyond the current `sfedit cut` / `sfedit cutend` slices.
 - Additional CDP8 production operator families beyond the current representative
   slices.
-- Graph-native PVOC synthesis chaining and spectral-to-spectral consumers.
+- Broader graph-native typed-data coverage and spectral-to-spectral consumers.
   Gate I now has the typed data asset lifecycle, PVOC golden harness, real
-  analysis producer, Offline Session typed data input, and public synthesis
-  operator, but it does not yet have typed graph ports / persisted artifact
-  handles for an end-to-end Canvas/HQ analysis -> synthesis graph.
+  analysis producer, Offline Session typed data input, public synthesis
+  operator, and a tested Canvas/HQ `cdp.pvoc.anal -> cdp.pvoc.synth` typed
+  edge. It still only covers the first narrow chain, not general typed asset
+  handles, multi-chain scheduling, or spectral-to-spectral operators.
 - Broader operator-specific CDP8-generated PVOC fixture assets beyond the first
   analytical `cdp.pvoc.anal` coverage.
 - CDP8 golden fixture coverage at family scale beyond the current analytical
@@ -617,10 +624,11 @@ Exit criteria:
 Status: partially implemented on 2026-04-29. The metadata contract, data-only
 Offline Session artifact materialization path, persistent typed asset lifecycle,
 PVOC golden harness, first real CDP8-style PVOC analysis producer, Offline
-Session typed data input ABI, public `cdp.pvoc.synth` operator, and Lab
-data-artifact-to-audio render path are implemented. Graph-native typed ports or
-persisted artifact handles remain open for Canvas/HQ analysis -> synthesis
-chaining and spectral-to-spectral consumers.
+Session typed data input ABI, public `cdp.pvoc.synth` operator, Lab
+data-artifact-to-audio render path, and the first graph-native Canvas/HQ
+`cdp.pvoc.anal -> cdp.pvoc.synth -> lab.mainbus_out` typed-data chain are
+implemented locally. General typed asset handles, multiple typed chains, and
+spectral-to-spectral consumers remain open.
 
 Current state:
 
@@ -662,15 +670,22 @@ Current state:
   executed through the data-artifact path, materialized as a typed PVOC payload,
   and fed into `cdp.pvoc.synth` to produce materialized audio with descriptor
   metadata intact.
+- Lab's offline graph planner now classifies `typed_data`/`pvoc_analysis` ports
+  as data edges, keeps them out of audio `Wire`s and PDC, records them in
+  `GraphPlan::offlineTypedDataEdges`, and schedules the first typed data chain
+  through dedicated offline artifact-producer and data-transform host adapters.
+- Lab's OfflineRenderEngine now materializes one PVOC typed-data chain by
+  rendering the analysis payload, passing it to `cdp.pvoc.synth`, and routing
+  the resulting audio to direct terminal targets such as `lab.mainbus_out`.
 
 Hard dependencies:
 
 - Gate E
 - Gate H
-- graph-native typed data ports / persisted artifact handles before Canvas/HQ
-  analysis -> synthesis chaining or spectral-to-spectral operators are exposed
 - broader operator-specific CDP8-generated PVOC fixture assets for synthesis
   identity and larger spectral behavior
+- general typed graph/persisted-handle support before multiple typed chains or
+  spectral-to-spectral operators are exposed beyond the first PVOC chain
 
 PVOC/spectral work must not be started on the prototype whole-buffer offline
 ABI.
@@ -686,15 +701,17 @@ Exit criteria:
   are ported; each real spectral operator still needs its own generated fixture
   assets when it is implemented.
 - Public PVOC synthesis consumes typed PVOC data through an explicit Offline
-  Session host contract, and the remaining graph-native analysis -> synthesis
-  identity path is deterministic once typed graph ports or artifact handles are
-  wired.
+  Session host contract, and the first graph-native analysis -> synthesis path
+  is deterministic for one direct PVOC typed-data chain.
 
 ### Gate J - Generator Edge Case
 
-Before the first CDP generator operator is added, Lab must have an explicit test
-for a direct block-process `processShape=generator` pack operator with no
-upstream audio input.
+Status: implemented locally on 2026-04-29.
+
+Before the first CDP generator operator is added, Lab has an explicit test for
+a direct block-process `processShape=generator` pack operator with no upstream
+audio input. The synthetic `cdp.utility.generator_probe` fixture is not a CDP8
+algorithm port; it exists only to exercise the host graph/render shape.
 
 Exit criteria:
 
@@ -764,11 +781,13 @@ Current limitation:
 - No offline session lifecycle.
 - No output length query.
 - No finalization callback for pack operators.
-- No typed data ports.
+- No native typed-data port kind in the block ABI; the current PVOC chain uses
+  tagged descriptor ports plus Lab `EdgeKind::Data`.
 - No asset handles.
 - No multi-file/multi-output contract.
 - No analysis-output contract.
-- No way to represent PVOC/PVX as a graph-native value.
+- Only the first PVOC analysis -> synthesis graph-native value path exists;
+  general PVOC/PVX graph values and persisted handles remain future work.
 
 ### CDP Pack
 
@@ -1679,16 +1698,15 @@ Mitigation:
 
 ## Recommended Immediate Next Steps
 
-1. Add Gate J's explicit null-upstream generator graph/render test before the
-   first CDP generator operator is ported.
-2. Define and implement graph-native typed data ports or persisted artifact
-   handles so Canvas/HQ graph execution can connect `cdp.pvoc.anal` to
-   `cdp.pvoc.synth` and later spectral-to-spectral operators.
-3. Generate broader operator-specific CDP8 PVOC fixture assets for the
-   analysis -> synthesis identity path and larger spectral behavior.
-4. Promote the current client-side analysis -> synthesis smoke into a real
-   graph/planner integration test once the typed connection exists.
-5. Keep further non-spectral CDP8 families optional; if selected, likely
+1. Generate broader operator-specific CDP8 PVOC fixture assets for the
+   analysis -> synthesis identity path and larger spectral behavior, then use
+   them to tighten the current graph-native PVOC chain.
+2. Generalize the typed graph path beyond the first direct PVOC chain:
+   multiple typed edges/chains, persisted artifact handles, clearer graph
+   diagnostics, and spectral-to-spectral consumers.
+3. Decide whether Gate I closes after fixture-backed PVOC identity coverage or
+   needs one spectral-to-spectral operator as an additional host-shape proof.
+4. Keep further non-spectral CDP8 families optional; if selected, likely
    candidates remain `extend`/`iterate` or a non-spectral waveset-style
    length-changing family depending on fixture cost.
 
