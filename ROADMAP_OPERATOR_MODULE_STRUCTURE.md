@@ -475,7 +475,7 @@ Migration rule:
 5. Menus and search can show provider/family context, but Canvas node headers
    should stay short.
 6. Lab should stop mutating descriptor labels with provider prefixes such as
-   `CDP: `. Provider context must come from `providerLabel`, category,
+   `CDP:`. Provider context must come from `providerLabel`, category,
    breadcrumbs, or badges.
 
 ### Descriptor/UI Metadata Transport
@@ -1197,7 +1197,7 @@ It should enforce:
   `moduleName`, `ui.shortLabel`, `ui.nodeNameStem`, `engine.domain`, and
   `engine.materialization`
 - Lab Canvas node creation uses `ui.nodeNameStem` rather than dotted operator ID
-- Lab does not mutate descriptor labels with provider prefixes such as `CDP: `
+- Lab does not mutate descriptor labels with provider prefixes such as `CDP:`
 - CMake/generated registration contains all implemented operators
 - stale generated JSON is detected
 - generated descriptor matches checked-in descriptor code where generation is
@@ -1258,7 +1258,7 @@ Lab:
   `help.workflow.*`, `help.node.*`
 - add a single resolver for operator UI naming metadata from Core discovery
 - generate new Canvas node names from `ui.nodeNameStem`
-- stop mutating descriptor labels with provider prefixes such as `CDP: `
+- stop mutating descriptor labels with provider prefixes such as `CDP:`
 - add Canvas smoke tests for CDP node names, for example
   `cdp.modify.loudness_gain` -> `loud_gain1` while preserving `opId`
 
