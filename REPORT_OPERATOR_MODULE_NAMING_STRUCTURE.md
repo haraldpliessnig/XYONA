@@ -1,6 +1,6 @@
 # Report: Operator Module Naming Structure
 
-Status: Implementation slices 1-24 landed
+Status: Implementation slices 1-25 landed
 Scope: workspace, xyona-core, xyona-cdp-pack, xyona-lab  
 Date: 2026-04-29  
 Roadmap: `ROADMAP_OPERATOR_MODULE_STRUCTURE.md`  
@@ -18,7 +18,7 @@ the physical operator-module folder migration in the CDP pack.
 
 ## Executive Status
 
-The first twenty-four cross-repository naming/metadata slices are implemented and
+The first twenty-five cross-repository naming/metadata slices are implemented and
 verified.
 
 `xyona-core` now exposes transitional operator module identity fields directly
@@ -218,6 +218,12 @@ one-adapter Core modules now place their implementation under
 module-internal adapter path. The grouped signal modules are intentionally left
 for later slices because they currently share family-level implementation
 files.
+
+Slice 25 splits the Core signal processor adapters. `signal_math`,
+`signal_blender`, `signal_hold`, and `signal_quantize` now each have their own
+module-local `adapter/core_operator.cpp`. Their small shared signal port and
+descriptor helper functions live in `src/operators/signal/common/`, and the old
+family-level `signal_processors.cpp` file is gone.
 
 ## Current Baseline Before This Slice
 
@@ -646,6 +652,19 @@ Slice 24 additions:
   `operator_module_runtime_tests|operator_module_metadata_tests|operator_packs_tests|signal_process_tests`,
   and `git diff --check`
 
+Slice 25 additions:
+
+- split the former grouped Core `signal_processors.cpp` implementation into
+  module-local adapters for `signal_math`, `signal_blender`, `signal_hold`, and
+  `signal_quantize`
+- added `src/operators/signal/common/signal_processor_helpers.hpp` for shared
+  signal port/descriptor helper functions
+- kept each public processor's class and registration in its own module
+  adapter
+- verified the shared validator, targeted MSVC build,
+  `operator_module_runtime_tests|operator_module_metadata_tests|operator_packs_tests|signal_process_tests`,
+  and `git diff --check`
+
 ### xyona-lab
 
 Updated `DiscoveryService`:
@@ -998,4 +1017,10 @@ Slice 24:
 
 - `xyona-core`: `f563270ef67598b393dc9c403b690131b615dcbc`
   - `refactor(core): place simple operator adapters under modules`
+- Workspace root: this report commit.
+
+Slice 25:
+
+- `xyona-core`: `ea54cd29688933bcd04b2fd175a2b1b308ff5215`
+  - `refactor(core): split signal processor adapters`
 - Workspace root: this report commit.
