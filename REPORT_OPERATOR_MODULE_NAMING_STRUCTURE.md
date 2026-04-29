@@ -1,6 +1,6 @@
 # Report: Operator Module Naming Structure
 
-Status: Implementation slices 1-9 landed
+Status: Implementation slices 1-10 landed
 Scope: workspace, xyona-core, xyona-cdp-pack, xyona-lab  
 Date: 2026-04-29  
 Roadmap: `ROADMAP_OPERATOR_MODULE_STRUCTURE.md`  
@@ -18,7 +18,7 @@ the physical operator-module folder migration in the CDP pack.
 
 ## Executive Status
 
-The first nine cross-repository naming/metadata slices are implemented and
+The first ten cross-repository naming/metadata slices are implemented and
 verified.
 
 `xyona-core` now exposes transitional operator module identity fields directly
@@ -101,6 +101,15 @@ the transitional aggregate `specs/operators/cdp-current.op.yaml`. All 16
 currently registered CDP pack operators are now represented by module-local
 `op.yaml` files under `src/operators/<family>/<operator>/`, while the runtime
 descriptor gate still validates the full discovered pack surface.
+
+Slice 10 applies the explicit no-backward-compatibility policy to pack
+discovery. Core no longer accepts pack operators that rely on ID/category
+fallbacks for module identity. A loaded pack operator must publish `provider`,
+`providerLabel`, `family`, `moduleName`, `ui.shortLabel`,
+`ui.nodeNameStem`, `engine.domain`, and `engine.materialization` in operator
+metadata. CDP pack runtime metadata now carries those fields for all 16 current
+operators, and the CDP descriptor gate verifies metadata, descriptors, and
+module-local `op.yaml` agree.
 
 ## Current Baseline Before This Slice
 
@@ -194,8 +203,18 @@ Slice 4 additions:
 - dynamic-pack descriptors with no explicit materialization now normalize to
   the contract value `none`
 
-The loader remains backward-compatible with existing packs because every field
-has a deterministic fallback.
+Slice 10 additions:
+
+- removed the pack-loader fallback path that derived module identity from pack
+  ID, operator ID, category, labels, ports, or PVOC string hints
+- pack operators without explicit module identity metadata now fail
+  registration
+- pack IDs accepted by this strict path must use exactly
+  `<provider>.<family>.<module>`
+- invalid pack `ui.nodeNameStem` values are rejected instead of sanitized into
+  a different accepted stem
+- updated the Core v2 pack test fixture to use explicit module metadata and
+  updated the old metadata-less fixture expectation to a registration reject
 
 ### xyona-cdp-pack
 
@@ -339,6 +358,16 @@ Slice 9 additions:
   module-local
 - updated `src/operators/README.md` to describe the current module-root layout
 
+Slice 10 additions:
+
+- added explicit runtime metadata fields to every current CDP operator:
+  `provider`, `providerLabel`, `family`, and `moduleName`
+- strengthened `test_cdp_descriptor_metadata` so operator metadata JSON must
+  match module-local `op.yaml` for provider, provider label, family, module
+  name, UI naming, engine domain, and materialization
+- kept public operator IDs unchanged while removing the loader's ability to
+  infer missing CDP metadata from those IDs
+
 ### xyona-lab
 
 Updated `DiscoveryService`:
@@ -442,6 +471,7 @@ Observed on Windows / MSVC debug builds:
   - `ctest --test-dir build/windows-msvc-debug -C Debug -R cdp_pack_loader_tests --output-on-failure`
   - `ctest --test-dir build/windows-msvc-debug -C Debug -R cdp_pack_env_discovery_tests --output-on-failure`
   - `ctest --test-dir build/windows-msvc-debug -C Debug -R cdp_offline_session_conformance_tests --output-on-failure`
+  - `C:\Python3.9.5\python.exe scripts\validate_operator_modules.py`
   - Result: passed
 
 - `xyona-lab`
@@ -470,6 +500,8 @@ Remaining roadmap work:
 
 - Move transitional flat descriptor fields behind the final `op.yaml` /
   generated metadata pipeline.
+- Remove remaining Core/Lab discovery defaults as those repos migrate to
+  canonical `op.yaml` module roots.
 - Keep new CDP operators on the module-root path from first commit; do not
   reintroduce flat `src/operators/cdp_*.cpp` public operator files.
 - Split the current shared Cut/CutEnd adapter if descriptor generation or
@@ -481,9 +513,7 @@ Remaining roadmap work:
 - Move explicit `engine.domain` and `engine.materialization` facts out of
   handwritten JSON/string macros and into generated metadata from `op.yaml`.
 - Replace minimal JSON string extraction in the pack loader with a structured
-  parser once the final metadata schema stabilizes.
-- Decide whether very old persisted dotted node names should be migrated or
-  left unchanged as user-authored project data.
+  parser or generated typed metadata once the final metadata schema stabilizes.
 
 ## Commit Map
 
@@ -563,3 +593,12 @@ Slice 9:
   - `refactor(cdp-pack): move pvoc operators into module roots`
 - Workspace root: this report commit plus the updated `xyona-cdp-pack`
   gitlink.
+
+Slice 10:
+
+- `xyona-core`: `33f38f26f04a6006cdfea5ac04b8adc3813ce67e`
+  - `feat(core): require explicit pack module metadata`
+- `xyona-cdp-pack`: `96df671a8f4773ccd6924f49fd4eb89ae2638b6a`
+  - `feat(cdp-pack): publish required module metadata`
+- Workspace root: this report/contract/roadmap commit plus the updated
+  `xyona-cdp-pack` gitlink.

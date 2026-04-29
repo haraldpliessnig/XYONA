@@ -1,6 +1,6 @@
 # Roadmap: Unified Operator Module Structure
 
-**Status:** Draft architecture and migration roadmap  
+**Status:** Active breaking architecture and migration roadmap
 **Date:** 2026-04-29
 **Scope:** `xyona-core`, `xyona-cdp-pack`, `xyona-lab`, `CDP8` reference workflow  
 **Owner:** Workspace-level architecture; implementation remains repo-local
@@ -28,6 +28,23 @@ The immediate reason for this roadmap is a structural mismatch:
 The goal is not to copy CDP8's C architecture. The goal is to keep CDP8's
 clarity: a predictable place for process identity, process family, modes,
 parameters, documentation, implementation, tests, and registration.
+
+## Breaking Migration Policy
+
+The operator-module work is allowed to break old naming and metadata behavior.
+There is no requirement to keep legacy pack descriptors, provider-prefixed
+labels, provider-prefixed module paths, aggregate spec files, or ID-derived
+default Canvas names working.
+
+Practical consequence:
+
+- Pack operators must publish explicit module identity metadata.
+- Core may reject loaded pack operators that omit required `provider`,
+  `providerLabel`, `family`, `moduleName`, `ui`, or `engine` fields.
+- The implementation should prefer removal of migration fallbacks over alias
+  layers once the current product repos have moved.
+- Project/file compatibility work must be requested and scoped explicitly; it
+  is not a hidden requirement of this operator-module roadmap.
 
 ## Executive Summary
 
@@ -505,14 +522,14 @@ Required transported fields:
 - `engine.domain`
 - `engine.materialization`
 
-Implementation options:
+Implementation requirements:
 
 - End state: add first-class fields or typed nested metadata to `xyona::OpDesc`
   and generate them from `op.yaml`.
-- Transitional pack path: keep ABI v2 struct compatibility and carry the same
-  fields in generated `op_meta_json`.
-- Transitional Core path: carry the same fields in generated JSON until
-  `OpDesc` grows the typed surface.
+- Current pack path: carry the same fields in `op_meta_json`; pack operators
+  missing them are invalid and should be rejected by Core discovery.
+- Core path: carry the same fields in `OpDesc` / generated metadata and remove
+  discovery defaults as Core modules are migrated.
 - Lab path: read a single public operator metadata surface and avoid private
   path parsing or provider-specific heuristics.
 
@@ -1223,7 +1240,8 @@ Exit criteria:
 - The schema can describe all current CDP pack operators.
 - The schema can describe current Lab-authored public operators such as
   `lab.audio_in`, `lab.audio_out`, `lab.mainbus_out`, and `lab.grid_source`.
-- The validator can report current drift without requiring immediate migration.
+- The validator can report current drift, and new strict gates can fail on
+  missing module identity without providing legacy aliases.
 
 ### Phase 1: Fix Current Drift Without Moving Code
 
@@ -1241,13 +1259,12 @@ Core:
 
 Pack:
 
-- add `op.yaml` next to each current flat `.cpp` or in temporary
-  `specs/operators/<id>.yaml`
+- add `op.yaml` next to each implemented operator module
 - add `ui.nodeNameStem` and clean provider-local `family` values to every
   current CDP operator spec
 - validate descriptor JSON string literals against `op.yaml`
-- expose naming metadata through generated `op_meta_json` until the pack ABI has
-  typed fields
+- expose naming metadata through generated or validated `op_meta_json`; missing
+  module identity is a load error, not a fallback path
 - add generated help metadata for Lab consumption
 - keep newly added per-operator help docs in sync with descriptor metadata
 

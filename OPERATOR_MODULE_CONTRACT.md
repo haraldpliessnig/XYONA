@@ -1,7 +1,7 @@
 # XYONA Operator Module Contract
 
 **Status:** Workspace standard  
-**Version:** 1.1-draft
+**Version:** 1.2-draft
 **Date:** 2026-04-29
 **Applies to:** `xyona-core`, `xyona-cdp-pack`, future operator packs, Lab help consumption
 
@@ -22,8 +22,28 @@ overlapping conventions:
 - CDP8 has useful original process documentation, but its user text is CLI- and
   CDP-specific, not a Lab-ready help format.
 
-The standard below is the canonical shape. Existing code can migrate in phases,
-but new public operators should follow this contract.
+The standard below is the canonical shape.
+
+## Breaking Migration Policy
+
+This contract does not preserve legacy operator naming or metadata behavior.
+During the operator-module migration, old descriptor layouts, missing module
+identity fields, provider-prefixed labels, provider-prefixed source folders,
+aggregate operator spec files, and ID-derived Canvas node-name fallbacks may be
+removed without alias layers.
+
+Rules:
+
+- Do not add compatibility aliases for old operator IDs or old module paths.
+- Do not accept pack descriptors that omit required module identity metadata.
+- Do not derive pack `provider`, `family`, `moduleName`, `ui.nodeNameStem`,
+  `engine.domain`, or `engine.materialization` from IDs, labels, categories, or
+  private file paths.
+- Do not use provider-prefixed visible labels such as `CDP: Loudness Gain`.
+- Do not create new `src/processes` or `src/operators/cdp.modify` modules.
+
+Any current code that still relies on legacy Core `meta.yaml`, `src/processes`,
+or discovery defaults is migration debt, not a compatibility guarantee.
 
 ## Required Module Shape
 
@@ -43,18 +63,19 @@ src/operators/<family>/<module>/
 ```
 
 `<family>` is provider-local. It must not repeat the provider namespace. For
-example, the CDP operator `cdp.modify.loudness_gain` should live in a `modify`
-family module, not in a canonical `cdp.modify` family. Transitional paths such
-as `src/operators/cdp.modify/loudness_gain/` are allowed only during migration.
+example, the CDP operator `cdp.modify.loudness_gain` lives in a `modify`
+family module, not in a canonical `cdp.modify` family. Provider-prefixed paths
+such as `src/operators/cdp.modify/loudness_gain/` are invalid module roots.
 
-For legacy Core code, the same internal shape may temporarily live under:
+Current Core code may still be found under the old implementation path:
 
 ```text
 src/processes/<family>/<module>/
 ```
 
-The target path is `src/operators`. `src/processes` is a compatibility location,
-not a different standard.
+The target path is `src/operators`. `src/processes` is not a compatibility
+location; it is an unmigrated implementation location that should disappear as
+Core operator modules move.
 
 ## Required Files
 
@@ -150,9 +171,9 @@ Rules:
 - Core operator IDs may remain plain stable IDs such as `gain` and
   `signal_lfo`, but their `op.yaml` must still declare `provider: core`,
   `family`, and `moduleName`.
-- Existing stable Lab IDs such as `lab.audio_in` may be retained for project
-  compatibility. Their `family` and `moduleName` fields still provide the clean
-  structural classification.
+- Lab-authored public IDs must still expose clean `provider`, `family`, and
+  `moduleName` metadata even when an existing short ID is kept by explicit
+  product decision.
 - Do not use hyphens in machine IDs, family segments, module names, parameter
   IDs, or node-name stems. Use underscores.
 
@@ -447,14 +468,14 @@ Rules:
   `Loudness Gain` with `CDP / Modify`, but the stored descriptor label remains
   `Loudness Gain`.
 
-Fallback during migration:
+Runtime requirement:
 
-1. Use `ui.nodeNameStem` when present.
-2. Otherwise derive from descriptor/UI metadata `shortLabel` only if it can be
-   sanitized without ambiguity.
-3. As a last resort, derive from `id` by dropping provider/family segments and
-   sanitizing the final module segment.
-4. Never display a dotted provider-qualified ID as the default Canvas node name.
+1. Use `ui.nodeNameStem` for default Canvas node names.
+2. Reject or mark invalid any discovered pack operator that lacks
+   `ui.nodeNameStem`.
+3. Do not derive new pack node names from dotted provider-qualified IDs.
+4. Do not sanitize an invalid pack stem into a different accepted stem; fix the
+   operator metadata instead.
 
 ## Descriptor And ABI Transport Requirements
 
@@ -476,13 +497,14 @@ typed descriptor fields or as structured operator metadata:
 - `engine.domain`
 - `engine.materialization`
 
-Preferred end state:
+Required transport behavior:
 
 - `xyona::OpDesc` contains first-class UI naming fields or a typed nested
   metadata object.
-- Pack ABI descriptors are generated from `op.yaml`; if ABI compatibility
-  prevents new struct fields, pack `meta_json` must carry the same stable
-  `provider`, `family`, `ui`, and `engine` fields until the ABI is extended.
+- Pack ABI descriptors are generated from `op.yaml`; until first-class ABI
+  fields exist, pack `meta_json` must carry the same stable `provider`,
+  `providerLabel`, `family`, `moduleName`, `ui`, and `engine` fields.
+- Pack descriptors missing these required fields are invalid.
 - Lab reads these fields from Core's public discovery surface after pack loading.
   Lab must not parse pack-private source folders to recover naming metadata.
 - `NodeBinder` and any other default node creation path use `ui.nodeNameStem`
@@ -712,14 +734,15 @@ Pack/Core operator source files:
 src/operators/<family>/<module>/docs/<locale>.md
 ```
 
-During migration, Core may still expose:
+Until Core modules are migrated, Core may still expose old source files under:
 
 ```text
 src/processes/<family>/<module>/docs/<locale>.md
 ```
 
-Lab should consume operator help through Core's public discovery/help surface
-whenever possible, not by hardcoding private pack source paths.
+This is a temporary implementation detail. Lab should consume operator help
+through Core's public discovery/help surface whenever possible, not by
+hardcoding private pack source paths.
 
 ## References
 
