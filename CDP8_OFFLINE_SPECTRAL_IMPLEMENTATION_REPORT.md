@@ -84,17 +84,19 @@ slice is now also implemented: `cdp.edit.cutend` maps CDP8 `sfedit cutend`
 mode 1 onto the same Offline Session path, keeps the requested end segment,
 uses the CDP start-splice rule, and is covered by Pack conformance/metadata
 tests plus Lab materialization and Canvas smoke tests.
-Gate I has now moved past metadata preflight into the data-only artifact
-infrastructure and the first real spectral producer: Core Offline Session ABI
-v2 exposes data descriptor/read callbacks, the CDP pack provides the technical
+Gate I has now moved past metadata preflight into the data-only artifact,
+typed-data-input, and first real spectral analysis -> synthesis path: Core
+Offline Session ABI v2 exposes data descriptor/read callbacks, ABI v3 adds
+typed input delivery, the CDP pack provides the technical
 `cdp.utility.pvoc_probe` fixture, Lab persists typed data assets, the CDP pack
-has a PVOC golden harness, and `cdp.pvoc.anal` now implements a CDP8
-`PVOC_ANAL`-style magnitude/frequency analysis operator over the production
-Offline Session ABI. Lab can discover that operator, reject it from RT/block
-audio paths, execute it through the data-artifact path, and materialize its
-PVOC JSON payload as a typed artifact. Public `PVOC_SYNTH` remains open because
-the host does not yet provide typed data input / artifact-handle delivery into
-Offline Sessions.
+has a PVOC golden harness, `cdp.pvoc.anal` implements a CDP8 `PVOC_ANAL`-style
+magnitude/frequency analysis operator, and public `cdp.pvoc.synth` consumes the
+same typed payload through the production Offline Session ABI. Lab can discover
+both operators, reject them from RT/block-audio paths, materialize PVOC JSON as
+a typed artifact, and feed that payload back into the pack to materialize
+synthesized audio. The next hard Gate I blocker is graph-native typed ports or
+persisted artifact handles so Canvas/HQ graph execution can chain analysis ->
+synthesis and later spectral-to-spectral operators directly.
 
 Latest implementation commits:
 
@@ -142,6 +144,9 @@ Latest implementation commits:
 - `xyona-cdp-pack`: `8d84014 test(cdp-pack): add pvoc golden harness`
 - `xyona-cdp-pack`: `7db5698 feat(cdp-pack): add pvoc analysis operator`
 - `xyona-lab`: `db8183d6 test(lab): cover cdp pvoc analysis artifacts`
+- `xyona-core`: `4ec3915 feat(core): add offline session data input ABI`
+- `xyona-cdp-pack`: `167542c feat(cdp-pack): add pvoc synth data input session`
+- `xyona-lab`: `9e79e486 feat(lab): render offline audio from data artifacts`
 - workspace root: this report update records the latest Lab render-dependency
   signature, orphan-cleanup, materialized asset file-fingerprint, and
   `lab.audio_file_in` source-fingerprint/status-surface and Gate D LayerPlayer
@@ -164,6 +169,9 @@ Latest implementation commits:
   `xyona-cdp-pack` Gitlink.
 - workspace root: this report/roadmap update records the first real Gate I
   PVOC analysis producer and advances the `xyona-cdp-pack` Gitlink.
+- workspace root: this report/roadmap update records the Gate I Offline Session
+  typed-data-input ABI, public PVOC synthesis path, Lab data-artifact-to-audio
+  render path, and advances the `xyona-cdp-pack` Gitlink.
 
 Current proven capability:
 
@@ -235,14 +243,13 @@ Current proven capability:
   magnitude/frequency analysis path with 1024-point FFT/window, 128-sample hop,
   513 real bins, explicit JSON serialization, file-backed/data-only artifact
   output, and no audio output.
-- The PVOC runtime also has an internal synthesis helper used by Pack tests to
-  prove the analysis representation can be consumed. It is not registered as a
-  public operator because Lab/Core still need a typed data input or artifact
-  handle contract before `PVOC_SYNTH` can consume analysis artifacts correctly.
+- The PVOC runtime now deserializes that JSON and public `cdp.pvoc.synth`
+  consumes the same typed analysis payload through Offline Session ABI v3 to
+  render analysis-dependent mono audio.
 - Lab's Offline Pack Processor Client and CDP Pack Canvas smoke tests now prove
-  `cdp.pvoc.anal` is discoverable as a data-only spectral descriptor, stays out
-  of RT/block-audio execution, and materializes real PVOC analysis bytes and
-  metadata through the typed data artifact path.
+  `cdp.pvoc.anal` and `cdp.pvoc.synth` are discoverable as spectral/typed-data
+  descriptors, stay out of RT/block-audio execution, materialize real PVOC
+  analysis bytes, and render that payload back to materialized audio.
 - Lab has a headless integration test that proves the real graph path:
   `lab.grid_source -> cdp.utility.db_gain -> cdp.modify.loudness_normalise -> lab.mainbus_out`.
 - Lab has a headless integration test that proves the synthetic Gate G graph
@@ -431,12 +438,13 @@ Gate G close-out state:
 
 Next implementation steps, in order:
 
-1. Define and implement the typed data input / artifact-handle host contract
-   needed by public PVOC synthesis and spectral-to-spectral operators.
-2. Expose public `PVOC_SYNTH` only after it can consume a `pvoc_analysis`
-   artifact through that contract instead of through audio buffers.
-3. Generate broader operator-specific CDP8 PVOC fixture assets for the
+1. Define and implement graph-native typed data ports or persisted artifact
+   handles so Canvas/HQ graph execution can connect `cdp.pvoc.anal` to
+   `cdp.pvoc.synth` and later spectral-to-spectral operators.
+2. Generate broader operator-specific CDP8 PVOC fixture assets for the
    analysis -> synthesis identity path and larger spectral behavior.
+3. Promote the current client-side analysis -> synthesis smoke into a real
+   graph/planner integration test once the typed connection exists.
 4. Keep further non-spectral CDP8 families optional. If selected, likely next
    candidates are `extend`/`iterate` or a non-spectral waveset-style
    length-changing family, depending on fixture cost.
@@ -464,11 +472,110 @@ Hard gate summary:
   descriptor validation, Offline Session conformance, golden fixture metadata,
   materialized artifact contracts, Lab offline-graph planning rules, and
   baseline Pack/Lab CI coverage are in place.
-- PVOC/spectral remains Gate I work, but the first real analysis producer is
-  now in place. The remaining hard blocker is the typed data input /
-  artifact-handle host contract required for public PVOC synthesis and
-  spectral-to-spectral operators, followed by broader CDP8-generated PVOC
-  fixtures for the analysis -> synthesis identity path.
+- PVOC/spectral remains Gate I work, but the first real analysis producer,
+  Offline Session typed data input, public synth operator, and Lab
+  data-artifact-to-audio path are now in place. The remaining hard blocker is
+  graph-native typed ports or persisted artifact handles for Canvas/HQ
+  analysis -> synthesis chaining and spectral-to-spectral operators, followed
+  by broader CDP8-generated PVOC fixtures for the identity path.
+
+## Gate I Slice - PVOC Synth Data Input Path
+
+Date: 2026-04-29
+
+Commits:
+
+- `xyona-core`: `4ec3915 feat(core): add offline session data input ABI`
+- `xyona-cdp-pack`: `167542c feat(cdp-pack): add pvoc synth data input session`
+- `xyona-lab`: `9e79e486 feat(lab): render offline audio from data artifacts`
+- workspace root: this report/roadmap update records the Gate I typed data
+  input and PVOC synthesis path and advances the `xyona-cdp-pack` Gitlink.
+
+Files changed:
+
+- `xyona-core/include/xyona/api/offline_session.h`
+- `xyona-core/tests/test_offline_session_abi.cpp`
+- `xyona-cdp-pack/src/offline_api.cpp`
+- `xyona-cdp-pack/src/runtime/cdp_pvoc_analysis.h`
+- `xyona-cdp-pack/src/runtime/cdp_pvoc_analysis.cpp`
+- `xyona-cdp-pack/src/operators/cdp_pvoc_synth.h`
+- `xyona-cdp-pack/src/operators/cdp_pvoc_synth.cpp`
+- `xyona-cdp-pack/src/pack_registration.cpp`
+- `xyona-cdp-pack/src/support/pack_descriptors.h`
+- `xyona-cdp-pack/specs/cdp8_inventory.yaml`
+- `xyona-cdp-pack/tests/test_cdp_offline_session_conformance.cpp`
+- `xyona-cdp-pack/tests/test_cdp_pvoc_analysis.cpp`
+- `xyona-cdp-pack/tests/test_cdp_spectral_contract.cpp`
+- `xyona-cdp-pack/tests/test_cdp_descriptor_metadata.cpp`
+- `xyona-lab/src/app/lab/audio/engine/OfflinePackProcessorClient.h`
+- `xyona-lab/src/app/lab/audio/engine/OfflinePackProcessorClient.cpp`
+- `xyona-lab/tests/OfflinePackProcessorClientTests.cpp`
+- `xyona-lab/tests/OfflinePackProcessorClientSmoke.cpp`
+- `xyona-lab/tests/CdpPackCanvasSmokeTests.cpp`
+
+Technical change:
+
+- Extended the Core Offline Session ABI to v3. The v1/v2 prefix remains stable,
+  while v3 adds `input_data_count` to session creation and `feed_input_data` for
+  typed payload delivery into pack sessions.
+- Added PVOC analysis JSON deserialization in the CDP pack runtime, with schema,
+  shape, sample-rate, bin-count, and finite-value validation for
+  `xyona.cdp.pvoc.analysis.v1`.
+- Registered public `cdp.pvoc.synth` as a CDP8 `PVOC_SYNTH`-style typed data
+  transform. It requires exactly one `pvoc_analysis` payload with media type
+  `application/vnd.xyona.cdp.pvoc+json`, accepts chunked input blocks through
+  Offline Session ABI v3, rejects audio input, and emits analysis-dependent mono
+  materialized audio.
+- Added Lab `OfflinePackProcessorClient::renderWholeFileAudioFromDataArtifact`
+  so the host can run a typed data artifact through an Offline Session and read
+  the resulting audio artifact. The implementation validates ABI v3 support,
+  output artifact shape, materialized-audio RT re-entry mode, and negotiated
+  output frame count.
+- Added Pack and Lab coverage for the analysis -> synthesis path:
+  `cdp.pvoc.anal` produces a real PVOC JSON artifact, Lab feeds it into
+  `cdp.pvoc.synth`, and the result is finite, nonzero mono audio.
+
+Verification:
+
+- `xyona-core`: `cmake --build build/macos-clang-debug --target test_offline_session_abi -j 6`
+  passed.
+- `xyona-core`: `ctest --test-dir build/macos-clang-debug -R offline_session_abi_tests --output-on-failure`
+  passed; 1/1 test.
+- `xyona-core`: `cmake --build build/macos-clang-debug -j 6` passed.
+- `xyona-core`: `ctest --test-dir build/macos-clang-debug --output-on-failure`
+  passed; 8/8 tests.
+- `xyona-cdp-pack`: `cmake --build build/macos-clang-debug --target test_cdp_pvoc_analysis test_cdp_spectral_contract test_cdp_offline_session_conformance test_cdp_descriptor_metadata xyona_pack_cdp_ops -j 6`
+  passed.
+- `xyona-cdp-pack`: `ctest --test-dir build/macos-clang-debug -R "cdp_pvoc_analysis_tests|cdp_pvoc_golden_tests|cdp_spectral_contract_tests|cdp_offline_session_conformance_tests|cdp_descriptor_metadata_tests" --output-on-failure`
+  passed; 5/5 tests.
+- `xyona-cdp-pack`: `cmake --build build/macos-clang-debug -j 6` passed.
+- `xyona-cdp-pack`: `ctest --test-dir build/macos-clang-debug --output-on-failure`
+  passed; 19/19 tests.
+- `xyona-lab`: `cmake --build build/macos-dev --target xyona_lab_tests xyona_lab_cdp_offline_smoke -j 6`
+  passed.
+- `xyona-lab`: `XYONA_OPERATOR_PACK_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-cdp-pack/build/macos-clang-debug build/macos-dev/tests/xyona_lab_tests --test="Offline Pack Processor Client" --summary-only --xyona-only`
+  passed; 9 tests, 1170 passes, 0 failures.
+- `xyona-lab`: `XYONA_OPERATOR_PACK_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-cdp-pack/build/macos-clang-debug build/macos-dev/tests/xyona_lab_tests --test="CDP Pack Canvas Smoke" --summary-only --xyona-only`
+  passed; 12 tests, 325 passes, 0 failures.
+- `xyona-lab`: `XYONA_OPERATOR_PACK_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-cdp-pack/build/macos-clang-debug build/macos-dev/tests/xyona_lab_cdp_offline_smoke`
+  passed.
+- `xyona-lab`: `XYONA_OPERATOR_PACK_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-cdp-pack/build/macos-clang-debug build/macos-dev/tests/xyona_lab_tests --summary-only --xyona-only`
+  passed; 1197 tests, 945272 passes, 0 failures.
+- Remote CI on 2026-04-29 still could not run code. Core run `25094646197`,
+  Pack run `25094646072`, and Lab run `25094646144` failed before job steps
+  started; the Windows and macOS jobs all reported empty `steps` arrays,
+  matching the existing GitHub Actions billing/spending-limit blocker.
+- `xyona-core`, `xyona-cdp-pack`, and `xyona-lab`: `git diff --check` passed
+  before commit.
+
+Follow-up:
+
+- Add graph-native typed data ports or persisted artifact handles so a Canvas/HQ
+  graph can connect `cdp.pvoc.anal` directly to `cdp.pvoc.synth`.
+- Generate broader CDP8 PVOC fixtures for the analysis -> synthesis identity
+  path and larger spectral behavior.
+- Promote the current client-side analysis -> synthesis smoke into a
+  graph/planner integration test once the typed connection exists.
 
 ## Gate I Slice - PVOC Analysis Operator
 
@@ -508,11 +615,9 @@ Technical change:
 - Added pack-local PVOC runtime support for analysis data, frame/bin objects,
   Hamming window normalization, phase-unwrapped magnitude/frequency bins, JSON
   payload generation, and an internal synthesis helper used by tests.
-- Kept public `PVOC_SYNTH` unregistered. The internal helper proves the data
-  representation can be consumed, but exposing synthesis now would require
-  faking typed PVOC input through audio. That is intentionally blocked until
-  Lab/Core expose typed data input or artifact-handle delivery into Offline
-  Sessions.
+- At this slice, public `PVOC_SYNTH` was intentionally kept unregistered. The
+  later PVOC synth data input slice supersedes that blocker with Offline
+  Session ABI v3 typed payload delivery.
 - Wired the operator through pack registration, descriptor metadata, inventory,
   Offline Session create/feed/finish/read callbacks, descriptor validation,
   spectral-contract tests, and Offline Session conformance.
@@ -550,12 +655,11 @@ Verification:
 
 Follow-up:
 
-- Define the typed data input / artifact-handle host contract for Offline
-  Session execution.
-- Register public `PVOC_SYNTH` only after it can consume a `pvoc_analysis`
-  artifact through that contract.
-- Add broader CDP8-generated PVOC fixtures for analysis -> synthesis identity
-  and larger spectral behavior.
+- Superseded by the later Gate I PVOC synth data input slice: Offline Session
+  ABI v3 and public `cdp.pvoc.synth` now exist.
+- Remaining work is graph-native typed ports or persisted artifact handles plus
+  broader CDP8-generated PVOC fixtures for analysis -> synthesis identity and
+  larger spectral behavior.
 
 ## Gate I Slice - PVOC Golden Harness
 
@@ -609,9 +713,9 @@ Verification:
 
 Remaining risk:
 
-- The harness is intentionally test-side infrastructure. A later slice added
-  the first real `cdp.pvoc.anal` producer, but public PVOC synthesis and larger
-  operator-specific CDP8-generated fixture assets still need algorithm
+- The harness is intentionally test-side infrastructure. Later slices added
+  the first real `cdp.pvoc.anal` producer and public `cdp.pvoc.synth`, but
+  larger operator-specific CDP8-generated fixture assets still need algorithm
   comparison coverage.
 - The current tiny PVOC comparison tests are in-memory contract tests; they do
   not claim full-family CDP8 algorithm parity by themselves.
@@ -809,9 +913,10 @@ Remaining risk:
 
 - This preflight only defined the descriptor/metadata contract. Follow-on
   slices later proved the data-read transport, persistent typed asset lifecycle,
-  PVOC golden harness, and first real `cdp.pvoc.anal` producer. Public PVOC
-  synthesis and spectral-to-spectral operators still need typed data input /
-  artifact-handle host semantics and broader generated fixtures.
+  PVOC golden harness, first real `cdp.pvoc.anal` producer, Offline Session
+  typed data input, and public `cdp.pvoc.synth`. Spectral-to-spectral and
+  graph-native analysis -> synthesis chaining still need typed graph ports or
+  persisted artifact handles plus broader generated fixtures.
 
 ## Post-Gate-H Slice - CDP Edit Cutend
 
@@ -2501,6 +2606,41 @@ Follow-up:
 
 ## Verification Log
 
+- `xyona-core`: `cmake --build build/macos-clang-debug --target test_offline_session_abi -j 6`
+  passed after adding Offline Session ABI v3 typed data input.
+- `xyona-core`: `ctest --test-dir build/macos-clang-debug -R offline_session_abi_tests --output-on-failure`
+  passed after adding Offline Session ABI v3 typed data input; 1/1 test.
+- `xyona-core`: `cmake --build build/macos-clang-debug -j 6` passed after
+  adding Offline Session ABI v3 typed data input.
+- `xyona-core`: `ctest --test-dir build/macos-clang-debug --output-on-failure`
+  passed after adding Offline Session ABI v3 typed data input; 8/8 tests.
+- `xyona-cdp-pack`: `cmake --build build/macos-clang-debug --target test_cdp_pvoc_analysis test_cdp_spectral_contract test_cdp_offline_session_conformance test_cdp_descriptor_metadata xyona_pack_cdp_ops -j 6`
+  passed after adding `cdp.pvoc.synth`.
+- `xyona-cdp-pack`: `ctest --test-dir build/macos-clang-debug -R "cdp_pvoc_analysis_tests|cdp_pvoc_golden_tests|cdp_spectral_contract_tests|cdp_offline_session_conformance_tests|cdp_descriptor_metadata_tests" --output-on-failure`
+  passed after adding `cdp.pvoc.synth`; 5/5 tests.
+- `xyona-cdp-pack`: `cmake --build build/macos-clang-debug -j 6` passed after
+  adding `cdp.pvoc.synth`.
+- `xyona-cdp-pack`: `ctest --test-dir build/macos-clang-debug --output-on-failure`
+  passed after adding `cdp.pvoc.synth`; 19/19 tests.
+- `xyona-lab`: `cmake --build build/macos-dev --target xyona_lab_tests xyona_lab_cdp_offline_smoke -j 6`
+  passed after adding data-artifact-to-audio rendering.
+- `xyona-lab`: `XYONA_OPERATOR_PACK_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-cdp-pack/build/macos-clang-debug build/macos-dev/tests/xyona_lab_tests --test="Offline Pack Processor Client" --summary-only --xyona-only`
+  passed after adding `cdp.pvoc.synth` host coverage; 9 tests, 1170 passes,
+  0 failures.
+- `xyona-lab`: `XYONA_OPERATOR_PACK_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-cdp-pack/build/macos-clang-debug build/macos-dev/tests/xyona_lab_tests --test="CDP Pack Canvas Smoke" --summary-only --xyona-only`
+  passed after adding `cdp.pvoc.synth` descriptor coverage; 12 tests, 325
+  passes, 0 failures.
+- `xyona-lab`: `XYONA_OPERATOR_PACK_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-cdp-pack/build/macos-clang-debug build/macos-dev/tests/xyona_lab_cdp_offline_smoke`
+  passed after adding the PVOC analysis -> synthesis smoke.
+- `xyona-lab`: `XYONA_OPERATOR_PACK_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-cdp-pack/build/macos-clang-debug build/macos-dev/tests/xyona_lab_tests --summary-only --xyona-only`
+  passed after adding data-artifact-to-audio rendering; 1197 tests, 945272
+  passes, 0 failures.
+- Remote CI on 2026-04-29 could not run code. Core run `25094646197`, Pack run
+  `25094646072`, and Lab run `25094646144` failed before job steps started;
+  the Windows and macOS jobs all reported empty `steps` arrays, matching the
+  existing GitHub Actions billing/spending-limit blocker.
+- `xyona-core`, `xyona-cdp-pack`, and `xyona-lab`: `git diff --check` passed
+  before the PVOC synth data input commits.
 - `xyona-cdp-pack`: `cmake --build build/macos-clang-debug --target test_cdp_pvoc_analysis test_cdp_spectral_contract test_cdp_offline_session_conformance test_cdp_descriptor_metadata xyona_pack_cdp_ops -j 6`
   passed after adding `cdp.pvoc.anal`.
 - `xyona-cdp-pack`: `ctest --test-dir build/macos-clang-debug -R "cdp_pvoc_analysis_tests|cdp_pvoc_golden_tests|cdp_spectral_contract_tests|cdp_offline_session_conformance_tests|cdp_descriptor_metadata_tests" --output-on-failure`
@@ -2704,8 +2844,9 @@ Follow-up:
   reference/test helper and is not exported by the normal pack build.
   Length-changing, PVOC/spectral, multi-output, and long-running CDP operators
   must use the implemented/tested Offline Session ABI.
-- Typed spectral/PVOC artifacts remain data-only until typed artifact ports,
-  artifact handles, and host input semantics exist; they must not be routed
-  through audio buffers. `cdp.pvoc.anal` now produces real PVOC analysis
-  artifacts, but public `PVOC_SYNTH` and spectral-to-spectral operators still
-  depend on that typed data input contract plus broader CDP8 golden fixtures.
+- Typed spectral/PVOC artifacts must not be routed through audio buffers.
+  `cdp.pvoc.anal` now produces real PVOC analysis artifacts and public
+  `cdp.pvoc.synth` consumes them through Offline Session ABI v3, but
+  graph-native typed ports or persisted artifact handles are still required for
+  Canvas/HQ chaining and spectral-to-spectral operators, alongside broader CDP8
+  golden fixtures.

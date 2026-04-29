@@ -88,17 +88,18 @@ Current state:
   `cdp.edit.cutend` implements CDP8 `sfedit cutend` mode 1 through the same
   param-dependent length-changing Offline Session path, keeps the requested end
   segment, applies the CDP start splice rule, and is covered in Pack and Lab CI.
-  Gate I now has the first real PVOC analysis slice on top of that
-  infrastructure: `cdp.pvoc.anal` implements a CDP8 `PVOC_ANAL`-style
+  Gate I now has the first real PVOC analysis -> synthesis infrastructure slice
+  on top of that contract: `cdp.pvoc.anal` implements a CDP8 `PVOC_ANAL`-style
   magnitude/frequency analysis path, emits a file-backed/data-only
   `pvoc_analysis` artifact through the production Offline Session data-read
   ABI, and is materialized by Lab as a typed data asset rather than fake audio.
-  The shared metadata contract, persistent typed asset lifecycle, PVOC golden
-  harness, and Lab materialization path are proven locally. Public PVOC
-  synthesis remains open because Lab/Core do not yet expose the typed data
-  input or artifact-handle contract needed for `PVOC_SYNTH` or spectral
-  transforms to consume a PVOC analysis artifact without routing it through
-  audio.
+  Core Offline Session ABI v3 now adds typed input data delivery, the CDP pack
+  registers public `cdp.pvoc.synth` as a typed-data-input audio renderer, and
+  Lab can feed a PVOC analysis payload back into the pack and materialize the
+  synthesized audio. The remaining Gate I infrastructure work is graph-native
+  typed ports or persisted artifact handles so Canvas/HQ graph execution can
+  chain analysis -> synthesis and spectral-to-spectral operators without a
+  test/client-side payload handoff.
 
 Missing state:
 
@@ -110,10 +111,11 @@ Missing state:
   fixture coverage beyond the current `sfedit cut` / `sfedit cutend` slices.
 - Additional CDP8 production operator families beyond the current representative
   slices.
-- Public PVOC synthesis and spectral-to-spectral consumers. Gate I now has the
-  typed data asset lifecycle, PVOC golden harness, and first real analysis
-  producer, but it does not yet have the typed data input / artifact-handle host
-  contract required for an end-to-end analysis -> synthesis graph.
+- Graph-native PVOC synthesis chaining and spectral-to-spectral consumers.
+  Gate I now has the typed data asset lifecycle, PVOC golden harness, real
+  analysis producer, Offline Session typed data input, and public synthesis
+  operator, but it does not yet have typed graph ports / persisted artifact
+  handles for an end-to-end Canvas/HQ analysis -> synthesis graph.
 - Broader operator-specific CDP8-generated PVOC fixture assets beyond the first
   analytical `cdp.pvoc.anal` coverage.
 - CDP8 golden fixture coverage at family scale beyond the current analytical
@@ -614,10 +616,11 @@ Exit criteria:
 
 Status: partially implemented on 2026-04-29. The metadata contract, data-only
 Offline Session artifact materialization path, persistent typed asset lifecycle,
-PVOC golden harness, and first real CDP8-style PVOC analysis producer are
-implemented. Public PVOC synthesis and spectral-to-spectral consumers remain
-open because the host contract for typed data inputs / artifact handles does
-not exist yet.
+PVOC golden harness, first real CDP8-style PVOC analysis producer, Offline
+Session typed data input ABI, public `cdp.pvoc.synth` operator, and Lab
+data-artifact-to-audio render path are implemented. Graph-native typed ports or
+persisted artifact handles remain open for Canvas/HQ analysis -> synthesis
+chaining and spectral-to-spectral consumers.
 
 Current state:
 
@@ -631,7 +634,8 @@ Current state:
   RT/HQ block and current offline-audio host paths.
 - Core Offline Session ABI v2 adds `get_output_data_desc` and
   `read_output_data` callbacks while preserving the v1 prefix for existing
-  audio sessions.
+  audio sessions. ABI v3 adds `input_data_count` on session creation and
+  `feed_input_data` for typed data payload delivery.
 - The CDP pack's `cdp.utility.pvoc_probe` fixture emits a data-only
   `pvoc_analysis` artifact over the production Offline Session path.
 - Lab's Offline Pack Processor Client can materialize data-only artifact bytes
@@ -648,21 +652,23 @@ Current state:
   The first implementation publishes mono, 1024-point FFT/window, 128-sample
   hop, 513 real bins, magnitude/frequency bin encoding, explicit JSON
   serialization, and no audio output.
-- The PVOC runtime has an internal synthesis helper that consumes the same
-  analysis object in tests. It is deliberately not exposed as a public
-  `PVOC_SYNTH` operator until Lab/Core can pass typed data artifacts into an
-  Offline Session.
+- The PVOC runtime can deserialize its analysis JSON and synthesize audio from
+  the same magnitude/frequency analysis object.
+- The CDP pack now registers `cdp.pvoc.synth`, a public typed-data-input
+  `PVOC_SYNTH`-style operator that consumes one `pvoc_analysis` payload through
+  Offline Session ABI v3 and emits analysis-dependent mono audio.
 - Lab's Offline Pack Processor Client and Canvas smoke tests now prove
   `cdp.pvoc.anal` can be discovered, rejected from RT/block audio paths,
-  executed through the data-artifact path, and materialized as a typed PVOC
-  payload with descriptor metadata intact.
+  executed through the data-artifact path, materialized as a typed PVOC payload,
+  and fed into `cdp.pvoc.synth` to produce materialized audio with descriptor
+  metadata intact.
 
 Hard dependencies:
 
 - Gate E
 - Gate H
-- typed data input / artifact-handle host contract before public PVOC synthesis
-  or spectral-to-spectral operators are exposed
+- graph-native typed data ports / persisted artifact handles before Canvas/HQ
+  analysis -> synthesis chaining or spectral-to-spectral operators are exposed
 - broader operator-specific CDP8-generated PVOC fixture assets for synthesis
   identity and larger spectral behavior
 
@@ -679,8 +685,10 @@ Exit criteria:
 - CDP8-compatible golden harness coverage exists before real spectral families
   are ported; each real spectral operator still needs its own generated fixture
   assets when it is implemented.
-- Public PVOC synthesis consumes typed PVOC data through an explicit host
-  contract, and an analysis -> synthesis identity roundtrip is deterministic.
+- Public PVOC synthesis consumes typed PVOC data through an explicit Offline
+  Session host contract, and the remaining graph-native analysis -> synthesis
+  identity path is deterministic once typed graph ports or artifact handles are
+  wired.
 
 ### Gate J - Generator Edge Case
 
@@ -1671,12 +1679,13 @@ Mitigation:
 
 ## Recommended Immediate Next Steps
 
-1. Define and implement the typed data input / artifact-handle host contract
-   needed for PVOC synthesis and spectral-to-spectral operators.
-2. Expose public `PVOC_SYNTH` only after it can consume a `pvoc_analysis`
-   artifact through that contract instead of through audio buffers.
-3. Generate broader operator-specific CDP8 PVOC fixture assets for the
+1. Define and implement graph-native typed data ports or persisted artifact
+   handles so Canvas/HQ graph execution can connect `cdp.pvoc.anal` to
+   `cdp.pvoc.synth` and later spectral-to-spectral operators.
+2. Generate broader operator-specific CDP8 PVOC fixture assets for the
    analysis -> synthesis identity path and larger spectral behavior.
+3. Promote the current client-side analysis -> synthesis smoke into a real
+   graph/planner integration test once the typed connection exists.
 4. Keep further non-spectral CDP8 families optional; if selected, likely
    candidates remain `extend`/`iterate` or a non-spectral waveset-style
    length-changing family depending on fixture cost.
