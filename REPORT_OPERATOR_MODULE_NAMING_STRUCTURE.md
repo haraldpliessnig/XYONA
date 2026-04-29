@@ -1,6 +1,6 @@
 # Report: Operator Module Naming Structure
 
-Status: Implementation slices 1-28 landed
+Status: Implementation slices 1-29 landed
 Scope: workspace, xyona-core, xyona-cdp-pack, xyona-lab  
 Date: 2026-04-29  
 Roadmap: `ROADMAP_OPERATOR_MODULE_STRUCTURE.md`  
@@ -18,7 +18,7 @@ the physical operator-module folder migration in the CDP pack.
 
 ## Executive Status
 
-The first twenty-eight cross-repository naming/metadata slices are implemented and
+The first twenty-nine cross-repository naming/metadata slices are implemented and
 verified.
 
 `xyona-core` now exposes transitional operator module identity fields directly
@@ -243,6 +243,14 @@ the operator adapters apply that helper from `buildDescriptor()`, and the
 runtime descriptor test now compares provider, family, module name, labels,
 UI node-name stem, operator type, icon, version, domain, materialization, and
 RT/HQ capabilities directly against `op.yaml`.
+
+Slice 29 extends Core descriptor generation to parameter descriptors. Core
+codegen now emits `ParamDesc` facts from module-local `op.yaml`, including
+range/default/enum/unit/group/display/precision, RT/HQ availability, topology
+flags, slot scope support, and parameter visibility rules. Signal adapters no
+longer restore pre-generated manual parameter arrays after applying generated
+module metadata, so `op.yaml` is now the tested source of truth for current
+Core parameter descriptors.
 
 ## Current Baseline Before This Slice
 
@@ -728,6 +736,25 @@ Slice 28 additions:
   `operator_module_runtime_tests|operator_module_metadata_tests|operator_packs_tests|signal_process_tests`,
   and `git diff --check`
 
+Slice 29 additions:
+
+- extended Core codegen to emit current `ParamDesc` facts from module-local
+  `op.yaml`
+- added validator coverage for `visibleWhen` parameter visibility contracts
+- added runtime descriptor comparison for parameter labels, types, ranges,
+  defaults, enum values, units, descriptions, groups, display hints,
+  precision, RT/HQ availability, topology flags, slot scope support, and
+  visibility conditions
+- moved `signal_noise` mode-dependent UI visibility rules into `op.yaml`
+- removed signal adapter parameter-array restoration that kept runtime
+  descriptors on manual parameter facts after generated metadata was applied
+- added explicit slot/topology parameter metadata for `slot_gain`
+- corrected `test_tone`'s `off` enum spelling so YAML cannot coerce it to a
+  boolean
+- verified validator, direct codegen, targeted MSVC build,
+  `operator_module_runtime_tests|operator_module_metadata_tests|operator_packs_tests|signal_process_tests`,
+  and `git diff --check`
+
 ### xyona-lab
 
 Updated `DiscoveryService`:
@@ -822,6 +849,10 @@ Observed on Windows / MSVC debug builds:
   - `ctest --test-dir build/windows-msvc-debug -C Debug -R "operator_module_runtime_tests|operator_module_metadata_tests|operator_packs_tests|signal_process_tests" --output-on-failure`
   - `cmake --build build/windows-msvc-debug --target test_operator_module_runtime test_operator_packs test_signal_processes --config Debug`
   - `ctest --test-dir build/windows-msvc-debug -C Debug -R "operator_module_runtime_tests|operator_module_metadata_tests|operator_packs_tests|signal_process_tests" --output-on-failure`
+  - `C:\Python3.9.5\python.exe scripts\codegen_params.py --in src\operators --json gen\json --out gen\include\xyona\gen`
+  - `C:\Python3.9.5\python.exe tools\operator_modules\validate_operator_modules.py --root .`
+  - `cmake --build build/windows-msvc-debug --target test_operator_module_runtime test_operator_packs test_signal_processes --config Debug`
+  - `ctest --test-dir build/windows-msvc-debug -C Debug -R "operator_module_runtime_tests|operator_module_metadata_tests|operator_packs_tests|signal_process_tests" --output-on-failure --timeout 60`
   - Result: passed
 
 - `xyona-cdp-pack`
@@ -880,9 +911,8 @@ Slice 28 starts Core descriptor generation from `op.yaml`, but does not finish
 the full operator module structure.
 Remaining roadmap work:
 
-- Move remaining handwritten Core descriptor facts such as parameter/port/flag
-  facts behind the final `op.yaml` / generated metadata pipeline where
-  appropriate.
+- Move remaining handwritten Core descriptor facts such as port and flag facts
+  behind the final `op.yaml` / generated metadata pipeline where appropriate.
 - Remove remaining Core/Lab discovery defaults once those repos expose the
   final generated descriptor/metadata pipeline.
 - Keep Core operator modules under `src/operators/<family>/<module>/`; do not
@@ -1112,4 +1142,10 @@ Slice 28:
 
 - `xyona-core`: `be8ce7562cf46e9ee952d953588f8c02399f8ab9`
   - `feat(core): generate operator descriptor metadata`
+- Workspace root: this report commit.
+
+Slice 29:
+
+- `xyona-core`: `3241f1e421f52d504bdd9c14bf5ac9babca60432`
+  - `feat(core): generate operator parameter descriptors`
 - Workspace root: this report commit.
