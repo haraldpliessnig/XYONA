@@ -1,20 +1,22 @@
 # Report: Operator Module Naming Structure
 
-Status: Implementation slice 1 landed  
+Status: Implementation slices 1-2 landed
 Scope: workspace, xyona-core, xyona-cdp-pack, xyona-lab  
 Date: 2026-04-29  
 Roadmap: `ROADMAP_OPERATOR_MODULE_STRUCTURE.md`  
 Contract: `OPERATOR_MODULE_CONTRACT.md`
 
-This report tracks the first implementation slice for structured operator
-identity, provider-aware UI metadata, and deterministic Canvas node naming.
-The goal of this slice is to remove Lab-side label mutation such as `CDP: ...`
-and stop deriving default node names from dotted operator IDs such as
-`cdp.modify.loudness_gain`.
+This report tracks the implementation slices for structured operator identity,
+provider-aware UI metadata, deterministic Canvas node naming, and the first
+metadata validation gate. The initial goal was to remove Lab-side label mutation
+such as `CDP: ...` and stop deriving default node names from dotted operator IDs
+such as `cdp.modify.loudness_gain`. The second slice hardens the same surface by
+making engine domain/materialization explicit and test-visible.
 
 ## Executive Status
 
-The first cross-repository naming slice is implemented and verified.
+The first two cross-repository naming/metadata slices are implemented and
+verified.
 
 `xyona-core` now exposes transitional operator module identity fields directly
 on `xyona::OpDesc`. The dynamic pack loader fills those fields for loaded
@@ -33,6 +35,13 @@ rewrites labels with provider prefixes such as `CDP: `. Canvas node creation
 and restore now generate default names from `nodeNameStem` while preserving
 the stable operator ID on the node payload for graph execution and project
 persistence.
+
+Slice 2 adds the first validation gate around these fields. Core now exposes a
+shared node-name-stem validity helper and only reads pack `domain` and
+`materialization` from the `engine` metadata object. CDP pack engine macros now
+publish explicit domain/materialization values for every current process shape.
+Lab discovery coverage now proves that Lab-authored and Core-authored operators
+receive the same naming defaults as pack operators.
 
 ## Current Baseline Before This Slice
 
@@ -89,6 +98,17 @@ operators:
   conservatively from PVOC/spectral metadata, generator shape, or audio ports.
 - `materialization` is read from metadata when present.
 
+Slice 2 additions:
+
+- added `xyona::isValidOperatorNodeNameStem()` and
+  `OpDesc::hasValidNodeNameStem()`
+- limited explicit `domain` and `materialization` reads to the top-level
+  `engine` object instead of any nested object in `op_meta_json`
+- added category-based family fallback for IDs that do not include a provider
+  and family segment, for example Core/test fixture IDs
+- extended pack-loader tests so `ui.nodeNameStem`, invalid stems,
+  `engine.domain`, and `engine.materialization` are contract-visible
+
 The loader remains backward-compatible with existing packs because every field
 has a deterministic fallback.
 
@@ -132,6 +152,17 @@ Extended the descriptor metadata contract test so CDP operators must expose:
 - no Lab-style `CDP: ` label prefix
 - matching `ui.nodeNameStem` in operator metadata JSON
 
+Slice 2 additions:
+
+- every CDP engine metadata macro now emits explicit `engine.domain`
+- every CDP engine metadata macro now emits explicit
+  `engine.materialization`
+- descriptor tests now compare descriptor-level `domain` and
+  `materialization` against the engine metadata JSON for every current CDP
+  operator
+- nested artifact materialization, for example `artifact.materialization`, is
+  no longer allowed to satisfy the descriptor-level materialization contract
+
 ### xyona-lab
 
 Updated `DiscoveryService`:
@@ -156,6 +187,16 @@ Updated CDP Canvas smoke coverage:
 - `cdp.utility.db_gain` creates `db_gain1`
 - `cdp.modify.loudness_gain` creates `loud_gain1`
 - `cdp.modify.loudness_normalise` creates `loud_norm1`
+
+Slice 2 additions:
+
+- `DiscoveryService` now derives missing `family` values from provider-local
+  category paths where IDs are shorter than `<provider>.<family>.<module>`
+- Canvas parameter persistence coverage now verifies naming metadata for
+  Lab-authored `lab.audio_in` and Core `gain`
+- the test also instantiates `lab.audio_in` through `NodeBinder` and confirms
+  the visible default node name is `audio_in1` while `opId` stays
+  `lab.audio_in`
 
 ## Boundary Notes
 
@@ -207,8 +248,8 @@ Remaining roadmap work:
 - Add schema validation for Core, CDP pack, and Lab-authored operator metadata.
 - Add uniqueness checks for `ui.nodeNameStem` across the discovered operator
   set.
-- Add explicit `engine.materialization` coverage for all operators rather than
-  relying on fallback/empty values.
+- Move explicit `engine.domain` and `engine.materialization` facts out of
+  handwritten JSON/string macros and into generated metadata from `op.yaml`.
 - Replace minimal JSON string extraction in the pack loader with a structured
   parser once the final metadata schema stabilizes.
 - Decide whether very old persisted dotted node names should be migrated or
@@ -216,7 +257,7 @@ Remaining roadmap work:
 
 ## Commit Map
 
-To be filled by the final repository commits for this slice:
+Slice 1:
 
 - `xyona-core`: `c809629f856e4097c6b84dbfc790b66171f6328e`
   - `feat(core): expose operator module ui identity`
@@ -224,5 +265,16 @@ To be filled by the final repository commits for this slice:
   - `feat(cdp-pack): publish operator ui name stems`
 - `xyona-lab`: `bcb40d3223740afe06f6a7addc2db694e2793659`
   - `feat(lab): name operator nodes from ui stems`
+- Workspace root: `f0b05dafa49794499871f0f8e79c1e32c16414b1`
+  - `docs: report operator module naming structure slice`
+
+Slice 2:
+
+- `xyona-core`: `01db404d6b416029d20df1913b8245c5027fd7ed`
+  - `feat(core): validate operator ui identity metadata`
+- `xyona-cdp-pack`: `85915095730402516df19302fb30ccb85f5813a8`
+  - `feat(cdp-pack): require explicit engine domain metadata`
+- `xyona-lab`: `473f13905faad3bffe36e4629ed39f551ee01fe7`
+  - `test(lab): cover discovery naming metadata`
 - Workspace root: this report commit plus the updated `xyona-cdp-pack`
   gitlink.
