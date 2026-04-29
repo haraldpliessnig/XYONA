@@ -148,11 +148,13 @@ above it.
 - For cross-repo work, describe and verify each repo separately.
 - Do not assume root-level commands cover nested repos.
 - Preserve unrelated dirty work in any repo.
-- For substantial tasks, read the relevant repo context first:
-  - Workspace: `CONTEXT.md`
-  - Core: `xyona-core/CONTEXT.md`
-  - Lab: `xyona-lab/CONTEXT.md` and `xyona-lab/AGENTS.md`
-  - Pack: `xyona-cdp-pack/README.md`
-  - CDP reference: `CDP8/README.md`
+- For substantial tasks, inspect the current source, repo-local build scripts,
+  tests, `AGENTS.md`, package-local authoring guides, and current
+  contract/roadmap/report docs needed for the task. Prefer live code and test
+  definitions over prewritten summaries.
+- Treat `CONTEXT.md` files as optional historical handoff notes only. Do not use
+  them as current truth unless they were explicitly refreshed for the task, and
+  verify any useful claim against source, CMake, tests, current reports, and git
+  history before acting on it.
 - Prefer existing build scripts in the target repo. For Lab, `./build-dev.sh`
   is the preferred verification path when a build is needed.

@@ -111,6 +111,10 @@ Rules:
 - `ui.nodeNameStem` is the only source for default Canvas node names. For
   example, `cdp.modify.loudness_gain` creates `loud_gain1`, not
   `cdp.modify.loudness_gain1`.
+- Palette, sidebar, and context-menu secondary labels are derived by Lab from
+  `providerLabel` and `family` as `<Provider>/<Family Display>`, for example
+  `Core/Dynamics`, `CDP/Modify`, or `Lab/System Audio`. Do not use `category`,
+  dotted IDs, source paths, or provider-prefixed labels for that UI context.
 
 ## Required `op.yaml` Surface
 

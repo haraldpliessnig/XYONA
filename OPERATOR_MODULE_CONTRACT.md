@@ -124,6 +124,13 @@ Rules:
   ASCII snake_case. Hyphens are not allowed.
 - `ui.nodeNameStem` must not contain dots or provider namespace fragments.
 - Default Canvas names must be generated from `ui.nodeNameStem`, not from `id`.
+- Palette, sidebar, and context-menu secondary labels must use the canonical
+  owner/family context derived from `providerLabel` and `family`, formatted as
+  `<Provider>/<Family Display>`, for example `Core/Dynamics`, `Core/Signal`,
+  `CDP/Modify`, or `Lab/System Audio`.
+- UI secondary labels must not use `category`, `id`, source paths, or
+  provider-prefixed labels as owner/family context. `category` may still serve
+  filtering or product grouping, but it is not the canonical owner context.
 
 Example:
 
