@@ -1,6 +1,6 @@
 # Report: Operator Module Naming Structure
 
-Status: Implementation slices 1-30 landed
+Status: Implementation slices 1-31 landed
 Scope: workspace, xyona-core, xyona-cdp-pack, xyona-lab  
 Date: 2026-04-29  
 Roadmap: `ROADMAP_OPERATOR_MODULE_STRUCTURE.md`  
@@ -18,7 +18,7 @@ the physical operator-module folder migration in the CDP pack.
 
 ## Executive Status
 
-The first thirty cross-repository naming/metadata slices are implemented and
+The first thirty-one cross-repository naming/metadata slices are implemented and
 verified.
 
 `xyona-core` now exposes transitional operator module identity fields directly
@@ -257,6 +257,12 @@ Current Core `op.yaml` records now declare runtime `inputs`, `outputs`, flags,
 and `slot_gain`'s locked routing, variable port ranges, slot count, and stereo
 slot group. Core codegen emits those facts into runtime descriptors and the
 runtime descriptor test compares them against `op.yaml`.
+
+Slice 31 fixes the dynamic-topology edge exposed by Slice 30. Generated
+`slot_gain` metadata now establishes the default module contract, while the
+adapter still reapplies the current `slot_count` value after generated metadata
+is loaded so `describe()` reflects expanded dynamic ports after topology
+parameter changes.
 
 ## Current Baseline Before This Slice
 
@@ -777,6 +783,18 @@ Slice 30 additions:
   `operator_module_runtime_tests|operator_module_metadata_tests|operator_packs_tests|signal_process_tests`,
   and `git diff --check`
 
+Slice 31 additions:
+
+- moved generated `slot_gain` descriptor application before the dynamic slot
+  descriptor expansion in `buildDescriptor()`
+- preserved generated `op.yaml` metadata for the default descriptor while
+  keeping runtime `slot_count` changes reflected in `OpDesc.inputs`,
+  `OpDesc.outputs`, `slotCount`, and variable-port families
+- added `operator_dispatcher_tests` to the verification set for this area
+- verified targeted MSVC build,
+  `operator_dispatcher_tests|operator_module_runtime_tests|operator_module_metadata_tests|operator_packs_tests|signal_process_tests`,
+  and `git diff --check`
+
 ### xyona-lab
 
 Updated `DiscoveryService`:
@@ -1176,4 +1194,10 @@ Slice 30:
 
 - `xyona-core`: `4dcfbaa05262803efc423c08db487a2044046f33`
   - `feat(core): generate operator port descriptors`
+- Workspace root: this report commit.
+
+Slice 31:
+
+- `xyona-core`: `549c8d7bbc537dc74c796767602b553b66492fd1`
+  - `fix(core): preserve dynamic slot gain descriptors`
 - Workspace root: this report commit.
