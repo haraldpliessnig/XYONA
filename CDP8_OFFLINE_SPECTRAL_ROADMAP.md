@@ -1679,18 +1679,18 @@ Mitigation:
 
 ## Recommended Immediate Next Steps
 
-1. Define and implement graph-native typed data ports or persisted artifact
+1. Add Gate J's explicit null-upstream generator graph/render test before the
+   first CDP generator operator is ported.
+2. Define and implement graph-native typed data ports or persisted artifact
    handles so Canvas/HQ graph execution can connect `cdp.pvoc.anal` to
    `cdp.pvoc.synth` and later spectral-to-spectral operators.
-2. Generate broader operator-specific CDP8 PVOC fixture assets for the
+3. Generate broader operator-specific CDP8 PVOC fixture assets for the
    analysis -> synthesis identity path and larger spectral behavior.
-3. Promote the current client-side analysis -> synthesis smoke into a real
+4. Promote the current client-side analysis -> synthesis smoke into a real
    graph/planner integration test once the typed connection exists.
-4. Keep further non-spectral CDP8 families optional; if selected, likely
+5. Keep further non-spectral CDP8 families optional; if selected, likely
    candidates remain `extend`/`iterate` or a non-spectral waveset-style
    length-changing family depending on fixture cost.
-5. Before the first CDP generator, add the explicit null-upstream generator
-   graph/render test.
 
 ## Definition Of Done For CDP8 Rewrite Readiness
 
