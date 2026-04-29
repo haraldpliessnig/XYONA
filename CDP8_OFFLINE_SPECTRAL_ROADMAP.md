@@ -639,17 +639,21 @@ Exit criteria:
 
 ### Gate I - PVOC/Spectral
 
-Status: partially implemented on 2026-04-29. The metadata contract, data-only
-Offline Session artifact materialization path, persistent typed asset lifecycle,
-PVOC golden harness, first real CDP8-style PVOC analysis producer, Offline
-Session typed data input ABI, public `cdp.pvoc.synth` operator, first
+Status: infrastructure closed locally on 2026-04-29. The metadata contract,
+data-only Offline Session artifact materialization path, persistent typed asset
+lifecycle, PVOC golden harness, first real CDP8-style PVOC analysis producer,
+Offline Session typed data input ABI, public `cdp.pvoc.synth` operator, first
 file-backed CDP8 PVOC analysis/synthesis fixture coverage, Lab
 data-artifact-to-audio render path, the first graph-native Canvas/HQ
 `cdp.pvoc.anal -> cdp.pvoc.synth -> lab.mainbus_out` typed-data chain, and a
 technical spectral-to-spectral
 `cdp.pvoc.anal -> cdp.utility.pvoc_identity -> cdp.pvoc.synth -> lab.mainbus_out`
-chain are implemented locally. General typed asset handles and arbitrary
-multiple typed chains remain open.
+chain are implemented locally. No additional real CDP8 spectral-to-spectral
+operator is pulled into Gate I; real spectral transform ports should start under
+the unified Operator Module Structure so their `op.yaml`, docs, tests, and
+goldens are created in the target shape. General typed asset handles and
+arbitrary multiple typed chains are deferred host work beyond the Gate I
+infrastructure closure.
 
 Current state:
 
@@ -684,9 +688,11 @@ Current state:
 - The PVOC runtime can deserialize its analysis JSON and synthesize audio from
   the same magnitude/frequency analysis object.
 - The first file-backed CDP8 `pvoc` reference fixtures are now in the pack
-  golden tree: a 1024-frame impulse and a 2048-frame 440 Hz sine case. They
-  validate selected analysis bins plus synthesized sample snapshots and lock the
-  current CDP8-style synthesis length behavior.
+  golden tree: a 1024-frame impulse and a 2048-frame 440 Hz sine case. This
+  intentionally bounded Gate I matrix covers a transient case whose silent tail
+  is trimmed and a sustained tonal case whose non-silent CDP8 reconstruction
+  tail is retained; broader matrices belong with the first real spectral
+  operator modules that need them.
 - `cdp.pvoc.synth` no longer assumes `analysis.inputFrames` as its materialized
   audio length. The production path now keeps the CDP8-style reconstruction
   tail for non-silent terminal blocks and trims silent trailing blocks, matching
@@ -714,15 +720,14 @@ Current state:
   data transform, passing it to `cdp.pvoc.synth`, and routing the resulting
   audio to direct terminal targets such as `lab.mainbus_out`.
 
-Hard dependencies:
+Deferred beyond Gate I infrastructure closure:
 
-- Gate E
-- Gate H
 - broader operator-specific CDP8-generated PVOC fixture assets beyond the first
   two analysis/synthesis reference cases and into larger spectral behavior
-- general typed graph/persisted-handle support before multiple typed chains or
-  broader real spectral operators are exposed beyond the first PVOC identity
-  chain
+- general typed graph/persisted-handle support before multiple typed chains are
+  exposed
+- real CDP8 spectral-to-spectral algorithms, created as canonical operator
+  modules instead of further flat pack files
 
 PVOC/spectral work must not be started on the prototype whole-buffer offline
 ABI.
@@ -735,9 +740,9 @@ Exit criteria:
 - Spectral artifacts persist through project save/open and participate in
   staleness signatures before RT/HQ consumers can treat them as valid.
 - CDP8-compatible golden harness coverage exists before real spectral families
-  are ported; the first PVOC analysis/synthesis cases are covered, and each
+  are ported; the bounded Gate I impulse/sine PVOC matrix is covered, and each
   further real spectral operator still needs its own generated fixture assets
-  when it is implemented.
+  when it is implemented as an operator module.
 - Public PVOC synthesis consumes typed PVOC data through an explicit Offline
   Session host contract, and the first graph-native analysis -> synthesis path
   is deterministic for one direct PVOC typed-data chain.
@@ -1739,17 +1744,16 @@ Mitigation:
 
 ## Recommended Immediate Next Steps
 
-1. Expand the existing CDP8 PVOC fixture set beyond the current impulse/sine
-   analysis -> synthesis identity cases into a broader length, sample-rate, and
-   spectral-behavior matrix, then use it to tighten the current graph-native
-   PVOC chain.
-2. Generalize the typed graph path beyond the first direct and one-intermediate
-   PVOC chains: arbitrary multiple typed edges/chains, persisted artifact
-   handles, and clearer graph diagnostics.
-3. Decide whether Gate I closes after the fixture matrix and typed-handle work,
-   or whether one real CDP8 spectral-to-spectral algorithm should be pulled
-   forward in addition to the technical host-shape fixture.
-4. Keep further non-spectral CDP8 families optional; if selected, likely
+1. Close and merge the CDP8 offline/spectral foundation branch with Gate I
+   recorded as an infrastructure closure.
+2. Start the unified Operator Module Structure work. New real CDP8 spectral
+   transforms should be created as modules, not as additional flat pack files.
+3. Use the first real spectral operator module to expand the PVOC/PVX fixture
+   matrix beyond the bounded impulse/sine Gate I closure cases.
+4. Generalize typed graph handling only when a module needs more than the first
+   direct or one-intermediate PVOC chain: arbitrary multiple typed edges/chains,
+   persisted artifact handles, and clearer graph diagnostics.
+5. Keep further non-spectral CDP8 families optional; if selected, likely
    candidates remain `extend`/`iterate` or a non-spectral waveset-style
    length-changing family depending on fixture cost.
 

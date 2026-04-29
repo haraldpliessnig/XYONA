@@ -205,6 +205,12 @@ Latest implementation commits:
   `xyona-cdp-pack` Gitlink, documents Offline Session pointer lifetime and
   handle-threading rules, corrects Lab FNV-1a offset-basis seeds, and adds
   `cdp.edit.cut` zero-length regression coverage.
+- `xyona-core`: `cf7cf5d docs(core): document offline session ABI lifetimes`
+- `xyona-cdp-pack`: `9038ab3 feat(cdp-pack): add PVOC spectral chain fixtures`
+- `xyona-lab`: `39a2bbf5 feat(lab): schedule PVOC typed spectral chains`
+- workspace root: `7055025 docs: update CDP8 offline spectral roadmap`
+- workspace root: this report/roadmap update records the final Gate I
+  infrastructure-closure decision before the Operator Module Structure work.
 
 Current proven capability:
 
@@ -513,21 +519,59 @@ Hard gate summary:
   descriptor validation, Offline Session conformance, golden fixture metadata,
   materialized artifact contracts, Lab offline-graph planning rules, and
   baseline Pack/Lab CI coverage are in place.
-- PVOC/spectral remains Gate I work, but the first real analysis producer,
+- Gate I is closed as an infrastructure gate: the first real analysis producer,
   Offline Session typed data input, public synth operator, Lab
-  data-artifact-to-audio path, first CDP8-backed PVOC synthesis-length
-  fixtures, a graph-native one-chain `cdp.pvoc.anal -> cdp.pvoc.synth`
-  render, and a technical spectral-to-spectral
-  `cdp.pvoc.anal -> cdp.utility.pvoc_identity -> cdp.pvoc.synth` render are
-  now in place. The remaining hard work is broader CDP8-generated PVOC fixture
-  matrix coverage plus generalized typed graph/persisted-handle support for
-  arbitrary multiple chains.
+  data-artifact-to-audio path, bounded CDP8-backed impulse/sine PVOC
+  analysis/synthesis fixture matrix, a graph-native one-chain
+  `cdp.pvoc.anal -> cdp.pvoc.synth` render, and a technical
+  spectral-to-spectral
+  `cdp.pvoc.anal -> cdp.utility.pvoc_identity -> cdp.pvoc.synth` render are in
+  place. Broader CDP8-generated PVOC/PVX fixture matrices, arbitrary typed graph
+  chains, persisted typed handles, and real CDP8 spectral-to-spectral algorithms
+  are intentionally deferred to the Operator Module Structure phase.
 - Gate J is locally covered by a synthetic no-input pack generator fixture and
   Lab graph/render tests before any real CDP8 generator program is ported.
 - The review hygiene items that were concrete local blockers are now covered:
   `.gitmodules` exists for the Pack Gitlink, ABI lifetime/threading comments are
   in the Core header, FNV-1a seed literals are canonicalized in Lab hash users,
   and `cdp.edit.cut` rejects zero-length cuts with a dedicated Pack test.
+
+## Gate I Closure Decision
+
+Date: 2026-04-29
+
+Status: implemented locally; commit pending.
+
+Decision:
+
+- Gate I closes as a host/ABI/spectral-foundation gate.
+- The technical `cdp.utility.pvoc_identity` transform is sufficient for the
+  required spectral-to-spectral host-shape proof.
+- No additional real CDP8 spectral-to-spectral operator is pulled into Gate I.
+  The next real spectral transforms should be authored after the unified
+  Operator Module Structure starts, so their `op.yaml`, docs, tests, descriptor
+  validation, and golden fixtures are born in the target shape.
+- The current PVOC fixture matrix is intentionally bounded: impulse covers the
+  transient/silent-tail-trim path, and 440 Hz sine covers the sustained
+  tonal/non-silent-tail-retention path.
+- Arbitrary multi-edge typed graphs and persisted typed artifact handles remain
+  future host work; the current closure supports one direct PVOC chain and one
+  optional spectral data transform before final synthesis.
+
+Files changed:
+
+- `xyona-cdp-pack/tests/test_cdp_pvoc_analysis.cpp`
+- `xyona-cdp-pack/tests/golden/README.md`
+- workspace root roadmap/report updates.
+
+Verification:
+
+- `xyona-cdp-pack`: `test_cdp_pvoc_analysis` / `cdp_pvoc_analysis_tests` after
+  this section is the required local proof before merge.
+
+Follow-up:
+
+- Start the Operator Module Structure roadmap in a separate architecture pass.
 
 ## Post-Audit Hygiene Close-Out
 
@@ -588,8 +632,8 @@ Verification:
 
 Follow-up:
 
-- Commit the local Gate I/Gate J/review-hygiene working tree as a coherent
-  checkpoint once the branch boundary is chosen.
+- Completed by commits `cf7cf5d`, `9038ab3`, `39a2bbf5`, and workspace root
+  `7055025`; the remaining action is the final Gate I closure update and merge.
 
 ## Gate I Slice - PVOC Spectral-To-Spectral Identity Chain
 
@@ -672,12 +716,11 @@ Verification:
 
 Follow-up:
 
-- Decide whether the technical spectral-to-spectral proof is sufficient for
-  Gate I infrastructure closure, or whether one real CDP8 spectral transform
-  should be pulled forward.
-- Expand PVOC fixture coverage beyond the first impulse/sine cases.
-- Generalize typed graph scheduling beyond the current one-intermediate typed
-  chain and add persisted typed artifact-handle semantics.
+- Superseded by the Gate I closure decision above: the technical
+  spectral-to-spectral proof is sufficient for the infrastructure gate.
+- Broader PVOC fixture coverage, persisted typed handles, arbitrary typed graph
+  chains, and real CDP8 spectral transforms move to the Operator Module
+  Structure phase.
 
 ## Gate I Slice - CDP8 PVOC Fixture-Backed Synthesis Length
 
