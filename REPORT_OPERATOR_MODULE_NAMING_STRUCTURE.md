@@ -1,6 +1,6 @@
 # Report: Operator Module Naming Structure
 
-Status: Implementation slices 1-16 landed
+Status: Implementation slices 1-17 landed
 Scope: workspace, xyona-core, xyona-cdp-pack, xyona-lab  
 Date: 2026-04-29  
 Roadmap: `ROADMAP_OPERATOR_MODULE_STRUCTURE.md`  
@@ -18,7 +18,7 @@ the physical operator-module folder migration in the CDP pack.
 
 ## Executive Status
 
-The first sixteen cross-repository naming/metadata slices are implemented and
+The first seventeen cross-repository naming/metadata slices are implemented and
 verified.
 
 `xyona-core` now exposes transitional operator module identity fields directly
@@ -155,6 +155,16 @@ operators. Module-local `op.yaml` now also declares each adapter source file,
 the generator emits `src/generated/cdp_operator_sources.cmake`, and the pack
 target includes `${XYONA_CDP_OPERATOR_SOURCES}` instead of listing every
 operator adapter in `CMakeLists.txt`.
+
+Slice 17 moves current CDP port descriptor facts onto the generated path.
+The generator now emits `XYONA_CDP_INPUT_PORT_DESC_*` and
+`XYONA_CDP_OUTPUT_PORT_DESC_*` macros from module-local `op.yaml` port
+semantics, including variable audio ports, fixed stereo ports, mono PVOC
+analysis/synthesis ports, and typed PVOC data ports. Current adapters no
+longer hand-write the port descriptor calls; they keep only the local C arrays
+that bind generated port descriptors into each operator descriptor. The slice
+also fixes the shared Cut/CutEnd adapter so CutEnd's `splice_ms` descriptor
+uses CutEnd's generated parameter metadata instead of Cut's metadata.
 
 ## Current Baseline Before This Slice
 
@@ -491,6 +501,18 @@ Slice 16 additions:
 - updated `CMakeLists.txt` so `xyona_pack_cdp_ops` consumes the generated
   `XYONA_CDP_OPERATOR_SOURCES` list
 
+Slice 17 additions:
+
+- extended `scripts/generate_operator_metadata.py` to emit generated port
+  descriptor macros beside the generated port metadata JSON macros
+- included port `tags` in generated port metadata JSON so typed data-port
+  descriptors and metadata share the same `op.yaml` source
+- replaced all current adapter calls to `makeAudioPortDesc`,
+  `makeFixedAudioPortDesc`, and `makeFixedTaggedPortDesc` with generated
+  `XYONA_CDP_*_PORT_DESC_*` macros
+- corrected the CutEnd `splice_ms` descriptor metadata binding in the shared
+  edit adapter
+
 ### xyona-lab
 
 Updated `DiscoveryService`:
@@ -633,9 +655,10 @@ Remaining roadmap work:
 - Split the current shared Cut/CutEnd adapter if descriptor generation or
   future edit modes make separate adapters materially cleaner.
 - Operator-level CDP provenance, validation, parameter metadata, port
-  metadata, and top-level pack descriptor initializers are now generated;
-  remaining CDP handwritten descriptor debt is parameter descriptor arrays,
-  and port descriptor arrays.
+  metadata, port descriptor facts, and top-level pack descriptor initializers
+  are now generated; remaining CDP handwritten descriptor debt is parameter
+  descriptor arrays plus the small local descriptor array shells that bind
+  generated descriptors into each adapter.
 - Promote the current focused C++ spec/runtime comparison parsers into the
   final shared validator/codegen path once descriptor generation exists.
 - Compare generated descriptors against runtime discovery once the generated
@@ -772,5 +795,12 @@ Slice 16:
 
 - `xyona-cdp-pack`: `65f8a220cfc123fc418ab3e2c6230993d8f54917`
   - `feat(cdp-pack): generate operator source list`
+- Workspace root: this report commit plus the updated `xyona-cdp-pack`
+  gitlink.
+
+Slice 17:
+
+- `xyona-cdp-pack`: `a45b8a1c6290e647927be560392fc8c0208a9a09`
+  - `feat(cdp-pack): generate port descriptors`
 - Workspace root: this report commit plus the updated `xyona-cdp-pack`
   gitlink.
