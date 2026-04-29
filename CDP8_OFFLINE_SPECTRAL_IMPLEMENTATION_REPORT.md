@@ -94,18 +94,30 @@ magnitude/frequency analysis operator, and public `cdp.pvoc.synth` consumes the
 same typed payload through the production Offline Session ABI. Lab can discover
 both operators, reject them from RT/block-audio paths, materialize PVOC JSON as
 a typed artifact, and feed that payload back into the pack to materialize
-synthesized audio. Lab now also has the first graph-native typed data edge:
+synthesized audio. The synth path now also has the first file-backed CDP8
+`pvoc` reference coverage: 1024-frame impulse and 2048-frame 440 Hz sine cases
+validate selected analysis bins, synthesized sample snapshots, and CDP8-style
+synthesis length behavior. Lab now also has the first graph-native typed data edge:
 the offline/HQ graph planner records `cdp.pvoc.anal -> cdp.pvoc.synth` as a
 typed PVOC edge, keeps that edge out of audio wiring/PDC, and OfflineRenderEngine
 materializes the analysis payload before invoking the synth and routing its
-audio to `lab.mainbus_out`. Gate I is still not fully closed: broader
-CDP8-generated PVOC fixtures, generalized typed graph scheduling, persisted
-artifact-handle semantics, and spectral-to-spectral consumers remain open.
+audio to `lab.mainbus_out`. Gate I now also has the first spectral-to-spectral
+host-shape proof: `cdp.utility.pvoc_identity` is a technical typed PVOC
+data-in/data-out transform, and Lab schedules
+`cdp.pvoc.anal -> cdp.utility.pvoc_identity -> cdp.pvoc.synth -> lab.mainbus_out`
+as a two-edge typed spectral chain. Gate I is still not fully closed: broader
+CDP8-generated PVOC fixture matrices, generalized typed graph scheduling, and
+persisted artifact-handle semantics remain open.
 Gate J is now implemented locally as a technical host-shape fixture:
 `cdp.utility.generator_probe` is a synthetic no-input pack generator with
 `processShape="generator"` and direct block ABI metadata, and Lab proves that
 Canvas discovery plus offline `generator -> MainBusOut` rendering work without
 upstream audio.
+Post-audit hygiene is now also handled locally: the workspace root has a
+`.gitmodules` entry for the `xyona-cdp-pack` Gitlink, the Offline Session ABI
+header documents per-call audio/data pointer lifetimes and single-handle
+threading, Lab FNV-1a seeds use the canonical 64-bit offset basis, and the
+existing `cdp.edit.cut` zero-length reject is covered by a regression test.
 
 Latest implementation commits:
 
@@ -186,6 +198,13 @@ Latest implementation commits:
 - local working tree: Gate I adds the first graph-native PVOC typed-data edge,
   `cdp.pvoc.anal -> cdp.pvoc.synth -> lab.mainbus_out`, with Pack descriptor
   updates and Lab OfflineRenderEngine materialization coverage.
+- local working tree: Gate I adds the technical spectral-to-spectral
+  `cdp.utility.pvoc_identity` fixture and Lab scheduling for
+  `cdp.pvoc.anal -> cdp.utility.pvoc_identity -> cdp.pvoc.synth`.
+- local working tree: review hygiene closes the `.gitmodules` gap for the
+  `xyona-cdp-pack` Gitlink, documents Offline Session pointer lifetime and
+  handle-threading rules, corrects Lab FNV-1a offset-basis seeds, and adds
+  `cdp.edit.cut` zero-length regression coverage.
 
 Current proven capability:
 
@@ -459,14 +478,16 @@ Gate G close-out state:
 
 Next implementation steps, in order:
 
-1. Generate broader operator-specific CDP8 PVOC fixture assets for the
-   analysis -> synthesis identity path and larger spectral behavior, then use
-   them to harden the graph-native `cdp.pvoc.anal -> cdp.pvoc.synth` path.
-2. Generalize the typed graph path beyond the current one-chain PVOC slice:
-   multiple typed edges/chains, persisted artifact handles, clearer graph
-   diagnostics, and spectral-to-spectral consumers.
-3. Decide whether Gate I closes after fixture-backed PVOC identity coverage or
-   needs one spectral-to-spectral operator as an additional host-shape proof.
+1. Expand the existing CDP8 PVOC fixture assets beyond the current impulse/sine
+   analysis -> synthesis identity cases into a broader length, sample-rate, and
+   spectral-behavior matrix, then use them to harden the graph-native
+   `cdp.pvoc.anal -> cdp.pvoc.synth` path.
+2. Generalize the typed graph path beyond the current direct and one-intermediate
+   PVOC slices: arbitrary multiple typed edges/chains, persisted artifact
+   handles, and clearer graph diagnostics.
+3. Decide whether Gate I closes after the fixture matrix and typed-handle work,
+   or whether one real CDP8 spectral-to-spectral algorithm should be pulled
+   forward in addition to the technical host-shape fixture.
 4. Keep further non-spectral CDP8 families optional. If selected, likely next
    candidates are `extend`/`iterate` or a non-spectral waveset-style
    length-changing family, depending on fixture cost.
@@ -494,13 +515,249 @@ Hard gate summary:
   baseline Pack/Lab CI coverage are in place.
 - PVOC/spectral remains Gate I work, but the first real analysis producer,
   Offline Session typed data input, public synth operator, Lab
-  data-artifact-to-audio path, and a graph-native one-chain
-  `cdp.pvoc.anal -> cdp.pvoc.synth` render are now in place. The remaining
-  hard work is broader CDP8-generated PVOC fixture coverage plus generalized
-  typed graph/persisted-handle support for multiple chains and
-  spectral-to-spectral operators.
+  data-artifact-to-audio path, first CDP8-backed PVOC synthesis-length
+  fixtures, a graph-native one-chain `cdp.pvoc.anal -> cdp.pvoc.synth`
+  render, and a technical spectral-to-spectral
+  `cdp.pvoc.anal -> cdp.utility.pvoc_identity -> cdp.pvoc.synth` render are
+  now in place. The remaining hard work is broader CDP8-generated PVOC fixture
+  matrix coverage plus generalized typed graph/persisted-handle support for
+  arbitrary multiple chains.
 - Gate J is locally covered by a synthetic no-input pack generator fixture and
   Lab graph/render tests before any real CDP8 generator program is ported.
+- The review hygiene items that were concrete local blockers are now covered:
+  `.gitmodules` exists for the Pack Gitlink, ABI lifetime/threading comments are
+  in the Core header, FNV-1a seed literals are canonicalized in Lab hash users,
+  and `cdp.edit.cut` rejects zero-length cuts with a dedicated Pack test.
+
+## Post-Audit Hygiene Close-Out
+
+Date: 2026-04-29
+
+Status: implemented locally; commit pending.
+
+Files changed:
+
+- `.gitmodules`
+- `xyona-core/include/xyona/api/offline_session.h`
+- `xyona-cdp-pack/tests/test_cdp_edit_cut.cpp`
+- `xyona-lab/src/app/lab/audio/engine/AudioEngineManager.cpp`
+- `xyona-lab/src/app/lab/audio/engine/MaterializedAudioStore.cpp`
+- `xyona-lab/src/app/lab/audio/engine/MaterializedDataArtifactStore.cpp`
+- `xyona-lab/src/app/lab/signal/runtime/PreparedSignalRuntime.cpp`
+- `xyona-lab/src/app/lab/timeline/grid/runtime/PreparedGridRuntime.cpp`
+- workspace root roadmap/report updates.
+
+Technical change:
+
+- Added the missing root `.gitmodules` entry for the existing `xyona-cdp-pack`
+  Gitlink using the pack repository remote.
+- Documented Offline Session handle threading as one thread per session handle,
+  while separate independent handles may be driven in parallel.
+- Documented that audio channel arrays, mutable output channel arrays, and typed
+  data input byte spans are host-owned and valid only for the receiving ABI call.
+- Corrected Lab FNV-1a seed literals from the truncated value to the canonical
+  64-bit offset basis `14695981039346656037ull` in materialized asset/source
+  fingerprints and local runtime revision hashes.
+- Added a `cdp.edit.cut` regression test proving that `start_seconds == end_seconds`
+  is rejected at session creation as `INVALID_PARAM`.
+
+Verification:
+
+- `xyona-core`: `cmake --build --preset windows-msvc-debug --target test_offline_session_abi --config Debug`
+  passed.
+- `xyona-core`: `ctest --preset windows-msvc-debug -R offline_session_abi_tests --output-on-failure`
+  passed; 1/1 test.
+- `xyona-cdp-pack`: `cmake --build --preset windows-msvc-debug --target test_cdp_edit_cut --config Debug`
+  passed.
+- `xyona-cdp-pack`: `ctest --preset windows-msvc-debug -R cdp_edit_cut_tests --output-on-failure`
+  passed; 1/1 test.
+- `xyona-lab`: `cmake --build --preset windows-dev --target xyona_lab_tests --config Debug`
+  passed with existing warnings.
+- `xyona-lab`: `xyona_lab_tests.exe --test="Materialized Audio Store" --xyona-only --summary-only`
+  passed; 6 tests, 145 passes, 0 failures.
+- `xyona-lab`: `xyona_lab_tests.exe --test="Materialized Data Artifact Store" --xyona-only --summary-only`
+  passed; 3 tests, 69 passes, 0 failures.
+- `xyona-lab`: `xyona_lab_tests.exe --test="PreparedSignalRuntime" --xyona-only --summary-only`
+  passed; 2 tests, 42 passes, 0 failures.
+- `xyona-lab`: `xyona_lab_tests.exe --test="PreparedGridRuntime" --xyona-only --summary-only`
+  passed; 21 tests, 226 passes, 0 failures.
+- `xyona-lab`: with
+  `XYONA_OPERATOR_PACK_PATH=D:\GITHUB\XYONA\xyona-cdp-pack\build\windows-msvc-debug\Debug`,
+  `xyona_lab_tests.exe --test="AudioEngineManager" --xyona-only --summary-only`
+  passed; 45 tests, 2659 passes, 0 failures.
+
+Follow-up:
+
+- Commit the local Gate I/Gate J/review-hygiene working tree as a coherent
+  checkpoint once the branch boundary is chosen.
+
+## Gate I Slice - PVOC Spectral-To-Spectral Identity Chain
+
+Date: 2026-04-29
+
+Status: implemented locally; commit pending.
+
+Files changed:
+
+- `xyona-cdp-pack/CMakeLists.txt`
+- `xyona-cdp-pack/specs/cdp8_inventory.yaml`
+- `xyona-cdp-pack/src/offline_api.cpp`
+- `xyona-cdp-pack/src/pack_registration.cpp`
+- `xyona-cdp-pack/src/operators/cdp_utility_pvoc_identity.h`
+- `xyona-cdp-pack/src/operators/cdp_utility_pvoc_identity.cpp`
+- `xyona-cdp-pack/src/support/pack_descriptors.h`
+- `xyona-cdp-pack/tests/test_cdp_descriptor_metadata.cpp`
+- `xyona-cdp-pack/tests/test_cdp_offline_session_conformance.cpp`
+- `xyona-cdp-pack/tests/test_cdp_spectral_contract.cpp`
+- `xyona-lab/src/app/lab/adapters/OperatorProcessMetadata.cpp`
+- `xyona-lab/src/app/lab/audio/adapter/AudioIOHostAdapters.h`
+- `xyona-lab/src/app/lab/audio/adapter/AudioIOHostAdapters.cpp`
+- `xyona-lab/src/app/lab/audio/engine/OfflinePackProcessorClient.h`
+- `xyona-lab/src/app/lab/audio/engine/OfflinePackProcessorClient.cpp`
+- `xyona-lab/src/app/lab/audio/engine/OfflineRenderEngine.cpp`
+- `xyona-lab/tests/OperatorProcessMetadataTests.cpp`
+- `xyona-lab/tests/OfflinePackProcessorClientTests.cpp`
+- `xyona-lab/tests/CdpPackCanvasSmokeTests.cpp`
+- `xyona-lab/tests/AudioEngineManagerTests.cpp`
+- `xyona-lab/tests/OfflinePackProcessorClientSmoke.cpp`
+- workspace root roadmap/report updates.
+
+Technical change:
+
+- Added `cdp.utility.pvoc_identity`, a technical PVOC typed-data input/output
+  operator. It consumes one `pvoc_analysis` payload through Offline Session ABI
+  v3, validates/deserializes it, reserializes the same analysis content as a
+  new typed PVOC output payload, and marks the output as file-backed data-only
+  spectral material.
+- This operator is explicitly not a CDP8 algorithm port. It is the Gate I
+  host-shape proof for spectral-to-spectral scheduling before broader spectral
+  families are selected.
+- Lab now accepts typed-data transforms that output typed spectral data, not
+  only data-to-audio transforms.
+- `OfflinePackProcessorClient` now has a data-input/data-output path, and
+  `OfflineDataTransformPackHostAdapter` can materialize either data or final
+  audio from a typed source artifact.
+- `OfflineRenderEngine` now supports the first two-edge typed spectral chain:
+  one data producer, one typed spectral data transform, and one final
+  data-to-audio transform routed to direct terminal targets.
+- The graph smoke now proves
+  `cdp.utility.generator_probe -> cdp.pvoc.anal -> cdp.utility.pvoc_identity -> cdp.pvoc.synth -> lab.mainbus_out`.
+
+Verification:
+
+- `xyona-cdp-pack`: targeted build for `xyona_pack_cdp_ops`,
+  `test_cdp_descriptor_metadata`, `test_cdp_spectral_contract`, and
+  `test_cdp_offline_session_conformance` passed.
+- `xyona-cdp-pack`: targeted CTest for descriptor metadata, spectral contract,
+  and Offline Session conformance passed; 3/3 tests.
+- `xyona-cdp-pack`: full `cmake --build --preset windows-msvc-debug --config Debug`
+  passed.
+- `xyona-cdp-pack`: full `ctest --preset windows-msvc-debug --output-on-failure`
+  passed; 19/19 tests.
+- `xyona-lab`: `cmake --build --preset windows-dev --target xyona_lab_tests --config Debug`
+  passed with existing warnings.
+- `xyona-lab`: with
+  `XYONA_OPERATOR_PACK_PATH=D:\GITHUB\XYONA\xyona-cdp-pack\build\windows-msvc-debug\Debug`,
+  `xyona_lab_tests.exe --test="Operator Process Metadata" --xyona-only --summary-only`
+  passed; 12 tests, 112 passes, 0 failures.
+- `xyona-lab`: with the same pack path,
+  `xyona_lab_tests.exe --test="Offline Pack Processor Client" --xyona-only --summary-only`
+  passed; 10 tests, 1054 passes, 0 failures.
+- `xyona-lab`: with the same pack path,
+  `xyona_lab_tests.exe --test="CDP Pack Canvas Smoke" --xyona-only --summary-only`
+  passed; 14 tests, 376 passes, 0 failures.
+- `xyona-lab`: with the same pack path,
+  `xyona_lab_tests.exe --test="AudioEngineManager" --xyona-only --summary-only`
+  passed; 45 tests, 2659 passes, 0 failures.
+
+Follow-up:
+
+- Decide whether the technical spectral-to-spectral proof is sufficient for
+  Gate I infrastructure closure, or whether one real CDP8 spectral transform
+  should be pulled forward.
+- Expand PVOC fixture coverage beyond the first impulse/sine cases.
+- Generalize typed graph scheduling beyond the current one-intermediate typed
+  chain and add persisted typed artifact-handle semantics.
+
+## Gate I Slice - CDP8 PVOC Fixture-Backed Synthesis Length
+
+Date: 2026-04-29
+
+Status: implemented locally; commit pending.
+
+Files changed:
+
+- `xyona-cdp-pack/CMakeLists.txt`
+- `xyona-cdp-pack/specs/cdp8_inventory.yaml`
+- `xyona-cdp-pack/src/operators/cdp_pvoc_synth.cpp`
+- `xyona-cdp-pack/src/runtime/cdp_pvoc_analysis.h`
+- `xyona-cdp-pack/src/runtime/cdp_pvoc_analysis.cpp`
+- `xyona-cdp-pack/tests/golden/README.md`
+- `xyona-cdp-pack/tests/golden/cdp.pvoc.anal/impulse-1024-mono-48000/manifest.yaml`
+- `xyona-cdp-pack/tests/golden/cdp.pvoc.anal/impulse-1024-mono-48000/expected/selected_bins.csv`
+- `xyona-cdp-pack/tests/golden/cdp.pvoc.anal/impulse-1024-mono-48000/expected/synth_samples.csv`
+- `xyona-cdp-pack/tests/golden/cdp.pvoc.anal/sine440-2048-mono-48000/manifest.yaml`
+- `xyona-cdp-pack/tests/golden/cdp.pvoc.anal/sine440-2048-mono-48000/expected/selected_bins.csv`
+- `xyona-cdp-pack/tests/golden/cdp.pvoc.anal/sine440-2048-mono-48000/expected/synth_samples.csv`
+- `xyona-cdp-pack/tests/test_cdp_pvoc_analysis.cpp`
+- `xyona-cdp-pack/tests/test_cdp_offline_session_conformance.cpp`
+- `xyona-lab/tests/OfflinePackProcessorClientTests.cpp`
+- `xyona-lab/tests/AudioEngineManagerTests.cpp`
+- workspace root roadmap/report updates.
+
+Technical change:
+
+- Built the local CDP8 reference `pvoc` target and generated two small reference
+  cases from CDP8 itself: 1024-frame impulse mono at 48 kHz and 2048-frame
+  440 Hz sine mono at 48 kHz, both using `-c1024 -o3`.
+- Added file-backed PVOC golden fixture coverage for selected analysis bins and
+  synthesized sample snapshots.
+- `cdp.pvoc.synth` no longer emits `analysis.inputFrames` by default. The
+  production synthesis path now derives a CDP8-style maximum reconstruction
+  length, keeps the tail when the terminal block is non-silent, and trims silent
+  trailing blocks.
+- The locked reference behavior is now: impulse 1024 input frames synthesizes
+  to 896 output frames, sine 2048 input frames synthesizes to 2944 output
+  frames, and the non-silent 1024-frame generator graph keeps its reconstruction
+  tail and materializes 1920 output frames.
+- Lab test expectations were updated so Offline Pack Processor and
+  AudioEngineManager validate the negotiated materialized audio length instead
+  of assuming the original analysis frame count.
+
+Verification:
+
+- `CDP8`: `cmake -S . -B build\windows-msvc-debug -G "Visual Studio 17 2022" -A x64`
+  passed.
+- `CDP8`: `cmake --build build\windows-msvc-debug --target pvoc --config Debug`
+  passed with existing warnings and produced `NewRelease\Debug\pvoc.exe`.
+- `xyona-cdp-pack`: `cmake --build --preset windows-msvc-debug --target test_cdp_pvoc_analysis test_cdp_offline_session_conformance xyona_pack_cdp_ops`
+  passed.
+- `xyona-cdp-pack`: `ctest --preset windows-msvc-debug -R "cdp_pvoc_analysis_tests|cdp_offline_session_conformance_tests" --output-on-failure`
+  passed.
+- `xyona-cdp-pack`: full `cmake --build --preset windows-msvc-debug` passed.
+- `xyona-cdp-pack`: full `ctest --preset windows-msvc-debug --output-on-failure`
+  passed; 19/19 tests.
+- `xyona-lab`: `cmake --build --preset windows-dev --target xyona_lab_tests --config Debug`
+  passed with existing warnings.
+- `xyona-lab`: with
+  `XYONA_OPERATOR_PACK_PATH=D:\GITHUB\XYONA\xyona-cdp-pack\build\windows-msvc-debug\Debug`,
+  `xyona_lab_tests.exe --test="Offline Pack Processor Client" --xyona-only --summary-only`
+  passed; 9 tests, 1042 passes, 0 failures.
+- `xyona-lab`: with the same pack path,
+  `xyona_lab_tests.exe --test="AudioEngineManager" --xyona-only --summary-only`
+  passed; 45 tests, 2657 passes, 0 failures.
+- `xyona-lab`: with the same pack path,
+  `xyona_lab_tests.exe --test="CDP Pack Canvas Smoke" --xyona-only --summary-only`
+  passed; 13 tests, 354 passes, 0 failures.
+
+Follow-up:
+
+- Expand the PVOC fixture matrix beyond the first impulse/sine cases.
+- Generalize typed graph handling beyond one direct PVOC producer -> transform
+  chain.
+- Spectral-to-spectral host-shape proof is now covered by the later
+  `cdp.utility.pvoc_identity` slice; decide separately whether a real CDP8
+  spectral transform should be pulled forward before Gate I closes.
 
 ## Gate I Slice - Graph-Native PVOC Typed Data Chain
 
@@ -576,8 +833,10 @@ Follow-up:
 
 - Add broader CDP8-generated PVOC fixtures for analysis -> synthesis identity
   and larger spectral behavior.
-- Generalize typed graph handling beyond one direct PVOC producer -> transform
-  chain before exposing spectral-to-spectral workflows.
+- Superseded by the later PVOC spectral-to-spectral identity slice for the
+  first technical data -> data -> audio host shape.
+- Generalize typed graph handling beyond the current direct and one-intermediate
+  PVOC chains before exposing arbitrary real spectral workflows.
 - Add persisted artifact-handle semantics if typed data must survive as a graph
   value across sessions or non-direct render shapes.
 
@@ -735,9 +994,10 @@ Follow-up:
 - Superseded by the later Gate I graph-native PVOC typed data chain slice:
   Canvas/HQ can now connect `cdp.pvoc.anal` directly to `cdp.pvoc.synth` for
   the first narrow chain.
+- Superseded again by the later PVOC spectral-to-spectral identity slice for
+  the first technical typed data -> typed data -> audio chain.
 - Remaining work is broader CDP8 PVOC fixtures plus generalized typed graph /
-  persisted-handle support for multiple chains and spectral-to-spectral
-  operators.
+  persisted-handle support for arbitrary multiple chains.
 
 ## Gate I Slice - PVOC Analysis Operator
 
@@ -821,9 +1081,10 @@ Follow-up:
   ABI v3 and public `cdp.pvoc.synth` now exist.
 - Superseded again by the later Gate I graph-native PVOC typed data chain
   slice for the first direct Canvas/HQ analysis -> synthesis graph.
+- Superseded again by the later PVOC spectral-to-spectral identity slice for
+  the first technical typed data -> typed data -> audio graph.
 - Remaining work is broader CDP8-generated PVOC fixtures plus generalized typed
-  graph / persisted-handle support for multiple chains and spectral-to-spectral
-  operators.
+  graph / persisted-handle support for arbitrary multiple chains.
 
 ## Gate I Slice - PVOC Golden Harness
 
@@ -2771,6 +3032,48 @@ Follow-up:
 
 ## Verification Log
 
+- `xyona-cdp-pack`: targeted Windows Debug build for the PVOC identity slice
+  passed: `xyona_pack_cdp_ops`, `test_cdp_descriptor_metadata`,
+  `test_cdp_spectral_contract`, and `test_cdp_offline_session_conformance`.
+- `xyona-cdp-pack`: targeted CTest for descriptor metadata, spectral contract,
+  and Offline Session conformance passed after adding the PVOC identity slice;
+  3/3 tests.
+- `xyona-cdp-pack`: full `cmake --build --preset windows-msvc-debug --config Debug`
+  passed after adding the PVOC identity slice.
+- `xyona-cdp-pack`: full `ctest --preset windows-msvc-debug --output-on-failure`
+  passed after adding the PVOC identity slice; 19/19 tests.
+- `xyona-lab`: `cmake --build --preset windows-dev --target xyona_lab_tests --config Debug`
+  passed after adding data-in/data-out spectral transform scheduling.
+- `xyona-lab`: `XYONA_OPERATOR_PACK_PATH=D:\GITHUB\XYONA\xyona-cdp-pack\build\windows-msvc-debug\Debug .\build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="Operator Process Metadata" --xyona-only --summary-only`
+  passed after accepting data-output typed transforms; 12 tests, 112 passes,
+  0 failures.
+- `xyona-lab`: `XYONA_OPERATOR_PACK_PATH=D:\GITHUB\XYONA\xyona-cdp-pack\build\windows-msvc-debug\Debug .\build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="Offline Pack Processor Client" --xyona-only --summary-only`
+  passed after adding data-input/data-output materialization; 10 tests, 1054
+  passes, 0 failures.
+- `xyona-lab`: `XYONA_OPERATOR_PACK_PATH=D:\GITHUB\XYONA\xyona-cdp-pack\build\windows-msvc-debug\Debug .\build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="CDP Pack Canvas Smoke" --xyona-only --summary-only`
+  passed after adding the PVOC identity descriptor/Canvas coverage; 14 tests,
+  376 passes, 0 failures.
+- `xyona-lab`: `XYONA_OPERATOR_PACK_PATH=D:\GITHUB\XYONA\xyona-cdp-pack\build\windows-msvc-debug\Debug .\build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="AudioEngineManager" --xyona-only --summary-only`
+  passed after adding the graph-native spectral-to-spectral PVOC chain; 45
+  tests, 2659 passes, 0 failures.
+- `CDP8`: Windows Debug configure and `pvoc` target build passed before
+  generating the PVOC fixture assets.
+- `xyona-cdp-pack`: full `cmake --build --preset windows-msvc-debug` passed
+  after adding fixture-backed PVOC synthesis-length coverage.
+- `xyona-cdp-pack`: full `ctest --preset windows-msvc-debug --output-on-failure`
+  passed after adding fixture-backed PVOC synthesis-length coverage; 19/19
+  tests.
+- `xyona-lab`: `cmake --build --preset windows-dev --target xyona_lab_tests --config Debug`
+  passed after updating PVOC materialized-length expectations.
+- `xyona-lab`: `XYONA_OPERATOR_PACK_PATH=D:\GITHUB\XYONA\xyona-cdp-pack\build\windows-msvc-debug\Debug .\build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="Offline Pack Processor Client" --xyona-only --summary-only`
+  passed after updating PVOC synth length expectations; 9 tests, 1042 passes,
+  0 failures.
+- `xyona-lab`: `XYONA_OPERATOR_PACK_PATH=D:\GITHUB\XYONA\xyona-cdp-pack\build\windows-msvc-debug\Debug .\build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="AudioEngineManager" --xyona-only --summary-only`
+  passed after updating graph-native PVOC render length expectations; 45 tests,
+  2657 passes, 0 failures.
+- `xyona-lab`: `XYONA_OPERATOR_PACK_PATH=D:\GITHUB\XYONA\xyona-cdp-pack\build\windows-msvc-debug\Debug .\build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="CDP Pack Canvas Smoke" --xyona-only --summary-only`
+  passed after fixture-backed PVOC synthesis-length coverage; 13 tests, 354
+  passes, 0 failures.
 - `xyona-cdp-pack`: `cmake --build --preset windows-msvc-debug` passed after
   adding the graph-native PVOC typed data chain.
 - `xyona-cdp-pack`: `ctest --preset windows-msvc-debug --output-on-failure`
@@ -3026,7 +3329,10 @@ Follow-up:
   must use the implemented/tested Offline Session ABI.
 - Typed spectral/PVOC artifacts must not be routed through audio buffers.
   `cdp.pvoc.anal` now produces real PVOC analysis artifacts and public
-  `cdp.pvoc.synth` consumes them through Offline Session ABI v3. The first
-  graph-native Canvas/HQ PVOC analysis -> synthesis chain is implemented
-  locally; generalized typed graph / persisted-handle support and broader CDP8
-  golden fixtures are still required before wider spectral workflows.
+  `cdp.pvoc.synth` consumes them through Offline Session ABI v3. The first two
+  file-backed CDP8 PVOC analysis/synthesis fixtures now lock selected bins,
+  synthesized samples, and synthesis length for impulse/sine cases. The first
+  graph-native Canvas/HQ PVOC analysis -> synthesis chain and the first
+  technical spectral-to-spectral PVOC identity chain are implemented locally;
+  generalized typed graph / persisted-handle support and broader CDP8 golden
+  fixture matrices are still required before wider spectral workflows.

@@ -1,0 +1,3 @@
+[submodule "xyona-cdp-pack"]
+	path = xyona-cdp-pack
+	url = https://github.com/haraldpliessnig/xyona-cdp-pack.git

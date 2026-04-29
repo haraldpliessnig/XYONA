@@ -1,7 +1,7 @@
 # Roadmap: Unified Operator Module Structure
 
 **Status:** Draft architecture and migration roadmap  
-**Date:** 2026-04-27  
+**Date:** 2026-04-29
 **Scope:** `xyona-core`, `xyona-cdp-pack`, `xyona-lab`, `CDP8` reference workflow  
 **Owner:** Workspace-level architecture; implementation remains repo-local
 
@@ -142,6 +142,13 @@ This means Core has multiple data surfaces:
 | `src/processes/CMakeLists.txt` | manual object library aggregation | can drift |
 | `docs/*.md` | help source | only partly installed by Core CMake |
 
+Core's current public `xyona::OpDesc` also does not expose the new naming
+surface required by the workspace contract: `provider`, `providerLabel`,
+`family`, `moduleName`, `ui.shortLabel`, and `ui.nodeNameStem`. Those fields
+therefore cannot currently reach Lab as typed metadata. During migration they
+can be carried in generated operator metadata JSON, but the end state should be
+a first-class public descriptor/discovery surface.
+
 Concrete drift observed on 2026-04-27:
 
 - Core has 16 `meta.yaml` files and 16 help file pairs.
@@ -208,6 +215,12 @@ Each `.cpp` typically contains:
 - `register...V2(host)` function
 - JSON metadata string literals for CDP provenance and engine contract
 
+The current pack ABI descriptor has `id`, `label`, `category`, and engine
+metadata JSON, but no first-class `provider`, `family`, `moduleName`,
+`shortLabel`, or `nodeNameStem` fields. Until the ABI grows those fields, pack
+operators must expose them through stable `op_meta_json` generated from
+`op.yaml`, and Core must surface that metadata to Lab after pack loading.
+
 Pack registration is manual:
 
 - CMake manually lists every operator `.cpp`.
@@ -247,6 +260,7 @@ It still does not currently have:
 - generated Lab help metadata
 - a full implementation-folder migration from flat `.cpp` files to complete
   operator module roots
+- a validated short node-name stem for every public operator
 
 ### Lab: Current Consumption Model
 
@@ -266,6 +280,20 @@ with the namespaces defined in `OPERATOR_MODULE_CONTRACT.md`.
 
 This confirms the need for a single shared help namespace and file layout
 contract.
+
+Lab also currently has a naming transport problem: default Canvas instance names
+are generated from `OpDesc::id`. That is acceptable for short Core IDs such as
+`gain`, but it leaks provider-qualified pack IDs such as
+`cdp.modify.loudness_gain` into the node header as
+`cdp.modify.loudness_gain1`. Lab's discovery layer also provider-prefixes pack
+labels in-place, for example `CDP: ...`, instead of keeping provider context as
+separate metadata. The migration must fix both behaviors:
+
+- `NodeBinder`/`NodeStore` should name new nodes from `ui.nodeNameStem`.
+- Lab should display provider/family context separately from descriptor
+  `label`.
+- The immutable operator `id` must still be preserved in `NodeData::opId`,
+  `CorePayload::desc.id`, project persistence, help IDs, and tests.
 
 ### CDP8: Why It Feels Cleaner
 
@@ -372,7 +400,7 @@ Filesystem options:
 
 ```text
 src/operators/dynamics/gain/
-src/operators/cdp/modify/loudness_gain/
+src/operators/modify/loudness_gain/
 ```
 
 The preferred filesystem path should avoid extremely long single directory names
@@ -380,11 +408,16 @@ while preserving the exact public ID in `op.yaml`:
 
 ```yaml
 id: cdp.modify.loudness_gain
-family: cdp.modify
+provider: cdp
+providerLabel: CDP
+family: modify
 moduleName: loudness_gain
 ```
 
-The path is organizational. `op.yaml:id` is authoritative.
+The path is organizational. `op.yaml:id` is authoritative. `family` is
+provider-local and must not repeat the provider namespace. Transitional CDP
+paths such as `src/operators/cdp.modify/loudness_gain/` may remain while help
+files and CMake are migrated, but they are not the target layout.
 
 ### UI And Canvas Instance Naming
 
@@ -404,7 +437,11 @@ The target contract is:
 
 ```yaml
 id: cdp.modify.loudness_gain       # stable machine ID
-label: Modify Loudness Gain        # browser/help label
+provider: cdp                      # stable provider namespace
+providerLabel: CDP                 # display provider
+family: modify                     # provider-local family/type
+moduleName: loudness_gain          # provider-local module
+label: Loudness Gain               # browser/help label
 category: CDP/Modify               # grouping context
 
 ui:
@@ -437,6 +474,52 @@ Migration rule:
    automatically.
 5. Menus and search can show provider/family context, but Canvas node headers
    should stay short.
+6. Lab should stop mutating descriptor labels with provider prefixes such as
+   `CDP: `. Provider context must come from `providerLabel`, category,
+   breadcrumbs, or badges.
+
+### Descriptor/UI Metadata Transport
+
+The migration is not complete when `op.yaml` exists only in source folders.
+The naming fields must reach Lab through public discovery:
+
+```text
+op.yaml
+  -> generated Core descriptor helper or Pack ABI descriptor/meta_json
+  -> Core registry / pack loader
+  -> xyona::api discovery surface
+  -> Lab DiscoveryService
+  -> NodeBinder / NodeStore default instance naming
+```
+
+Required transported fields:
+
+- `provider`
+- `providerLabel`
+- `family`
+- `moduleName`
+- `label`
+- `ui.shortLabel`
+- `ui.nodeNameStem`
+- `engine.processShape`
+- `engine.domain`
+- `engine.materialization`
+
+Implementation options:
+
+- End state: add first-class fields or typed nested metadata to `xyona::OpDesc`
+  and generate them from `op.yaml`.
+- Transitional pack path: keep ABI v2 struct compatibility and carry the same
+  fields in generated `op_meta_json`.
+- Transitional Core path: carry the same fields in generated JSON until
+  `OpDesc` grows the typed surface.
+- Lab path: read a single public operator metadata surface and avoid private
+  path parsing or provider-specific heuristics.
+
+Verification should include a Canvas smoke test that creates
+`cdp.modify.loudness_gain`, confirms `node.opId` and `CorePayload::desc.id`
+remain `cdp.modify.loudness_gain`, and confirms the visible new node name is
+`loud_gain1`.
 
 ### Required `op.yaml`
 
@@ -449,9 +532,10 @@ schema: xyona-operator-v1
 
 id: cdp.modify.loudness_gain
 provider: cdp
-family: cdp.modify
+providerLabel: CDP
+family: modify
 moduleName: loudness_gain
-label: CDP Modify Loudness Gain
+label: Loudness Gain
 summary: Adjusts loudness by a linear CDP gain factor.
 description: |
   CDP8 rewrite of modify loudness mode 1. Applies a fixed linear gain
@@ -460,6 +544,10 @@ operatorType: processor
 category: CDP/Modify
 icon: volume-2
 version: 0.1.0
+
+ui:
+  shortLabel: Loudness Gain
+  nodeNameStem: loud_gain
 
 ownership:
   repository: xyona-cdp-pack
@@ -473,9 +561,11 @@ capabilities:
 
 engine:
   processShape: block_length_preserving
+  domain: time_audio
   outputLength: same_as_input
   wholeFileRequired: false
   lengthChanging: false
+  materialization: none
   audioOutput: true
   multiOutput: false
   abiV2Support: direct
@@ -546,6 +636,7 @@ schema: xyona-operator-v1
 
 id: gain
 provider: core
+providerLabel: Core
 family: dynamics
 moduleName: gain
 label: Gain
@@ -554,6 +645,10 @@ operatorType: processor
 category: Amplitude
 icon: volume_up
 version: 1.0.0
+
+ui:
+  shortLabel: Gain
+  nodeNameStem: gain
 
 ownership:
   repository: xyona-core
@@ -567,9 +662,11 @@ capabilities:
 
 engine:
   processShape: block_length_preserving
+  domain: time_audio
   outputLength: same_as_input
   wholeFileRequired: false
   lengthChanging: false
+  materialization: none
   audioOutput: true
   multiOutput: false
 
@@ -612,16 +709,81 @@ validation:
   strategy: deterministic_unit_test
 ```
 
+Lab-authored host operator example:
+
+```yaml
+schema: xyona-operator-v1
+
+id: lab.audio_in
+provider: lab
+providerLabel: Lab
+family: system.audio
+moduleName: audio_in
+label: Audio Input
+summary: Routes selected audio device inputs into the Lab graph.
+operatorType: generator
+category: Lab/System/Audio
+icon: mic
+version: 1.1.0
+
+ui:
+  shortLabel: Audio In
+  nodeNameStem: audio_in
+
+ownership:
+  repository: xyona-lab
+  license: GPL-3.0-or-later
+  algorithmOwner: lab
+  hostBoundary: host_owned
+
+capabilities:
+  canRealtime: true
+  canHQ: false
+
+engine:
+  processShape: generator
+  domain: time_audio
+  outputLength: same_as_input
+  wholeFileRequired: false
+  lengthChanging: false
+  materialization: none
+  audioOutput: true
+  multiOutput: false
+
+ports:
+  inputs: []
+  outputs:
+    - id: out_0
+      label: Output 1
+      kind: audio
+      minChannels: 1
+      maxChannels: 1
+      defaultChannels: 1
+
+params: []
+
+help:
+  id: help.node.lab.audio_in
+  locales: [en, de]
+  tags: [node, lab, audio, input]
+
+validation:
+  strategy: host_adapter_smoke_test
+```
+
 ### Source of Truth Rules
 
 `op.yaml` must own:
 
 - public operator ID
 - provider namespace
+- provider display label
+- provider-local family and module name
 - label, summary, description, category, icon, version
+- short label and Canvas node-name stem
 - operator type
 - RT/HQ capabilities
-- processing/engine shape
+- processing/engine shape, domain, and materialization
 - input/output ports
 - parameter descriptors
 - parameter availability and scope
@@ -654,6 +816,7 @@ Tests must own:
 CMake must not own:
 
 - operator identity
+- provider/family/UI naming
 - parameter facts
 - help facts
 - provenance facts
@@ -680,6 +843,7 @@ Core-specific generated output:
 
 - `OpDesc` construction helper
 - parameter descriptor helper
+- public provider/family/UI naming metadata for Lab discovery
 - registration table for `registerAllProcesses()`
 - JSON metadata for Lab/help
 - recursive install manifest for docs and metadata
@@ -689,7 +853,9 @@ Pack-specific generated output:
 - `xyona_pack_v2_op_desc`
 - `xyona_pack_v2_param_desc[]`
 - `xyona_pack_v2_port_desc[]`
-- metadata JSON blobs without hand-written raw string duplication
+- metadata JSON blobs without hand-written raw string duplication, including
+  `provider`, `family`, `ui.nodeNameStem`, `engine.domain`, and
+  `engine.materialization`
 - registration list for `registerAllOperatorsV2()`
 - optional prototype whole-buffer dispatch table for bounded same-length
   reference
@@ -702,6 +868,7 @@ Lab-specific generated/consumed output:
 - operator library cache
 - search tags
 - category/group metadata
+- Canvas node-name stem cache
 
 Lab should consume the same public surfaces, not parse pack-private files.
 
@@ -733,7 +900,7 @@ For pack operators with dots:
 ```yaml
 ---
 id: help.node.cdp.modify.loudness_gain
-title: CDP Modify Loudness Gain
+title: Loudness Gain
 tags: [node, cdp, modify, loudness]
 related: []
 ---
@@ -778,8 +945,8 @@ should include the actual relative help file path:
   "help": {
     "en": {
       "id": "help.node.cdp.modify.loudness_gain",
-      "path": "operators/cdp/modify/loudness_gain/docs/en.md",
-      "title": "CDP Modify Loudness Gain",
+      "path": "operators/modify/loudness_gain/docs/en.md",
+      "title": "Loudness Gain",
       "tags": ["node", "cdp", "modify", "loudness"]
     }
   }
@@ -1005,11 +1172,19 @@ It should enforce:
 - every module has `op.yaml`
 - `op.yaml:schema` is known
 - `id` is unique
-- pack IDs start with provider namespace, e.g. `cdp.`
+- `provider`, `providerLabel`, `family`, and `moduleName` are present
+- `family` is provider-local and does not repeat the provider namespace
+- pack and Lab IDs start with provider namespace, e.g. `cdp.` or `lab.`
+- `ui.shortLabel` and `ui.nodeNameStem` are present
+- `ui.nodeNameStem` is lowercase ASCII, contains no dots, contains no provider
+  namespace segment, and is unique or has a declared exception
+- `label` does not mechanically repeat provider/family context unless an
+  explicit disambiguation exception exists
 - help front matter ID matches `help.node.<id>`
 - `docs/en.md` exists
 - every param in `op.yaml` is documented in `docs/en.md`
 - `capabilities` match engine shape
+- `engine.domain` and `engine.materialization` are present and valid
 - whole-file and length-changing operators are not realtime unless explicitly
   allowed by a named contract
 - the prototype whole-buffer adapter is not used for length-changing,
@@ -1018,6 +1193,11 @@ It should enforce:
 - production offline operators declare the Offline Session ABI contract once
   that ABI exists
 - CDP operators include `provenance.cdp.sourceFile`
+- public descriptor/discovery metadata transports `provider`, `family`,
+  `moduleName`, `ui.shortLabel`, `ui.nodeNameStem`, `engine.domain`, and
+  `engine.materialization`
+- Lab Canvas node creation uses `ui.nodeNameStem` rather than dotted operator ID
+- Lab does not mutate descriptor labels with provider prefixes such as `CDP: `
 - CMake/generated registration contains all implemented operators
 - stale generated JSON is detected
 - generated descriptor matches checked-in descriptor code where generation is
@@ -1041,6 +1221,8 @@ Exit criteria:
 
 - The schema can describe all current Core operators.
 - The schema can describe all current CDP pack operators.
+- The schema can describe current Lab-authored public operators such as
+  `lab.audio_in`, `lab.audio_out`, `lab.mainbus_out`, and `lab.grid_source`.
 - The validator can report current drift without requiring immediate migration.
 
 ### Phase 1: Fix Current Drift Without Moving Code
@@ -1049,6 +1231,9 @@ Core:
 
 - regenerate `gen/json` and remove stale `lane_gain`
 - ensure `slot_gain` generates JSON
+- add transitional `provider`, `providerLabel`, `family`, `moduleName`,
+  `ui.shortLabel`, `ui.nodeNameStem`, `engine.domain`, and
+  `engine.materialization` metadata for every current operator
 - make codegen part of normal build or a required pre-build target
 - make docs install recursive for all operator docs
 - update `PROCESS_TEMPLATE.md` to current W6 `Operator` API
@@ -1058,7 +1243,11 @@ Pack:
 
 - add `op.yaml` next to each current flat `.cpp` or in temporary
   `specs/operators/<id>.yaml`
+- add `ui.nodeNameStem` and clean provider-local `family` values to every
+  current CDP operator spec
 - validate descriptor JSON string literals against `op.yaml`
+- expose naming metadata through generated `op_meta_json` until the pack ABI has
+  typed fields
 - add generated help metadata for Lab consumption
 - keep newly added per-operator help docs in sync with descriptor metadata
 
@@ -1067,24 +1256,34 @@ Lab:
 - keep Lab help folders normalized (`nodes`, `panels`, `topics`, `workflows`)
 - keep help docs on one namespace policy: `help.topic.*`, `help.panel.*`,
   `help.workflow.*`, `help.node.*`
+- add a single resolver for operator UI naming metadata from Core discovery
+- generate new Canvas node names from `ui.nodeNameStem`
+- stop mutating descriptor labels with provider prefixes such as `CDP: `
+- add Canvas smoke tests for CDP node names, for example
+  `cdp.modify.loudness_gain` -> `loud_gain1` while preserving `opId`
 
 Exit criteria:
 
 - No stale generated operator metadata.
 - All current public operators have help metadata.
 - Pack implemented operators are represented by machine-readable operator specs.
+- Newly created Canvas nodes no longer show dotted provider-qualified IDs in
+  their default visible names.
 
 ### Phase 2: Generate Descriptors
 
 Core:
 
 - generate descriptor helper from `op.yaml`
+- generate or expose the public UI naming metadata required by Lab
 - operators call generated descriptor helper from `buildDescriptor()`
 - handwritten descriptor facts are removed from operator code where possible
 
 Pack:
 
 - generate `xyona_pack_v2_op_desc`, param arrays, port arrays, and metadata JSON
+- generate `provider`, `family`, `ui`, `domain`, and `materialization` metadata
+  into the pack discovery surface
 - pack adapters keep lifecycle/process code only
 - generate `registerAllOperatorsV2()`
 
@@ -1093,6 +1292,8 @@ Exit criteria:
 - Adding a new parameter requires editing one YAML field and DSP/adapter code,
   not four descriptor surfaces.
 - Descriptor tests compare generated descriptor output to runtime discovery.
+- Discovery tests compare generated `nodeNameStem` and provider/family metadata
+  to Lab-visible operator metadata.
 
 ### Phase 3: Move Pack Operators Into Modules
 
@@ -1124,6 +1325,8 @@ Exit criteria:
 
 - Flat `src/operators/*.cpp` no longer contains public operator modules.
 - `src/operators/<family>/<operator>/` is the normal authoring path.
+- Canonical module folders use provider-local families such as `modify`, not
+  provider-prefixed folders such as `cdp.modify`.
 
 ### Phase 4: Migrate Core to Same Module Shape
 
@@ -1141,7 +1344,8 @@ Recommended path:
 
 Exit criteria:
 
-- Core and Pack use the same `op.yaml` schema.
+- Core, Pack, and Lab public operators use the same `op.yaml` schema for
+  identity, naming, capabilities, domain, and materialization.
 - Core and Pack use the same help/docs rules.
 - Core and Pack use generated/validated registration.
 
@@ -1152,13 +1356,18 @@ Lab should consume:
 - Core operators via Core API
 - Pack operators via Core API after pack loading
 - operator metadata JSON/help metadata from Core's discovery surface
+- provider/family/UI naming metadata from the same public discovery surface
 - Lab-only docs from `docs/help/lab`
 
-Lab should not parse pack-private implementation folders.
+Lab should not parse pack-private implementation folders, and it should not
+infer visible names from dotted IDs when naming metadata exists.
 
 Needed Core/Pack API work:
 
 - expose help metadata for pack operators through pack metadata registration
+- expose `provider`, `providerLabel`, `family`, `moduleName`,
+  `ui.shortLabel`, `ui.nodeNameStem`, `engine.domain`, and
+  `engine.materialization` for Core, Pack, and Lab-authored operators
 - allow pack help paths to be loaded by Core or handed to Lab through a stable
   metadata surface
 - define installed pack help location:
@@ -1179,6 +1388,9 @@ Exit criteria:
 - `help.node.cdp.modify.loudness_gain` opens in Lab HelpCenter.
 - pack docs are searchable by tags.
 - locale fallback works for pack docs.
+- adding `cdp.modify.loudness_gain` creates a Canvas node named `loud_gain1`
+  while preserving `cdp.modify.loudness_gain` as the operator ID.
+- Lab palettes show provider/family context separately from descriptor labels.
 
 ### Phase 6: CI Enforcement
 
@@ -1201,29 +1413,33 @@ Exit criteria:
 For a Core operator:
 
 1. Create `src/operators/<family>/<operator>/op.yaml`.
-2. Add `docs/en.md` and `docs/de.md`.
-3. Implement DSP in `dsp/`.
-4. Implement `adapter/core_operator.cpp`.
-5. Add tests.
-6. Run operator validator.
-7. Run codegen.
-8. Run CTest.
+2. Set `provider`, provider-local `family`, `moduleName`, `ui.nodeNameStem`,
+   `engine.domain`, and `engine.materialization`.
+3. Add `docs/en.md` and `docs/de.md`.
+4. Implement DSP in `dsp/`.
+5. Implement `adapter/core_operator.cpp`.
+6. Add tests.
+7. Run operator validator.
+8. Run codegen.
+9. Run CTest.
 
 For a CDP pack operator:
 
 1. Update `specs/cdp8_inventory.yaml`.
 2. Create `src/operators/<family>/<operator>/op.yaml`.
-3. Include CDP provenance and engine shape.
-4. Add docs with CDP provenance section.
-5. Implement pack-local DSP.
-6. Implement `adapter/pack_v2_operator.cpp`.
-7. Add `adapter/offline_whole_buffer_prototype.cpp` only for bounded
+3. Set `provider: cdp`, `providerLabel: CDP`, provider-local `family`,
+   `moduleName`, `label`, `ui.shortLabel`, and `ui.nodeNameStem`.
+4. Include CDP provenance, engine shape, domain, and materialization.
+5. Add docs with CDP provenance section.
+6. Implement pack-local DSP.
+7. Implement `adapter/pack_v2_operator.cpp`.
+8. Add `adapter/offline_whole_buffer_prototype.cpp` only for bounded
    same-length prototype/reference whole-file work; add
    `adapter/offline_session.cpp` for production offline/session work once the
    Offline Session ABI exists.
-8. Add analytic or golden tests.
-9. Run validator.
-10. Run pack build and CTest.
+9. Add analytic or golden tests.
+10. Run validator.
+11. Run pack build and CTest.
 
 ## Immediate High-Value Fixes
 
@@ -1237,9 +1453,13 @@ These should happen before large code movement:
    - stale generated JSON
    - missing docs install rules
    - mismatch between `meta.yaml` and help front matter
+   - missing `ui.nodeNameStem`, provider/family metadata, domain, and
+     materialization
 4. Make Core CMake install docs recursively instead of listing four operators.
 5. Add `op.yaml` for current CDP pack operators without moving code.
-6. Replace pack descriptor raw JSON strings with generated metadata once the
+6. Add a Lab-side node-name-stem resolver and stop generating new node names
+   from dotted operator IDs.
+7. Replace pack descriptor raw JSON strings with generated metadata once the
    schema is accepted.
 
 ## Design Decisions
@@ -1255,11 +1475,13 @@ Reason:
 
 C++ remains source of truth only for behavior.
 
-### Decision: One Schema for Core and Packs
+### Decision: One Schema for Core, Packs, and Lab Public Operators
 
 Reason:
 
-- Lab consumes both through the same operator discovery model
+- Lab consumes Core and packs through the same operator discovery model
+- Lab-authored public host operators appear in the same Canvas and HelpCenter
+  surfaces and therefore need the same naming fields
 - RT/HQ, ports, params, help, tags, and categories are not pack-specific
 - pack-specific details fit into `provider`, `provenance`, and `engine`
 
@@ -1318,13 +1540,15 @@ Lab owns only Lab-specific panels, topics, workflows, and UI help.
 The roadmap is successful when all of these are true:
 
 - A developer can add an operator by following one documented folder contract.
-- Core and packs use the same metadata schema.
+- Core, packs, and Lab public operators use the same metadata schema for public
+  identity and UI naming.
 - Public operator descriptors are generated or validated from `op.yaml`.
 - Runtime registration cannot forget an implemented operator.
 - CMake cannot forget an implemented operator.
 - Help docs cannot silently miss installed operators.
 - Stale generated metadata is caught by CI.
 - Pack operators expose help and tags in Lab just like Core operators.
+- Default Canvas names are generated from node-name stems, not dotted IDs.
 - CDP provenance is visible and searchable for CDP-derived operators.
 - Lab remains free of DSP and CDP implementation code.
 
