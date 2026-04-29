@@ -1,6 +1,6 @@
 # Report: Operator Module Naming Structure
 
-Status: Implementation slices 1-21 landed
+Status: Implementation slices 1-22 landed
 Scope: workspace, xyona-core, xyona-cdp-pack, xyona-lab  
 Date: 2026-04-29  
 Roadmap: `ROADMAP_OPERATOR_MODULE_STRUCTURE.md`  
@@ -18,7 +18,7 @@ the physical operator-module folder migration in the CDP pack.
 
 ## Executive Status
 
-The first twenty-one cross-repository naming/metadata slices are implemented and
+The first twenty-two cross-repository naming/metadata slices are implemented and
 verified.
 
 `xyona-core` now exposes transitional operator module identity fields directly
@@ -195,6 +195,12 @@ back to legacy `meta.yaml` when a module has not migrated. It converts
 `xyona-operator-v1` parameter descriptors into the legacy codegen shape for
 current generated JSON/header outputs, and its Windows console output is ASCII
 safe so the codegen target can run in the MSVC environment.
+
+Slice 22 fixes Core help installation drift. Core CMake no longer installs
+Markdown help for only `gain`, `hq_gain`, `stereo_width`, and `audio_clip`.
+It now discovers all `src/processes/*/*/docs/*.md` files and installs each
+operator's docs to `share/xyona-core/help/<operator_id>/`. Optional generated
+HTML install is also recursive instead of listing a fixed operator subset.
 
 ## Current Baseline Before This Slice
 
@@ -589,6 +595,14 @@ Slice 21 additions:
 - verified `xyona-codegen`, validator, targeted build, and
   `operator_module_runtime_tests|operator_module_metadata_tests`
 
+Slice 22 additions:
+
+- replaced the hardcoded Core help install list with a recursive
+  `src/processes/*/*/docs/*.md` install loop
+- preserved optional generated HTML help installation as a recursive tree
+- verified `xyona-codegen`, validator, `git diff --check`, and a staged
+  `cmake --install` smoke under `build/install-operator-docs-smoke`
+
 ### xyona-lab
 
 Updated `DiscoveryService`:
@@ -909,4 +923,10 @@ Slice 21:
 
 - `xyona-core`: `f8568fbc21d12ef5775ba8f8f3b7f4c6a7bde7e8`
   - `feat(core): prefer operator module specs for codegen`
+- Workspace root: this report commit.
+
+Slice 22:
+
+- `xyona-core`: `4bfea82356d6a31f70fe08e02a90f36189198765`
+  - `feat(core): install operator help recursively`
 - Workspace root: this report commit.
