@@ -1,6 +1,6 @@
 # Report: Operator Module Naming Structure
 
-Status: Implementation slices 1-23 landed
+Status: Implementation slices 1-24 landed
 Scope: workspace, xyona-core, xyona-cdp-pack, xyona-lab  
 Date: 2026-04-29  
 Roadmap: `ROADMAP_OPERATOR_MODULE_STRUCTURE.md`  
@@ -18,7 +18,7 @@ the physical operator-module folder migration in the CDP pack.
 
 ## Executive Status
 
-The first twenty-three cross-repository naming/metadata slices are implemented and
+The first twenty-four cross-repository naming/metadata slices are implemented and
 verified.
 
 `xyona-core` now exposes transitional operator module identity fields directly
@@ -210,6 +210,14 @@ runtime path discovery, Help API build-tree lookup, generated executable
 tooling, tests, examples, and package-local authoring docs all now point at
 `src/operators`. Active guides no longer instruct future work to add Core
 operator modules under the old path.
+
+Slice 24 starts the Core internal module-shape migration. The simple
+one-adapter Core modules now place their implementation under
+`adapter/core_operator.cpp`: `gain`, `hq_gain`, `test_tone`, `audio_clip`,
+`stereo_width`, and `slot_gain`. CMake and local docs were updated to the
+module-internal adapter path. The grouped signal modules are intentionally left
+for later slices because they currently share family-level implementation
+files.
 
 ## Current Baseline Before This Slice
 
@@ -626,6 +634,18 @@ Slice 23 additions:
 - verified validator, direct codegen, `gen_execs`, targeted MSVC build, CTest,
   install smoke, and diff hygiene
 
+Slice 24 additions:
+
+- moved simple Core operator implementation files into
+  `adapter/core_operator.cpp` under their module roots
+- updated per-module CMake targets and example/doc references to the adapter
+  path
+- left grouped signal operator implementations unchanged for a dedicated split
+  slice
+- verified the shared validator, targeted MSVC build,
+  `operator_module_runtime_tests|operator_module_metadata_tests|operator_packs_tests|signal_process_tests`,
+  and `git diff --check`
+
 ### xyona-lab
 
 Updated `DiscoveryService`:
@@ -712,6 +732,7 @@ Observed on Windows / MSVC debug builds:
   - `cmake --build build/windows-msvc-debug --target gen_execs --config Debug`
   - `ctest --test-dir build/windows-msvc-debug -C Debug -R "operator_module_runtime_tests|operator_module_metadata_tests|operator_packs_tests|signal_process_tests" --output-on-failure`
   - `cmake --install build/windows-msvc-debug --config Debug --prefix build/install-operator-docs-smoke`
+  - `cmake --build build/windows-msvc-debug --target test_operator_module_runtime test_operator_packs test_signal_processes --config Debug`
   - Result: passed
 
 - `xyona-cdp-pack`
@@ -971,4 +992,10 @@ Slice 23:
 
 - `xyona-core`: `ebebe6c928138b92259fb4317fefbe3f0f8bedbd`
   - `refactor(core): move operator modules to src operators`
+- Workspace root: this report commit.
+
+Slice 24:
+
+- `xyona-core`: `f563270ef67598b393dc9c403b690131b615dcbc`
+  - `refactor(core): place simple operator adapters under modules`
 - Workspace root: this report commit.
