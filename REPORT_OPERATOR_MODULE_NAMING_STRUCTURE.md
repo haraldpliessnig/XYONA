@@ -1,6 +1,6 @@
 # Report: Operator Module Naming Structure
 
-Status: Implementation slices 1-33 landed
+Status: Implementation slices 1-34 landed
 Scope: workspace, xyona-core, xyona-cdp-pack, xyona-lab  
 Date: 2026-04-29  
 Roadmap: `ROADMAP_OPERATOR_MODULE_STRUCTURE.md`  
@@ -18,7 +18,7 @@ the physical operator-module folder migration in the CDP pack.
 
 ## Executive Status
 
-The first thirty-three cross-repository naming/metadata slices are implemented and
+The first thirty-four cross-repository naming/metadata slices are implemented and
 verified.
 
 `xyona-core` now exposes transitional operator module identity fields directly
@@ -277,6 +277,14 @@ parameter arrays, port arrays, tagged PVOC port arrays, and complete
 `xyona_pack_v2_op_desc` objects for all current pack operators. Adapter files
 now register those generated descriptors and keep only lifecycle, parameter
 validation, DSP/offline session code, and VTables.
+
+Slice 34 removes the last substring-based pack metadata reads in Core. The
+dynamic pack loader now uses an object-aware JSON scanner for the required
+operator metadata fields, so top-level provider/family/module identity and
+nested `ui`/`engine` objects are read structurally. The pack v2 fixture now
+contains whitespace and nested decoy metadata to prove nested objects cannot
+pollute descriptor identity, UI labels, node-name stems, domain, or
+materialization.
 
 ## Current Baseline Before This Slice
 
@@ -840,6 +848,21 @@ Slice 33 additions:
 - verified generator staleness check, module validator, full MSVC Debug pack
   build, all 21 Pack CTest tests, and `git diff --check`
 
+Slice 34 additions:
+
+- replaced the dynamic pack loader's string-needle JSON extraction with an
+  object-aware scanner that parses strings, objects, arrays, and primitive
+  values well enough for the operator metadata contract
+- metadata extraction now reads top-level `provider`, `providerLabel`,
+  `family`, and `moduleName` plus nested `ui.shortLabel`,
+  `ui.nodeNameStem`, `engine.domain`, and `engine.materialization`
+  structurally
+- hardened the pack v2 test fixture with formatted JSON and nested decoy
+  provider/UI/engine fields to guard against fallback or substring parsing
+- verified targeted Core MSVC build,
+  `operator_packs_tests|operator_module_runtime_tests|operator_module_metadata_tests`,
+  and `git diff --check`
+
 ### xyona-lab
 
 Updated `DiscoveryService`:
@@ -938,6 +961,8 @@ Observed on Windows / MSVC debug builds:
   - `C:\Python3.9.5\python.exe tools\operator_modules\validate_operator_modules.py --root .`
   - `cmake --build build/windows-msvc-debug --target test_operator_module_runtime test_operator_packs test_signal_processes --config Debug`
   - `ctest --test-dir build/windows-msvc-debug -C Debug -R "operator_module_runtime_tests|operator_module_metadata_tests|operator_packs_tests|signal_process_tests" --output-on-failure --timeout 60`
+  - `cmake --build build/windows-msvc-debug --target test_operator_packs test_operator_module_runtime --config Debug`
+  - `ctest --test-dir build/windows-msvc-debug -C Debug -R "operator_packs_tests|operator_module_runtime_tests|operator_module_metadata_tests" --output-on-failure --timeout 60`
   - Result: passed
 
 - `xyona-cdp-pack`
@@ -992,8 +1017,9 @@ Observed warnings:
 
 ## Remaining Work
 
-Slice 28 starts Core descriptor generation from `op.yaml`, but does not finish
-the full operator module structure.
+After Slice 34, Core and the CDP pack both generate current runtime descriptor
+metadata from module-local `op.yaml`, the pack loader requires explicit module
+metadata, and Core no longer uses substring-based JSON reads for pack metadata.
 Remaining roadmap work:
 
 - Remove remaining Core/Lab discovery defaults once those repos expose the
@@ -1008,10 +1034,6 @@ Remaining roadmap work:
   final shared validator/codegen path once descriptor generation exists.
 - Compare generated descriptors against runtime discovery once the generated
   descriptor pipeline replaces handwritten descriptors.
-- Expand the current CDP metadata generator beyond identity/UI/engine JSON
-  fragments until it owns complete pack descriptors and registration.
-- Replace minimal JSON string extraction in the pack loader with a structured
-  parser or generated typed metadata once the final metadata schema stabilizes.
 
 ## Commit Map
 
@@ -1252,3 +1274,9 @@ Slice 33:
   - `feat(cdp-pack): generate descriptor objects`
 - Workspace root: this report commit plus the updated `xyona-cdp-pack`
   gitlink.
+
+Slice 34:
+
+- `xyona-core`: `0cdde4e52586cb3f01dea9d373da52807df67bbf`
+  - `refactor(core): parse pack metadata structurally`
+- Workspace root: this report commit.
