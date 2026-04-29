@@ -1,6 +1,6 @@
 # Report: Operator Module Naming Structure
 
-Status: Implementation slices 1-19 landed
+Status: Implementation slices 1-20 landed
 Scope: workspace, xyona-core, xyona-cdp-pack, xyona-lab  
 Date: 2026-04-29  
 Roadmap: `ROADMAP_OPERATOR_MODULE_STRUCTURE.md`  
@@ -18,7 +18,7 @@ the physical operator-module folder migration in the CDP pack.
 
 ## Executive Status
 
-The first nineteen cross-repository naming/metadata slices are implemented and
+The first twenty cross-repository naming/metadata slices are implemented and
 verified.
 
 `xyona-core` now exposes transitional operator module identity fields directly
@@ -179,6 +179,15 @@ linked from root `AGENTS.md`, and Core, CDP pack, and Lab each have a
 package-local authoring guide. Core and CDP pack now also have package-local
 `AGENTS.md` files, while Lab's existing `AGENTS.md` explicitly links its guide
 and forbids Lab-side provider-prefix label mutation or dotted-ID Canvas naming.
+
+Slice 20 starts Core's strict module-spec migration without moving build paths
+yet. All 16 current Core operators now have `op.yaml` records beside their
+legacy `meta.yaml` files under `src/processes`. The shared validator treats
+legacy `meta.yaml` as a fallback only when no sibling `op.yaml` exists, so the
+existing CTest path remains stable while strict `op.yaml` records become the
+authoritative module-contract surface. The slice also renames the legacy
+`hq_gain` parameter `antiAliasing` to contract-compliant `anti_aliasing` in
+code, metadata, and docs.
 
 ## Current Baseline Before This Slice
 
@@ -549,6 +558,17 @@ Slice 19 additions:
 - added `xyona-lab/OPERATOR_MODULE_AUTHORING_GUIDE.md` and linked it from
   `xyona-lab/AGENTS.md`
 
+Slice 20 additions:
+
+- added Core `op.yaml` records beside all current
+  `src/processes/**/meta.yaml` modules
+- updated the shared validator so `--include-legacy-core-meta` skips legacy
+  `meta.yaml` files when a sibling `op.yaml` exists
+- renamed `hq_gain` parameter `antiAliasing` to `anti_aliasing` across C++,
+  legacy `meta.yaml`, new `op.yaml`, and README
+- verified Core strict validation, legacy-compatible validation, targeted
+  builds, and operator-module/operator-pack/signal CTests
+
 ### xyona-lab
 
 Updated `DiscoveryService`:
@@ -858,3 +878,9 @@ Slice 19:
   - `docs(lab): add operator module authoring guide`
 - Workspace root: this report/root-guide commit plus the updated
   `xyona-cdp-pack` gitlink.
+
+Slice 20:
+
+- `xyona-core`: `f729cc565d9ffca126a4e034d0a696b6265ec44b`
+  - `feat(core): add operator module specs`
+- Workspace root: this report commit.
