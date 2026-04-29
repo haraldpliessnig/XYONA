@@ -1,6 +1,6 @@
 # Report: Operator Module Naming Structure
 
-Status: Implementation slices 1-25 landed
+Status: Implementation slices 1-26 landed
 Scope: workspace, xyona-core, xyona-cdp-pack, xyona-lab  
 Date: 2026-04-29  
 Roadmap: `ROADMAP_OPERATOR_MODULE_STRUCTURE.md`  
@@ -18,7 +18,7 @@ the physical operator-module folder migration in the CDP pack.
 
 ## Executive Status
 
-The first twenty-five cross-repository naming/metadata slices are implemented and
+The first twenty-six cross-repository naming/metadata slices are implemented and
 verified.
 
 `xyona-core` now exposes transitional operator module identity fields directly
@@ -224,6 +224,13 @@ Slice 25 splits the Core signal processor adapters. `signal_math`,
 module-local `adapter/core_operator.cpp`. Their small shared signal port and
 descriptor helper functions live in `src/operators/signal/common/`, and the old
 family-level `signal_processors.cpp` file is gone.
+
+Slice 26 splits the Core signal generator adapters. `signal_constant`,
+`signal_lfo`, `signal_noise`, `signal_dust`, `signal_velvet`, and
+`signal_crackle` now have module-local adapters. Shared generator helper code
+and the focused-noise adapter core used by Dust/Velvet/Crackle live in
+`src/operators/signal/common/`, and the old family-level
+`signal_generators.cpp` file is gone.
 
 ## Current Baseline Before This Slice
 
@@ -665,6 +672,20 @@ Slice 25 additions:
   `operator_module_runtime_tests|operator_module_metadata_tests|operator_packs_tests|signal_process_tests`,
   and `git diff --check`
 
+Slice 26 additions:
+
+- split the former grouped Core `signal_generators.cpp` implementation into
+  module-local adapters for `signal_constant`, `signal_lfo`, `signal_noise`,
+  `signal_dust`, `signal_velvet`, and `signal_crackle`
+- added `src/operators/signal/common/signal_generator_helpers.hpp` for shared
+  generator port/descriptor helpers and the focused-noise adapter core shared
+  by Dust, Velvet, and Crackle
+- updated `src/operators/signal/CMakeLists.txt` to build the module-local
+  generator adapters instead of a family-level source file
+- verified the shared validator, targeted MSVC build,
+  `operator_module_runtime_tests|operator_module_metadata_tests|operator_packs_tests|signal_process_tests`,
+  and `git diff --check`
+
 ### xyona-lab
 
 Updated `DiscoveryService`:
@@ -1023,4 +1044,10 @@ Slice 25:
 
 - `xyona-core`: `ea54cd29688933bcd04b2fd175a2b1b308ff5215`
   - `refactor(core): split signal processor adapters`
+- Workspace root: this report commit.
+
+Slice 26:
+
+- `xyona-core`: `34820c06647de59c5671ad46ecddab4e592895f9`
+  - `refactor(core): split signal generator adapters`
 - Workspace root: this report commit.
