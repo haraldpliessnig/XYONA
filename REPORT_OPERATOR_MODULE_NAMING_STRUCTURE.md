@@ -1,6 +1,6 @@
 # Report: Operator Module Naming Structure
 
-Status: Implementation slices 1-37 landed
+Status: Implementation slices 1-38 landed
 Scope: workspace, xyona-core, xyona-cdp-pack, xyona-lab  
 Date: 2026-04-29  
 Roadmap: `ROADMAP_OPERATOR_MODULE_STRUCTURE.md`  
@@ -18,7 +18,7 @@ the physical operator-module folder migration in the CDP pack.
 
 ## Executive Status
 
-The first thirty-seven cross-repository naming/metadata slices are implemented and
+The first thirty-eight cross-repository naming/metadata slices are implemented and
 verified.
 
 `xyona-core` now exposes transitional operator module identity fields directly
@@ -307,6 +307,15 @@ now lives under `src/operators/edit/common/`, while `cdp.edit.cut` and
 generated registration include. The CDP metadata generator now supports
 explicit `adapter.sharedSources` so shared implementation files are declared
 instead of hidden behind another module's adapter path.
+
+Slice 38 turns the final structure rules into shared validator guardrails.
+Core's validator now rejects legacy `src/processes` public operator trees,
+operator `meta.yaml`, provider-prefixed dotted directories under
+`src/operators`, flat CDP adapter files, module specs whose path does not match
+their family/module identity, and adapter declarations that point outside their
+own module root unless the file is an explicit family-local `common` shared
+source. CDP pack and Lab pass the same stricter validator through their existing
+wrappers.
 
 ## Current Baseline Before This Slice
 
@@ -915,6 +924,25 @@ Slice 35 additions:
   `operator_dispatcher_tests|operator_module_runtime_tests|operator_module_metadata_tests|operator_packs_tests`,
   and `git diff --check`
 
+Slice 38 additions:
+
+- added shared validator checks that reject public operator sources/specs under
+  `src/processes`
+- reject legacy `meta.yaml` below `src/operators` or `src/processes`
+- reject provider-prefixed dotted source directories below `src/operators`
+- reject flat `src/operators/cdp_*.cpp`/`.h` adapter files
+- require module-local `op.yaml` paths under `src/operators/<family>/<module>/`
+  to match declared `family` and `moduleName`
+- require adapter `header` and `source` declarations to stay inside the owning
+  module root
+- allow shared adapter implementation only through explicit
+  `adapter.sharedSources` below `src/operators/<family>/common/`
+- added `operator_module_validator_guardrail_tests` with negative fixtures for
+  the legacy paths and cross-module adapter references
+- verified Core validator, guardrail test, Core CTest
+  `operator_module_runtime_tests|operator_module_metadata_tests|operator_module_validator_guardrail_tests`,
+  CDP and Lab metadata CTests through their wrappers, and `git diff --check`
+
 ### xyona-lab
 
 Updated `DiscoveryService`:
@@ -1034,6 +1062,10 @@ Observed on Windows / MSVC debug builds:
   - `ctest --test-dir build/windows-msvc-debug -C Debug -R "operator_packs_tests|operator_module_runtime_tests|operator_module_metadata_tests" --output-on-failure --timeout 60`
   - `cmake --build build/windows-msvc-debug --target test_operator_module_runtime test_operator_packs test_operator_dispatcher --config Debug`
   - `ctest --test-dir build/windows-msvc-debug -C Debug -R "operator_dispatcher_tests|operator_module_runtime_tests|operator_module_metadata_tests|operator_packs_tests" --output-on-failure --timeout 60`
+  - `C:\Python3.9.5\python.exe tools\operator_modules\test_validate_operator_modules.py`
+  - `C:\Python3.9.5\python.exe tools\operator_modules\validate_operator_modules.py --root .`
+  - `cmake --build build/windows-msvc-debug --target test_operator_module_runtime --config Debug`
+  - `ctest --test-dir build/windows-msvc-debug -C Debug -R "operator_module_metadata_tests|operator_module_validator_guardrail_tests|operator_module_runtime_tests" --output-on-failure --timeout 60`
   - Result: passed
 
 - `xyona-cdp-pack`
@@ -1101,19 +1133,16 @@ Observed warnings:
 
 ## Remaining Work
 
-After Slice 37, Core and the CDP pack both generate current runtime descriptor
+After Slice 38, Core and the CDP pack both generate current runtime descriptor
 metadata from module-local `op.yaml`, the pack loader requires explicit module
 metadata, Core no longer uses substring-based JSON reads for pack metadata, and
 Core/Lab discovery no longer fills missing operator-module identity fields from
 IDs, categories, labels, or private paths. The current shared CDP Cut/CutEnd
 implementation is now declared as common implementation code, not as one
-operator module borrowing another module's adapter.
+operator module borrowing another module's adapter. The shared validator now
+guards the old physical structure from being reintroduced.
 Remaining roadmap work:
 
-- Keep Core operator modules under `src/operators/<family>/<module>/`; do not
-  reintroduce `src/processes` or `meta.yaml` for public operator modules.
-- Keep new CDP operators on the module-root path from first commit; do not
-  reintroduce flat `src/operators/cdp_*.cpp` public operator files.
 - Promote the current focused C++ spec/runtime comparison parsers into the
   final shared validator/codegen path once descriptor generation exists.
 - Compare generated descriptors against runtime discovery once the generated
@@ -1383,3 +1412,9 @@ Slice 37:
   - `refactor(cdp-pack): split edit cut adapters`
 - Workspace root: this report commit plus the updated `xyona-cdp-pack`
   gitlink.
+
+Slice 38:
+
+- `xyona-core`: `047644e6cd02b2ed4170c25053453de6860a641b`
+  - `test(core): guard operator module structure`
+- Workspace root: this report commit.
