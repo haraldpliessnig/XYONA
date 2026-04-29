@@ -1,6 +1,6 @@
 # Report: Operator Module Naming Structure
 
-Status: Implementation slices 1-27 landed
+Status: Implementation slices 1-28 landed
 Scope: workspace, xyona-core, xyona-cdp-pack, xyona-lab  
 Date: 2026-04-29  
 Roadmap: `ROADMAP_OPERATOR_MODULE_STRUCTURE.md`  
@@ -18,7 +18,7 @@ the physical operator-module folder migration in the CDP pack.
 
 ## Executive Status
 
-The first twenty-seven cross-repository naming/metadata slices are implemented and
+The first twenty-eight cross-repository naming/metadata slices are implemented and
 verified.
 
 `xyona-core` now exposes transitional operator module identity fields directly
@@ -236,6 +236,13 @@ Slice 27 removes Core's legacy `meta.yaml` operator specs. `op.yaml` is now the
 only Core operator module specification consumed by validator, codegen,
 generated executable tooling, CMake metadata tests, and the runtime descriptor
 comparison. No backward-compatible Core `meta.yaml` fallback remains.
+
+Slice 28 starts Core descriptor generation from `op.yaml`. Core codegen now
+emits a generated descriptor metadata helper for all current Core operators,
+the operator adapters apply that helper from `buildDescriptor()`, and the
+runtime descriptor test now compares provider, family, module name, labels,
+UI node-name stem, operator type, icon, version, domain, materialization, and
+RT/HQ capabilities directly against `op.yaml`.
 
 ## Current Baseline Before This Slice
 
@@ -704,6 +711,23 @@ Slice 27 additions:
   `operator_module_runtime_tests|operator_module_metadata_tests|operator_packs_tests|signal_process_tests`,
   and `git diff --check`
 
+Slice 28 additions:
+
+- extended Core codegen to emit `operator_module_descriptors.hpp` from
+  module-local `op.yaml`
+- added an internal Core helper that applies generated descriptor metadata from
+  `buildDescriptor()`
+- wired the generated descriptor header into the CMake build with a stamp-based
+  codegen dependency for all current Core operator targets
+- updated simple adapters and shared signal descriptor helpers so runtime
+  descriptors use generated provider/family/module/UI/domain/materialization
+  fields instead of Discovery defaults
+- strengthened `test_operator_module_runtime` so descriptor metadata drift from
+  `op.yaml` now fails in CTest
+- verified validator, direct codegen, targeted MSVC build,
+  `operator_module_runtime_tests|operator_module_metadata_tests|operator_packs_tests|signal_process_tests`,
+  and `git diff --check`
+
 ### xyona-lab
 
 Updated `DiscoveryService`:
@@ -796,6 +820,8 @@ Observed on Windows / MSVC debug builds:
   - `C:\Python3.9.5\python.exe scripts\gen_execs.py src\operators tools\individual`
   - `cmake --build build/windows-msvc-debug --target xyona-codegen gen_execs test_operator_module_runtime test_operator_packs test_signal_processes --config Debug`
   - `ctest --test-dir build/windows-msvc-debug -C Debug -R "operator_module_runtime_tests|operator_module_metadata_tests|operator_packs_tests|signal_process_tests" --output-on-failure`
+  - `cmake --build build/windows-msvc-debug --target test_operator_module_runtime test_operator_packs test_signal_processes --config Debug`
+  - `ctest --test-dir build/windows-msvc-debug -C Debug -R "operator_module_runtime_tests|operator_module_metadata_tests|operator_packs_tests|signal_process_tests" --output-on-failure`
   - Result: passed
 
 - `xyona-cdp-pack`
@@ -850,12 +876,13 @@ Observed warnings:
 
 ## Remaining Work
 
-Slice 27 finishes the Core removal of legacy `meta.yaml` module specs, but
-does not finish the full operator module structure.
+Slice 28 starts Core descriptor generation from `op.yaml`, but does not finish
+the full operator module structure.
 Remaining roadmap work:
 
-- Move transitional flat descriptor fields behind the final `op.yaml` /
-  generated metadata pipeline.
+- Move remaining handwritten Core descriptor facts such as parameter/port/flag
+  facts behind the final `op.yaml` / generated metadata pipeline where
+  appropriate.
 - Remove remaining Core/Lab discovery defaults once those repos expose the
   final generated descriptor/metadata pipeline.
 - Keep Core operator modules under `src/operators/<family>/<module>/`; do not
@@ -1079,4 +1106,10 @@ Slice 27:
 
 - `xyona-core`: `8c271e96853bf2623d30fb6547bf3c27211c27a1`
   - `refactor(core): remove legacy operator meta specs`
+- Workspace root: this report commit.
+
+Slice 28:
+
+- `xyona-core`: `be8ce7562cf46e9ee952d953588f8c02399f8ab9`
+  - `feat(core): generate operator descriptor metadata`
 - Workspace root: this report commit.
