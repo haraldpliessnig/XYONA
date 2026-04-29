@@ -1,6 +1,6 @@
 # Report: Operator Module Naming Structure
 
-Status: Implementation slices 1-22 landed
+Status: Implementation slices 1-23 landed
 Scope: workspace, xyona-core, xyona-cdp-pack, xyona-lab  
 Date: 2026-04-29  
 Roadmap: `ROADMAP_OPERATOR_MODULE_STRUCTURE.md`  
@@ -18,7 +18,7 @@ the physical operator-module folder migration in the CDP pack.
 
 ## Executive Status
 
-The first twenty-two cross-repository naming/metadata slices are implemented and
+The first twenty-three cross-repository naming/metadata slices are implemented and
 verified.
 
 `xyona-core` now exposes transitional operator module identity fields directly
@@ -201,6 +201,15 @@ Markdown help for only `gain`, `hq_gain`, `stereo_width`, and `audio_clip`.
 It now discovers all `src/processes/*/*/docs/*.md` files and installs each
 operator's docs to `share/xyona-core/help/<operator_id>/`. Optional generated
 HTML install is also recursive instead of listing a fixed operator subset.
+
+Slice 23 completes the Core physical operator-module root migration. Current
+Core operator modules now live under `src/operators/<family>/<module>/`
+instead of `src/processes`, while the public registration target/API names
+remain stable for this low-risk slice. Core CMake, codegen, validator,
+runtime path discovery, Help API build-tree lookup, generated executable
+tooling, tests, examples, and package-local authoring docs all now point at
+`src/operators`. Active guides no longer instruct future work to add Core
+operator modules under the old path.
 
 ## Current Baseline Before This Slice
 
@@ -603,6 +612,20 @@ Slice 22 additions:
 - verified `xyona-codegen`, validator, `git diff --check`, and a staged
   `cmake --install` smoke under `build/install-operator-docs-smoke`
 
+Slice 23 additions:
+
+- moved the full Core operator module tree from `src/processes` to
+  `src/operators`
+- updated Core CMake, runtime paths, Help API build-tree HTML lookup,
+  codegen, `gen_execs`, validator, examples, docs, and package-local agent
+  guidance to the new module root
+- updated the operator runtime metadata test so runtime Core descriptors are
+  compared against `src/operators/**/meta.yaml`
+- regenerated the checked-in per-operator CLI main files so their generated
+  comments use operator terminology
+- verified validator, direct codegen, `gen_execs`, targeted MSVC build, CTest,
+  install smoke, and diff hygiene
+
 ### xyona-lab
 
 Updated `DiscoveryService`:
@@ -683,6 +706,12 @@ Observed on Windows / MSVC debug builds:
   - `ctest --test-dir build/windows-msvc-debug -C Debug -R operator_module_metadata_tests --output-on-failure`
   - `cmake --build build/windows-msvc-debug --target test_operator_packs --config Debug`
   - `ctest --test-dir build/windows-msvc-debug -C Debug -R operator_packs_tests --output-on-failure`
+  - `C:\Python3.9.5\python.exe tools\operator_modules\validate_operator_modules.py --root . --include-legacy-core-meta`
+  - `C:\Python3.9.5\python.exe scripts\codegen_params.py --in src\operators --json gen\json --out gen\include\xyona\gen`
+  - `cmake --build build/windows-msvc-debug --target xyona-codegen test_operator_module_runtime test_operator_packs test_signal_processes --config Debug`
+  - `cmake --build build/windows-msvc-debug --target gen_execs --config Debug`
+  - `ctest --test-dir build/windows-msvc-debug -C Debug -R "operator_module_runtime_tests|operator_module_metadata_tests|operator_packs_tests|signal_process_tests" --output-on-failure`
+  - `cmake --install build/windows-msvc-debug --config Debug --prefix build/install-operator-docs-smoke`
   - Result: passed
 
 - `xyona-cdp-pack`
@@ -730,16 +759,23 @@ Observed warnings:
 - Existing MSVC warning noise remains in the broader builds, including
   descriptor helper shadowing warnings and unrelated Lab/Core warnings.
   These warnings did not fail the targeted verification.
+- Optional manual Help HTML generation could not be smoke-tested in the local
+  Python 3.9 environment because the `Markdown` module from
+  `scripts/requirements.txt` is not installed. CMake install coverage for
+  Markdown help and the build-tree path migration passed.
 
 ## Remaining Work
 
-This slice intentionally does not finish the full operator module structure.
+Slice 23 finishes the current Core physical module root migration, but does
+not finish the full operator module structure.
 Remaining roadmap work:
 
 - Move transitional flat descriptor fields behind the final `op.yaml` /
   generated metadata pipeline.
-- Remove remaining Core/Lab discovery defaults as those repos migrate to
-  canonical `op.yaml` module roots.
+- Remove remaining Core/Lab discovery defaults once those repos expose the
+  final generated descriptor/metadata pipeline.
+- Keep Core operator modules under `src/operators/<family>/<module>/`; do not
+  reintroduce `src/processes` for public operator modules.
 - Keep new CDP operators on the module-root path from first commit; do not
   reintroduce flat `src/operators/cdp_*.cpp` public operator files.
 - Split the current shared Cut/CutEnd adapter if descriptor generation or
@@ -929,4 +965,10 @@ Slice 22:
 
 - `xyona-core`: `4bfea82356d6a31f70fe08e02a90f36189198765`
   - `feat(core): install operator help recursively`
+- Workspace root: this report commit.
+
+Slice 23:
+
+- `xyona-core`: `ebebe6c928138b92259fb4317fefbe3f0f8bedbd`
+  - `refactor(core): move operator modules to src operators`
 - Workspace root: this report commit.
