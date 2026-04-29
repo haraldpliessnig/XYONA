@@ -1,6 +1,6 @@
 # Report: Operator Module Naming Structure
 
-Status: Implementation slices 1-7 landed
+Status: Implementation slices 1-9 landed
 Scope: workspace, xyona-core, xyona-cdp-pack, xyona-lab  
 Date: 2026-04-29  
 Roadmap: `ROADMAP_OPERATOR_MODULE_STRUCTURE.md`  
@@ -18,7 +18,7 @@ the physical operator-module folder migration in the CDP pack.
 
 ## Executive Status
 
-The first seven cross-repository naming/metadata slices are implemented and
+The first nine cross-repository naming/metadata slices are implemented and
 verified.
 
 `xyona-core` now exposes transitional operator module identity fields directly
@@ -88,6 +88,19 @@ Slice 7 completes the current CDP `modify` structure migration by moving the
 adapter code, HelpCenter docs, and per-module `op.yaml`. The old
 provider-prefixed `cdp.modify` documentation-only folder is gone from the
 working tree after this slice.
+
+Slice 8 moves the current CDP `edit` operators into module roots. `cut` and
+`cutend` now each own a provider-local `op.yaml`; their current shared
+Cut/CutEnd adapter is no longer a flat `src/operators/*.cpp` file and now
+lives below `src/operators/edit/cut/adapter/`. Splitting that shared adapter
+can happen later with descriptor/code generation, but the public operator specs
+are now module-local.
+
+Slice 9 moves the current CDP `pvoc` operators into module roots and removes
+the transitional aggregate `specs/operators/cdp-current.op.yaml`. All 16
+currently registered CDP pack operators are now represented by module-local
+`op.yaml` files under `src/operators/<family>/<operator>/`, while the runtime
+descriptor gate still validates the full discovered pack surface.
 
 ## Current Baseline Before This Slice
 
@@ -305,6 +318,27 @@ Slice 7 additions:
 - updated explicit CMake and pack-registration include references without
   changing public operator IDs or descriptor metadata
 
+Slice 8 additions:
+
+- moved the shared `cdp.edit.cut` / `cdp.edit.cutend` adapter into
+  `src/operators/edit/cut/adapter/`
+- added module-local `op.yaml` records for `cdp.edit.cut` and
+  `cdp.edit.cutend`
+- removed the two edit records from the transitional aggregate
+  `specs/operators/cdp-current.op.yaml`
+- updated CMake, Offline Session API includes, pack registration includes, and
+  edit tests without changing public operator IDs or descriptor metadata
+
+Slice 9 additions:
+
+- moved `cdp.pvoc.anal` and `cdp.pvoc.synth` into canonical provider-local
+  module roots under `src/operators/pvoc/`
+- moved PVOC C++ adapter files into each module's `adapter/` folder
+- added module-local `op.yaml` records for both PVOC operators
+- removed `specs/operators/cdp-current.op.yaml`; all current CDP specs are now
+  module-local
+- updated `src/operators/README.md` to describe the current module-root layout
+
 ### xyona-lab
 
 Updated `DiscoveryService`:
@@ -392,13 +426,18 @@ Observed on Windows / MSVC debug builds:
   - `cmake --build build/windows-msvc-debug --target xyona_pack_cdp_ops test_cdp_descriptor_metadata test_cdp_utility_length_change test_cdp_pack test_cdp_pack_env_discovery --config Debug`
   - `cmake --build build/windows-msvc-debug --target xyona_pack_cdp_ops test_cdp_descriptor_metadata test_cdp_modify_loudness_gain test_cdp_modify_loudness_modes test_cdp_modify_loudness_normalise test_cdp_pack test_cdp_pack_env_discovery --config Debug`
   - `cmake --build build/windows-msvc-debug --target xyona_pack_cdp_ops test_cdp_descriptor_metadata test_cdp_modify_space test_cdp_pack test_cdp_pack_env_discovery --config Debug`
+  - `cmake --build build/windows-msvc-debug --target xyona_pack_cdp_ops test_cdp_descriptor_metadata test_cdp_edit_cut test_cdp_pack test_cdp_pack_env_discovery --config Debug`
+  - `cmake --build build/windows-msvc-debug --target xyona_pack_cdp_ops test_cdp_descriptor_metadata test_cdp_pvoc_analysis test_cdp_pack test_cdp_pack_env_discovery --config Debug`
   - `ctest --test-dir build/windows-msvc-debug -C Debug -R cdp_operator_module_metadata_tests --output-on-failure`
   - `cmake --build build/windows-msvc-debug --target test_cdp_descriptor_metadata --config Debug`
   - `ctest --test-dir build/windows-msvc-debug -C Debug -R cdp_descriptor_metadata_tests --output-on-failure`
+  - `ctest --test-dir build/windows-msvc-debug -C Debug -R cdp_edit_cut_tests --output-on-failure`
   - `ctest --test-dir build/windows-msvc-debug -C Debug -R cdp_modify_loudness_gain_tests --output-on-failure`
   - `ctest --test-dir build/windows-msvc-debug -C Debug -R cdp_modify_loudness_modes_tests --output-on-failure`
   - `ctest --test-dir build/windows-msvc-debug -C Debug -R cdp_modify_loudness_normalise_tests --output-on-failure`
   - `ctest --test-dir build/windows-msvc-debug -C Debug -R cdp_modify_space_tests --output-on-failure`
+  - `ctest --test-dir build/windows-msvc-debug -C Debug -R cdp_pvoc_analysis_tests --output-on-failure`
+  - `ctest --test-dir build/windows-msvc-debug -C Debug -R cdp_pvoc_golden_tests --output-on-failure`
   - `ctest --test-dir build/windows-msvc-debug -C Debug -R cdp_utility_length_change_tests --output-on-failure`
   - `ctest --test-dir build/windows-msvc-debug -C Debug -R cdp_pack_loader_tests --output-on-failure`
   - `ctest --test-dir build/windows-msvc-debug -C Debug -R cdp_pack_env_discovery_tests --output-on-failure`
@@ -431,9 +470,10 @@ Remaining roadmap work:
 
 - Move transitional flat descriptor fields behind the final `op.yaml` /
   generated metadata pipeline.
-- Continue splitting transitional aggregate `*.op.yaml` records into canonical
-  per-operator module roots as the remaining CDP families are migrated.
-- Move remaining CDP families into module roots, next `edit` and `pvoc`.
+- Keep new CDP operators on the module-root path from first commit; do not
+  reintroduce flat `src/operators/cdp_*.cpp` public operator files.
+- Split the current shared Cut/CutEnd adapter if descriptor generation or
+  future edit modes make separate adapters materially cleaner.
 - Promote the current focused C++ spec/runtime comparison parsers into the
   final shared validator/codegen path once descriptor generation exists.
 - Compare generated descriptors against runtime discovery once the generated
@@ -509,5 +549,17 @@ Slice 7:
 
 - `xyona-cdp-pack`: `45f3df6d1fe9a80c5dff5b784591f61bc5abb170`
   - `refactor(cdp-pack): move space operators into module roots`
+- Workspace root: this report commit plus the updated `xyona-cdp-pack`
+  gitlink.
+
+Slice 8:
+
+- `xyona-cdp-pack`: `1aa83934ceaba44ca551ffb298ecdaf65cc6f54a`
+  - `refactor(cdp-pack): move edit operators into module roots`
+
+Slice 9:
+
+- `xyona-cdp-pack`: `42c0b7f7a64f0aec2eac4660908ef2b64ef5b0b4`
+  - `refactor(cdp-pack): move pvoc operators into module roots`
 - Workspace root: this report commit plus the updated `xyona-cdp-pack`
   gitlink.
