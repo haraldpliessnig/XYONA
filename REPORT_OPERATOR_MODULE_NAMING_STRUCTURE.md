@@ -1,6 +1,6 @@
 # Report: Operator Module Naming Structure
 
-Status: Implementation slices 1-20 landed
+Status: Implementation slices 1-21 landed
 Scope: workspace, xyona-core, xyona-cdp-pack, xyona-lab  
 Date: 2026-04-29  
 Roadmap: `ROADMAP_OPERATOR_MODULE_STRUCTURE.md`  
@@ -18,7 +18,7 @@ the physical operator-module folder migration in the CDP pack.
 
 ## Executive Status
 
-The first twenty cross-repository naming/metadata slices are implemented and
+The first twenty-one cross-repository naming/metadata slices are implemented and
 verified.
 
 `xyona-core` now exposes transitional operator module identity fields directly
@@ -188,6 +188,13 @@ existing CTest path remains stable while strict `op.yaml` records become the
 authoritative module-contract surface. The slice also renames the legacy
 `hq_gain` parameter `antiAliasing` to contract-compliant `anti_aliasing` in
 code, metadata, and docs.
+
+Slice 21 moves Core code generation to the operator-module spec surface.
+`scripts/codegen_params.py` now prefers sibling `op.yaml` files and only falls
+back to legacy `meta.yaml` when a module has not migrated. It converts
+`xyona-operator-v1` parameter descriptors into the legacy codegen shape for
+current generated JSON/header outputs, and its Windows console output is ASCII
+safe so the codegen target can run in the MSVC environment.
 
 ## Current Baseline Before This Slice
 
@@ -569,6 +576,19 @@ Slice 20 additions:
 - verified Core strict validation, legacy-compatible validation, targeted
   builds, and operator-module/operator-pack/signal CTests
 
+Slice 21 additions:
+
+- updated Core `xyona-codegen` to describe operator metadata rather than only
+  legacy process metadata
+- updated `scripts/codegen_params.py` to prefer `op.yaml` and fall back to
+  `meta.yaml` per module directory
+- added conversion from `xyona-operator-v1` `params[].descriptor` records to
+  the legacy generated-header parameter shape
+- removed Unicode status glyphs from the codegen script so it runs cleanly in
+  Windows code pages
+- verified `xyona-codegen`, validator, targeted build, and
+  `operator_module_runtime_tests|operator_module_metadata_tests`
+
 ### xyona-lab
 
 Updated `DiscoveryService`:
@@ -883,4 +903,10 @@ Slice 20:
 
 - `xyona-core`: `f729cc565d9ffca126a4e034d0a696b6265ec44b`
   - `feat(core): add operator module specs`
+- Workspace root: this report commit.
+
+Slice 21:
+
+- `xyona-core`: `f8568fbc21d12ef5775ba8f8f3b7f4c6a7bde7e8`
+  - `feat(core): prefer operator module specs for codegen`
 - Workspace root: this report commit.
