@@ -1,6 +1,6 @@
 # Report: Operator Module Naming Structure
 
-Status: Implementation slices 1-26 landed
+Status: Implementation slices 1-27 landed
 Scope: workspace, xyona-core, xyona-cdp-pack, xyona-lab  
 Date: 2026-04-29  
 Roadmap: `ROADMAP_OPERATOR_MODULE_STRUCTURE.md`  
@@ -18,7 +18,7 @@ the physical operator-module folder migration in the CDP pack.
 
 ## Executive Status
 
-The first twenty-six cross-repository naming/metadata slices are implemented and
+The first twenty-seven cross-repository naming/metadata slices are implemented and
 verified.
 
 `xyona-core` now exposes transitional operator module identity fields directly
@@ -231,6 +231,11 @@ Slice 26 splits the Core signal generator adapters. `signal_constant`,
 and the focused-noise adapter core used by Dust/Velvet/Crackle live in
 `src/operators/signal/common/`, and the old family-level
 `signal_generators.cpp` file is gone.
+
+Slice 27 removes Core's legacy `meta.yaml` operator specs. `op.yaml` is now the
+only Core operator module specification consumed by validator, codegen,
+generated executable tooling, CMake metadata tests, and the runtime descriptor
+comparison. No backward-compatible Core `meta.yaml` fallback remains.
 
 ## Current Baseline Before This Slice
 
@@ -686,6 +691,19 @@ Slice 26 additions:
   `operator_module_runtime_tests|operator_module_metadata_tests|operator_packs_tests|signal_process_tests`,
   and `git diff --check`
 
+Slice 27 additions:
+
+- deleted all 16 Core `src/operators/**/meta.yaml` files
+- removed the validator's legacy Core metadata adapter and
+  `--include-legacy-core-meta` CLI flag
+- updated Core codegen, generated executable tooling, CMake comments, CTest
+  metadata gate, and the runtime descriptor comparison to scan `op.yaml` only
+- updated active Core authoring docs and package-local agent guidance so new
+  operator work uses `op.yaml` as the only module spec
+- verified direct validator/codegen/gen-execs runs, targeted MSVC build,
+  `operator_module_runtime_tests|operator_module_metadata_tests|operator_packs_tests|signal_process_tests`,
+  and `git diff --check`
+
 ### xyona-lab
 
 Updated `DiscoveryService`:
@@ -773,6 +791,11 @@ Observed on Windows / MSVC debug builds:
   - `ctest --test-dir build/windows-msvc-debug -C Debug -R "operator_module_runtime_tests|operator_module_metadata_tests|operator_packs_tests|signal_process_tests" --output-on-failure`
   - `cmake --install build/windows-msvc-debug --config Debug --prefix build/install-operator-docs-smoke`
   - `cmake --build build/windows-msvc-debug --target test_operator_module_runtime test_operator_packs test_signal_processes --config Debug`
+  - `C:\Python3.9.5\python.exe tools\operator_modules\validate_operator_modules.py --root .`
+  - `C:\Python3.9.5\python.exe scripts\codegen_params.py --in src\operators --json gen\json --out gen\include\xyona\gen`
+  - `C:\Python3.9.5\python.exe scripts\gen_execs.py src\operators tools\individual`
+  - `cmake --build build/windows-msvc-debug --target xyona-codegen gen_execs test_operator_module_runtime test_operator_packs test_signal_processes --config Debug`
+  - `ctest --test-dir build/windows-msvc-debug -C Debug -R "operator_module_runtime_tests|operator_module_metadata_tests|operator_packs_tests|signal_process_tests" --output-on-failure`
   - Result: passed
 
 - `xyona-cdp-pack`
@@ -827,8 +850,8 @@ Observed warnings:
 
 ## Remaining Work
 
-Slice 23 finishes the current Core physical module root migration, but does
-not finish the full operator module structure.
+Slice 27 finishes the Core removal of legacy `meta.yaml` module specs, but
+does not finish the full operator module structure.
 Remaining roadmap work:
 
 - Move transitional flat descriptor fields behind the final `op.yaml` /
@@ -836,7 +859,7 @@ Remaining roadmap work:
 - Remove remaining Core/Lab discovery defaults once those repos expose the
   final generated descriptor/metadata pipeline.
 - Keep Core operator modules under `src/operators/<family>/<module>/`; do not
-  reintroduce `src/processes` for public operator modules.
+  reintroduce `src/processes` or `meta.yaml` for public operator modules.
 - Keep new CDP operators on the module-root path from first commit; do not
   reintroduce flat `src/operators/cdp_*.cpp` public operator files.
 - Split the current shared Cut/CutEnd adapter if descriptor generation or
@@ -1050,4 +1073,10 @@ Slice 26:
 
 - `xyona-core`: `34820c06647de59c5671ad46ecddab4e592895f9`
   - `refactor(core): split signal generator adapters`
+- Workspace root: this report commit.
+
+Slice 27:
+
+- `xyona-core`: `8c271e96853bf2623d30fb6547bf3c27211c27a1`
+  - `refactor(core): remove legacy operator meta specs`
 - Workspace root: this report commit.
