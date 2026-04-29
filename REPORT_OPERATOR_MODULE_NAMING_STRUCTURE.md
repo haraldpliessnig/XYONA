@@ -1,6 +1,6 @@
 # Report: Operator Module Naming Structure
 
-Status: Implementation slices 1-17 landed
+Status: Implementation slices 1-18 landed
 Scope: workspace, xyona-core, xyona-cdp-pack, xyona-lab  
 Date: 2026-04-29  
 Roadmap: `ROADMAP_OPERATOR_MODULE_STRUCTURE.md`  
@@ -18,7 +18,7 @@ the physical operator-module folder migration in the CDP pack.
 
 ## Executive Status
 
-The first seventeen cross-repository naming/metadata slices are implemented and
+The first eighteen cross-repository naming/metadata slices are implemented and
 verified.
 
 `xyona-core` now exposes transitional operator module identity fields directly
@@ -165,6 +165,13 @@ longer hand-write the port descriptor calls; they keep only the local C arrays
 that bind generated port descriptors into each operator descriptor. The slice
 also fixes the shared Cut/CutEnd adapter so CutEnd's `splice_ms` descriptor
 uses CutEnd's generated parameter metadata instead of Cut's metadata.
+
+Slice 18 moves current CDP parameter descriptor facts onto the generated path.
+Module-local `op.yaml` now declares parameter label, type, range, default,
+unit, description, group, display, precision, and RT/HQ availability for all
+current public parameters. The generator emits `XYONA_CDP_PARAM_DESC_*`
+macros, and adapters no longer hand-write `xyona_pack_v2_param_desc`
+aggregate bodies for the current CDP operators.
 
 ## Current Baseline Before This Slice
 
@@ -513,6 +520,17 @@ Slice 17 additions:
 - corrected the CutEnd `splice_ms` descriptor metadata binding in the shared
   edit adapter
 
+Slice 18 additions:
+
+- added `params[].descriptor` facts to module-local `op.yaml` for all current
+  CDP parameters
+- extended `scripts/generate_operator_metadata.py` to generate
+  `XYONA_CDP_PARAM_DESC_*` descriptor macros from those facts
+- replaced all current adapter `xyona_pack_v2_param_desc` aggregate bodies
+  with generated macros
+- corrected the Cut `splice_ms` metadata binding while replacing the shared
+  Cut/CutEnd parameter descriptor arrays
+
 ### xyona-lab
 
 Updated `DiscoveryService`:
@@ -654,10 +672,10 @@ Remaining roadmap work:
   reintroduce flat `src/operators/cdp_*.cpp` public operator files.
 - Split the current shared Cut/CutEnd adapter if descriptor generation or
   future edit modes make separate adapters materially cleaner.
-- Operator-level CDP provenance, validation, parameter metadata, port
-  metadata, port descriptor facts, and top-level pack descriptor initializers
-  are now generated; remaining CDP handwritten descriptor debt is parameter
-  descriptor arrays plus the small local descriptor array shells that bind
+- Operator-level CDP provenance, validation, parameter metadata, parameter
+  descriptor facts, port metadata, port descriptor facts, and top-level pack
+  descriptor initializers are now generated; remaining CDP handwritten
+  descriptor debt is the small local descriptor array shells that bind
   generated descriptors into each adapter.
 - Promote the current focused C++ spec/runtime comparison parsers into the
   final shared validator/codegen path once descriptor generation exists.
@@ -802,5 +820,12 @@ Slice 17:
 
 - `xyona-cdp-pack`: `a45b8a1c6290e647927be560392fc8c0208a9a09`
   - `feat(cdp-pack): generate port descriptors`
+- Workspace root: this report commit plus the updated `xyona-cdp-pack`
+  gitlink.
+
+Slice 18:
+
+- `xyona-cdp-pack`: `a865de09d9555c9f5c8d88318cee5541c993ed31`
+  - `feat(cdp-pack): generate parameter descriptors`
 - Workspace root: this report commit plus the updated `xyona-cdp-pack`
   gitlink.
