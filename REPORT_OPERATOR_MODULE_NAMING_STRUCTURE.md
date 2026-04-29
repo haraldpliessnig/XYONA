@@ -1,6 +1,6 @@
 # Report: Operator Module Naming Structure
 
-Status: Implementation slices 1-5 landed
+Status: Implementation slices 1-6 landed
 Scope: workspace, xyona-core, xyona-cdp-pack, xyona-lab  
 Date: 2026-04-29  
 Roadmap: `ROADMAP_OPERATOR_MODULE_STRUCTURE.md`  
@@ -18,7 +18,7 @@ the physical operator-module folder migration in the CDP pack.
 
 ## Executive Status
 
-The first five cross-repository naming/metadata slices are implemented and
+The first six cross-repository naming/metadata slices are implemented and
 verified.
 
 `xyona-core` now exposes transitional operator module identity fields directly
@@ -74,6 +74,13 @@ temporary aggregate file into per-module `op.yaml` files. The descriptor
 runtime test now scans the repository for both remaining aggregate
 `*.op.yaml` files and migrated module `op.yaml` files, so split specs remain
 covered by the same runtime gate.
+
+Slice 6 continues Roadmap Phase 3 with the CDP `modify/loudness` group. The
+four current loudness operators now use provider-local module roots under
+`src/operators/modify/<operator>/`, with adapters, existing HelpCenter docs,
+and per-module `op.yaml` records co-located. The temporary aggregate spec now
+only keeps the not-yet-migrated CDP groups, while the same validator and
+runtime descriptor gate continue to cover the full 16-operator pack surface.
 
 ## Current Baseline Before This Slice
 
@@ -265,6 +272,20 @@ Slice 5 additions:
 - kept the current CMake registration explicit while changing source paths;
   descriptor generation and generated registration remain future work
 
+Slice 6 additions:
+
+- moved `cdp.modify.loudness_gain`, `cdp.modify.loudness_dbgain`,
+  `cdp.modify.loudness_normalise`, and
+  `cdp.modify.loudness_phase_invert` into canonical provider-local module
+  roots under `src/operators/modify/`
+- moved loudness C++ adapter files into each module's `adapter/` folder
+- moved existing loudness HelpCenter docs from `src/operators/cdp.modify/...`
+  to `src/operators/modify/...`
+- split the four loudness records out of `specs/operators/cdp-current.op.yaml`
+  into per-module `op.yaml`
+- updated explicit CMake and include references without changing public
+  operator IDs or descriptor metadata
+
 ### xyona-lab
 
 Updated `DiscoveryService`:
@@ -350,9 +371,13 @@ Observed on Windows / MSVC debug builds:
 - `xyona-cdp-pack`
   - `cmake --preset windows-msvc-debug`
   - `cmake --build build/windows-msvc-debug --target xyona_pack_cdp_ops test_cdp_descriptor_metadata test_cdp_utility_length_change test_cdp_pack test_cdp_pack_env_discovery --config Debug`
+  - `cmake --build build/windows-msvc-debug --target xyona_pack_cdp_ops test_cdp_descriptor_metadata test_cdp_modify_loudness_gain test_cdp_modify_loudness_modes test_cdp_modify_loudness_normalise test_cdp_pack test_cdp_pack_env_discovery --config Debug`
   - `ctest --test-dir build/windows-msvc-debug -C Debug -R cdp_operator_module_metadata_tests --output-on-failure`
   - `cmake --build build/windows-msvc-debug --target test_cdp_descriptor_metadata --config Debug`
   - `ctest --test-dir build/windows-msvc-debug -C Debug -R cdp_descriptor_metadata_tests --output-on-failure`
+  - `ctest --test-dir build/windows-msvc-debug -C Debug -R cdp_modify_loudness_gain_tests --output-on-failure`
+  - `ctest --test-dir build/windows-msvc-debug -C Debug -R cdp_modify_loudness_modes_tests --output-on-failure`
+  - `ctest --test-dir build/windows-msvc-debug -C Debug -R cdp_modify_loudness_normalise_tests --output-on-failure`
   - `ctest --test-dir build/windows-msvc-debug -C Debug -R cdp_utility_length_change_tests --output-on-failure`
   - `ctest --test-dir build/windows-msvc-debug -C Debug -R cdp_pack_loader_tests --output-on-failure`
   - `ctest --test-dir build/windows-msvc-debug -C Debug -R cdp_pack_env_discovery_tests --output-on-failure`
@@ -387,8 +412,7 @@ Remaining roadmap work:
   generated metadata pipeline.
 - Continue splitting transitional aggregate `*.op.yaml` records into canonical
   per-operator module roots as the remaining CDP families are migrated.
-- Move remaining CDP families into module roots, next `modify/loudness` and
-  then `modify/space`.
+- Move remaining CDP families into module roots, next `modify/space`.
 - Promote the current focused C++ spec/runtime comparison parsers into the
   final shared validator/codegen path once descriptor generation exists.
 - Compare generated descriptors against runtime discovery once the generated
@@ -450,5 +474,12 @@ Slice 5:
 
 - `xyona-cdp-pack`: `54f442fa8cc3384256d0bdc1067c4cd7708a5161`
   - `refactor(cdp-pack): move utility operators into module roots`
+- Workspace root: this report commit plus the updated `xyona-cdp-pack`
+  gitlink.
+
+Slice 6:
+
+- `xyona-cdp-pack`: `5a5ee2680f3f060fc6e7bf847d9303d8f46fdd49`
+  - `refactor(cdp-pack): move loudness operators into module roots`
 - Workspace root: this report commit plus the updated `xyona-cdp-pack`
   gitlink.
