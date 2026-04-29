@@ -1,6 +1,6 @@
 # Report: Operator Module Naming Structure
 
-Status: Implementation slices 1-10 landed
+Status: Implementation slices 1-11 landed
 Scope: workspace, xyona-core, xyona-cdp-pack, xyona-lab  
 Date: 2026-04-29  
 Roadmap: `ROADMAP_OPERATOR_MODULE_STRUCTURE.md`  
@@ -18,7 +18,7 @@ the physical operator-module folder migration in the CDP pack.
 
 ## Executive Status
 
-The first ten cross-repository naming/metadata slices are implemented and
+The first eleven cross-repository naming/metadata slices are implemented and
 verified.
 
 `xyona-core` now exposes transitional operator module identity fields directly
@@ -110,6 +110,15 @@ fallbacks for module identity. A loaded pack operator must publish `provider`,
 metadata. CDP pack runtime metadata now carries those fields for all 16 current
 operators, and the CDP descriptor gate verifies metadata, descriptors, and
 module-local `op.yaml` agree.
+
+Slice 11 starts Roadmap Phase 2 for the CDP pack by generating the first
+runtime metadata fragments from module-local `op.yaml`. The generated header
+now supplies operator identity/UI and `engine` metadata fragments for all 16
+current CDP operators. The old handwritten shared `XYONA_CDP_ENGINE_*` macros
+are gone from `pack_descriptors.h`; PVOC artifact and spectral contract facts
+now live in the relevant module-local `op.yaml` files. Adapter code still owns
+CDP provenance, validation, port, parameter, descriptor, and registration
+surfaces until the next generation slices replace them.
 
 ## Current Baseline Before This Slice
 
@@ -368,6 +377,25 @@ Slice 10 additions:
 - kept public operator IDs unchanged while removing the loader's ability to
   infer missing CDP metadata from those IDs
 
+Slice 11 additions:
+
+- added `scripts/generate_operator_metadata.py`, which reads
+  `src/operators/**/op.yaml` and generates
+  `src/generated/cdp_operator_metadata.h`
+- generated operator identity/UI metadata fragments from `op.yaml`:
+  `provider`, `providerLabel`, `family`, `moduleName`, `ui.shortLabel`, and
+  `ui.nodeNameStem`
+- generated `engine` metadata fragments from `op.yaml`, including PVOC
+  artifact, input-artifact, and spectral contract details
+- removed the old shared handwritten `XYONA_CDP_ENGINE_*` macros from
+  `src/support/pack_descriptors.h`
+- updated all current CDP adapters to concatenate generated identity/UI/engine
+  fragments with the still-handwritten CDP provenance and validation fragments
+- added `cdp_generated_operator_metadata_tests`, a CTest staleness gate for the
+  checked-in generated header
+- extended the descriptor metadata test's transitional YAML reader so block
+  `engine:` mappings remain covered by the same runtime/spec comparison gate
+
 ### xyona-lab
 
 Updated `DiscoveryService`:
@@ -472,6 +500,9 @@ Observed on Windows / MSVC debug builds:
   - `ctest --test-dir build/windows-msvc-debug -C Debug -R cdp_pack_env_discovery_tests --output-on-failure`
   - `ctest --test-dir build/windows-msvc-debug -C Debug -R cdp_offline_session_conformance_tests --output-on-failure`
   - `C:\Python3.9.5\python.exe scripts\validate_operator_modules.py`
+  - `C:\Python3.9.5\python.exe scripts\generate_operator_metadata.py --check`
+  - `cmake --build build/windows-msvc-debug --target xyona_pack_cdp_ops test_cdp_descriptor_metadata test_cdp_spectral_contract test_cdp_pack test_cdp_pack_env_discovery --config Debug`
+  - `ctest --test-dir build/windows-msvc-debug -C Debug -R "cdp_generated_operator_metadata_tests|cdp_operator_module_metadata_tests|cdp_descriptor_metadata_tests|cdp_spectral_contract_tests|cdp_pack_loader_tests|cdp_pack_env_discovery_tests" --output-on-failure`
   - Result: passed
 
 - `xyona-lab`
@@ -479,7 +510,7 @@ Observed on Windows / MSVC debug builds:
   - `ctest --test-dir build/windows-dev -C Debug -R lab_operator_module_metadata_tests --output-on-failure`
   - `cmake --build build/windows-dev --target xyona_lab_tests --config Debug`
   - `build/windows-dev/tests/Debug/xyona_lab_tests.exe --test="Operator Module Spec Runtime" --xyona-only --summary-only`
-  - `XYONA_OPERATOR_PACK_PATH=D:\GITHUB\XYONA\xyona-cdp-pack\build\windows-msvc-debug\Debug`
+  - `XYONA_OPERATOR_PACK_PATH=D:\GITHUB\XYONA\xyona-cdp-pack\build\windows-msvc-debug\Debug` with the generated CDP metadata pack
   - `build/windows-dev/tests/Debug/xyona_lab_tests.exe --test="CDP Pack Canvas Smoke" --xyona-only --summary-only`
   - `build/windows-dev/tests/Debug/xyona_lab_tests.exe --test="Canvas Param Persistence" --xyona-only --summary-only`
   - Result: passed
@@ -506,12 +537,15 @@ Remaining roadmap work:
   reintroduce flat `src/operators/cdp_*.cpp` public operator files.
 - Split the current shared Cut/CutEnd adapter if descriptor generation or
   future edit modes make separate adapters materially cleaner.
+- Move the remaining CDP provenance, validation, parameter, port, descriptor,
+  CMake, and registration facts out of handwritten C++ surfaces and into
+  generated outputs from module-local `op.yaml`.
 - Promote the current focused C++ spec/runtime comparison parsers into the
   final shared validator/codegen path once descriptor generation exists.
 - Compare generated descriptors against runtime discovery once the generated
   descriptor pipeline replaces handwritten descriptors.
-- Move explicit `engine.domain` and `engine.materialization` facts out of
-  handwritten JSON/string macros and into generated metadata from `op.yaml`.
+- Expand the current CDP metadata generator beyond identity/UI/engine JSON
+  fragments until it owns complete pack descriptors and registration.
 - Replace minimal JSON string extraction in the pack loader with a structured
   parser or generated typed metadata once the final metadata schema stabilizes.
 
@@ -602,3 +636,10 @@ Slice 10:
   - `feat(cdp-pack): publish required module metadata`
 - Workspace root: this report/contract/roadmap commit plus the updated
   `xyona-cdp-pack` gitlink.
+
+Slice 11:
+
+- `xyona-cdp-pack`: `d72145796e0e4dcce48a49c51ae4676b7332af5c`
+  - `feat(cdp-pack): generate operator metadata fragments`
+- Workspace root: this report commit plus the updated `xyona-cdp-pack`
+  gitlink.
