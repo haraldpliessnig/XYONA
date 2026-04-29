@@ -1,6 +1,6 @@
 # Report: Operator Module Naming Structure
 
-Status: Implementation slices 1-29 landed
+Status: Implementation slices 1-30 landed
 Scope: workspace, xyona-core, xyona-cdp-pack, xyona-lab  
 Date: 2026-04-29  
 Roadmap: `ROADMAP_OPERATOR_MODULE_STRUCTURE.md`  
@@ -18,7 +18,7 @@ the physical operator-module folder migration in the CDP pack.
 
 ## Executive Status
 
-The first twenty-nine cross-repository naming/metadata slices are implemented and
+The first thirty cross-repository naming/metadata slices are implemented and
 verified.
 
 `xyona-core` now exposes transitional operator module identity fields directly
@@ -251,6 +251,12 @@ flags, slot scope support, and parameter visibility rules. Signal adapters no
 longer restore pre-generated manual parameter arrays after applying generated
 module metadata, so `op.yaml` is now the tested source of truth for current
 Core parameter descriptors.
+
+Slice 30 extends Core descriptor generation to ports, flags, and slot topology.
+Current Core `op.yaml` records now declare runtime `inputs`, `outputs`, flags,
+and `slot_gain`'s locked routing, variable port ranges, slot count, and stereo
+slot group. Core codegen emits those facts into runtime descriptors and the
+runtime descriptor test compares them against `op.yaml`.
 
 ## Current Baseline Before This Slice
 
@@ -755,6 +761,22 @@ Slice 29 additions:
   `operator_module_runtime_tests|operator_module_metadata_tests|operator_packs_tests|signal_process_tests`,
   and `git diff --check`
 
+Slice 30 additions:
+
+- extended Core codegen to emit `OpDesc.inputs`, `OpDesc.outputs`, `flags`,
+  slot routing policy, slot count, variable port ranges, slot groups, and
+  control capability flags from `op.yaml`
+- added validator coverage for `ports`, `flags`, and `variablePorts`
+- added static port/flag declarations to all current Core operator specs
+- moved `slot_gain`'s structural slot topology contract into `op.yaml`
+- removed the remaining focused-noise flag appends that would have kept Dust,
+  Velvet, and Crackle flags partially outside generated metadata
+- strengthened `test_operator_module_runtime` so port, flag, variable-port,
+  slot, and control-capability descriptor drift now fails in CTest
+- verified validator, direct codegen, targeted MSVC build,
+  `operator_module_runtime_tests|operator_module_metadata_tests|operator_packs_tests|signal_process_tests`,
+  and `git diff --check`
+
 ### xyona-lab
 
 Updated `DiscoveryService`:
@@ -911,8 +933,8 @@ Slice 28 starts Core descriptor generation from `op.yaml`, but does not finish
 the full operator module structure.
 Remaining roadmap work:
 
-- Move remaining handwritten Core descriptor facts such as port and flag facts
-  behind the final `op.yaml` / generated metadata pipeline where appropriate.
+- Remove or simplify remaining handwritten Core descriptor scaffolding that is
+  now overwritten by generated metadata.
 - Remove remaining Core/Lab discovery defaults once those repos expose the
   final generated descriptor/metadata pipeline.
 - Keep Core operator modules under `src/operators/<family>/<module>/`; do not
@@ -1148,4 +1170,10 @@ Slice 29:
 
 - `xyona-core`: `3241f1e421f52d504bdd9c14bf5ac9babca60432`
   - `feat(core): generate operator parameter descriptors`
+- Workspace root: this report commit.
+
+Slice 30:
+
+- `xyona-core`: `4dcfbaa05262803efc423c08db487a2044046f33`
+  - `feat(core): generate operator port descriptors`
 - Workspace root: this report commit.
