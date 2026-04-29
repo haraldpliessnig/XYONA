@@ -1,6 +1,6 @@
 # Report: Operator Module Naming Structure
 
-Status: Implementation slices 1-15 landed
+Status: Implementation slices 1-16 landed
 Scope: workspace, xyona-core, xyona-cdp-pack, xyona-lab  
 Date: 2026-04-29  
 Roadmap: `ROADMAP_OPERATOR_MODULE_STRUCTURE.md`  
@@ -18,7 +18,7 @@ the physical operator-module folder migration in the CDP pack.
 
 ## Executive Status
 
-The first fifteen cross-repository naming/metadata slices are implemented and
+The first sixteen cross-repository naming/metadata slices are implemented and
 verified.
 
 `xyona-core` now exposes transitional operator module identity fields directly
@@ -149,6 +149,12 @@ emits `src/generated/cdp_operator_registration.h`. `pack_registration.cpp`
 validates the host ABI and delegates to the generated registration helper, so
 adding/removing an operator no longer requires hand-editing the central
 registration source.
+
+Slice 16 removes the manual CMake operator source list for current CDP
+operators. Module-local `op.yaml` now also declares each adapter source file,
+the generator emits `src/generated/cdp_operator_sources.cmake`, and the pack
+target includes `${XYONA_CDP_OPERATOR_SOURCES}` instead of listing every
+operator adapter in `CMakeLists.txt`.
 
 ## Current Baseline Before This Slice
 
@@ -475,6 +481,16 @@ Slice 15 additions:
 - replaced the hand-written include list and registration call list in
   `src/pack_registration.cpp` with a call to the generated registration helper
 
+Slice 16 additions:
+
+- added `adapter.source` declarations to every current CDP module-local
+  `op.yaml`
+- extended `scripts/generate_operator_metadata.py` to generate
+  `src/generated/cdp_operator_sources.cmake` and include it in the staleness
+  check
+- updated `CMakeLists.txt` so `xyona_pack_cdp_ops` consumes the generated
+  `XYONA_CDP_OPERATOR_SOURCES` list
+
 ### xyona-lab
 
 Updated `DiscoveryService`:
@@ -619,7 +635,7 @@ Remaining roadmap work:
 - Operator-level CDP provenance, validation, parameter metadata, port
   metadata, and top-level pack descriptor initializers are now generated;
   remaining CDP handwritten descriptor debt is parameter descriptor arrays,
-  port descriptor arrays and CMake source ownership.
+  and port descriptor arrays.
 - Promote the current focused C++ spec/runtime comparison parsers into the
   final shared validator/codegen path once descriptor generation exists.
 - Compare generated descriptors against runtime discovery once the generated
@@ -749,5 +765,12 @@ Slice 15:
 
 - `xyona-cdp-pack`: `bbd72729881f7c8d6f6090dd8a9d8969b383a0e7`
   - `feat(cdp-pack): generate operator registration`
+- Workspace root: this report commit plus the updated `xyona-cdp-pack`
+  gitlink.
+
+Slice 16:
+
+- `xyona-cdp-pack`: `65f8a220cfc123fc418ab3e2c6230993d8f54917`
+  - `feat(cdp-pack): generate operator source list`
 - Workspace root: this report commit plus the updated `xyona-cdp-pack`
   gitlink.
