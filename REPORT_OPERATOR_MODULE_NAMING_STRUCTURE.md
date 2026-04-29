@@ -1,6 +1,6 @@
 # Report: Operator Module Naming Structure
 
-Status: Implementation slices 1-18 landed
+Status: Implementation slices 1-19 landed
 Scope: workspace, xyona-core, xyona-cdp-pack, xyona-lab  
 Date: 2026-04-29  
 Roadmap: `ROADMAP_OPERATOR_MODULE_STRUCTURE.md`  
@@ -18,7 +18,7 @@ the physical operator-module folder migration in the CDP pack.
 
 ## Executive Status
 
-The first eighteen cross-repository naming/metadata slices are implemented and
+The first nineteen cross-repository naming/metadata slices are implemented and
 verified.
 
 `xyona-core` now exposes transitional operator module identity fields directly
@@ -172,6 +172,13 @@ unit, description, group, display, precision, and RT/HQ availability for all
 current public parameters. The generator emits `XYONA_CDP_PARAM_DESC_*`
 macros, and adapters no longer hand-write `xyona_pack_v2_param_desc`
 aggregate bodies for the current CDP operators.
+
+Slice 19 adds the permanent operator-module authoring guidance requested for
+future work. The workspace root now has `OPERATOR_MODULE_AUTHORING_GUIDE.md`
+linked from root `AGENTS.md`, and Core, CDP pack, and Lab each have a
+package-local authoring guide. Core and CDP pack now also have package-local
+`AGENTS.md` files, while Lab's existing `AGENTS.md` explicitly links its guide
+and forbids Lab-side provider-prefix label mutation or dotted-ID Canvas naming.
 
 ## Current Baseline Before This Slice
 
@@ -531,6 +538,17 @@ Slice 18 additions:
 - corrected the Cut `splice_ms` metadata binding while replacing the shared
   Cut/CutEnd parameter descriptor arrays
 
+Slice 19 additions:
+
+- added the workspace-level `OPERATOR_MODULE_AUTHORING_GUIDE.md`
+- linked the guide from root `AGENTS.md`
+- added `xyona-core/OPERATOR_MODULE_AUTHORING_GUIDE.md` and
+  `xyona-core/AGENTS.md`
+- added `xyona-cdp-pack/OPERATOR_MODULE_AUTHORING_GUIDE.md` and
+  `xyona-cdp-pack/AGENTS.md`
+- added `xyona-lab/OPERATOR_MODULE_AUTHORING_GUIDE.md` and linked it from
+  `xyona-lab/AGENTS.md`
+
 ### xyona-lab
 
 Updated `DiscoveryService`:
@@ -829,3 +847,14 @@ Slice 18:
   - `feat(cdp-pack): generate parameter descriptors`
 - Workspace root: this report commit plus the updated `xyona-cdp-pack`
   gitlink.
+
+Slice 19:
+
+- `xyona-core`: `ba7eec28bb9e16b93e234387d7acc013f54e2463`
+  - `docs(core): add operator module authoring guide`
+- `xyona-cdp-pack`: `82b0e315536d7bdaf2345810ebbae6ba0058a2a7`
+  - `docs(cdp-pack): add operator module authoring guide`
+- `xyona-lab`: `3fdccc9e977ee1a6b1f1eb5b0ed9c4f9c4e7dadd`
+  - `docs(lab): add operator module authoring guide`
+- Workspace root: this report/root-guide commit plus the updated
+  `xyona-cdp-pack` gitlink.

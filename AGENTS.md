@@ -21,6 +21,26 @@ the specific repo or repos you will touch.
 
 ## Repository Ownership
 
+## Operator Module Authoring
+
+Before adding, moving, or wiring any public operator, read
+`OPERATOR_MODULE_AUTHORING_GUIDE.md` and `OPERATOR_MODULE_CONTRACT.md`.
+
+Do not create flat public operator files, provider-prefixed module folders such
+as `src/operators/cdp.modify`, provider-prefixed labels such as `CDP: ...`, or
+Canvas default names derived from dotted operator IDs. Operator identity,
+provider, family/type, module name, short label, node-name stem, engine domain,
+materialization, ports, params, help, provenance, and generated descriptor
+surfaces must come from the operator module contract.
+
+Each package also has a package-local guide and, where present, a package-local
+`AGENTS.md`. Follow those before package edits:
+
+- `xyona-core/OPERATOR_MODULE_AUTHORING_GUIDE.md`
+- `xyona-cdp-pack/OPERATOR_MODULE_AUTHORING_GUIDE.md`
+- `xyona-lab/OPERATOR_MODULE_AUTHORING_GUIDE.md`
+- `xyona-lab/AGENTS.md`
+
 ### xyona-core
 
 `xyona-core` owns pure processing and host-agnostic deterministic runtime code:
