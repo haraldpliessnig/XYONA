@@ -1,6 +1,6 @@
 # Report: Operator Module Naming Structure
 
-Status: Implementation slices 1-31 landed
+Status: Implementation slices 1-32 landed
 Scope: workspace, xyona-core, xyona-cdp-pack, xyona-lab  
 Date: 2026-04-29  
 Roadmap: `ROADMAP_OPERATOR_MODULE_STRUCTURE.md`  
@@ -18,7 +18,7 @@ the physical operator-module folder migration in the CDP pack.
 
 ## Executive Status
 
-The first thirty-one cross-repository naming/metadata slices are implemented and
+The first thirty-two cross-repository naming/metadata slices are implemented and
 verified.
 
 `xyona-core` now exposes transitional operator module identity fields directly
@@ -263,6 +263,13 @@ Slice 31 fixes the dynamic-topology edge exposed by Slice 30. Generated
 adapter still reapplies the current `slot_count` value after generated metadata
 is loaded so `describe()` reflects expanded dynamic ports after topology
 parameter changes.
+
+Slice 32 removes the now-redundant Core descriptor scaffolding. Current Core
+adapters no longer hand-write static descriptor labels, ports, flags,
+capabilities, parameter descriptor facts, or signal descriptor shells that are
+already generated from module-local `op.yaml`. `slot_gain` keeps only the
+runtime-dependent dynamic topology mutation after the generated baseline
+descriptor is applied.
 
 ## Current Baseline Before This Slice
 
@@ -795,6 +802,21 @@ Slice 31 additions:
   `operator_dispatcher_tests|operator_module_runtime_tests|operator_module_metadata_tests|operator_packs_tests|signal_process_tests`,
   and `git diff --check`
 
+Slice 32 additions:
+
+- reduced simple Core adapters to `Operator::buildDescriptor()` plus
+  `detail::applyOperatorModuleDescriptor(...)`
+- reduced signal processor/generator descriptor helpers to generated metadata
+  application only
+- removed focused-noise descriptor identity fields that duplicated `op.yaml`
+- kept `slot_gain` dynamic port and slot-group expansion as the one
+  runtime-dependent descriptor mutation in this slice
+- updated the Core operator template so new operators declare public descriptor
+  facts in `op.yaml` and use the generated descriptor helper
+- verified validator, direct codegen, targeted MSVC build,
+  `operator_dispatcher_tests|operator_module_runtime_tests|operator_module_metadata_tests|operator_packs_tests|signal_process_tests`,
+  and `git diff --check`
+
 ### xyona-lab
 
 Updated `DiscoveryService`:
@@ -951,8 +973,6 @@ Slice 28 starts Core descriptor generation from `op.yaml`, but does not finish
 the full operator module structure.
 Remaining roadmap work:
 
-- Remove or simplify remaining handwritten Core descriptor scaffolding that is
-  now overwritten by generated metadata.
 - Remove remaining Core/Lab discovery defaults once those repos expose the
   final generated descriptor/metadata pipeline.
 - Keep Core operator modules under `src/operators/<family>/<module>/`; do not
@@ -1200,4 +1220,10 @@ Slice 31:
 
 - `xyona-core`: `549c8d7bbc537dc74c796767602b553b66492fd1`
   - `fix(core): preserve dynamic slot gain descriptors`
+- Workspace root: this report commit.
+
+Slice 32:
+
+- `xyona-core`: `252bbbf09ad35138076451886b0bc4c317027367`
+  - `refactor(core): remove generated descriptor scaffolding`
 - Workspace root: this report commit.
