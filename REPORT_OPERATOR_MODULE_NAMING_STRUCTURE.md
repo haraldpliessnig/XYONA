@@ -1,6 +1,6 @@
 # Report: Operator Module Naming Structure
 
-Status: Implementation slices 1-3 landed
+Status: Implementation slices 1-4 landed
 Scope: workspace, xyona-core, xyona-cdp-pack, xyona-lab  
 Date: 2026-04-29  
 Roadmap: `ROADMAP_OPERATOR_MODULE_STRUCTURE.md`  
@@ -11,12 +11,13 @@ provider-aware UI metadata, deterministic Canvas node naming, and operator
 module validation. The initial goal was to remove Lab-side label mutation such
 as `CDP: ...` and stop deriving default node names from dotted operator IDs such
 as `cdp.modify.loudness_gain`. Later slices hardened the same surface by making
-engine domain/materialization explicit and by adding a schema-backed metadata
-gate for current Core, CDP-pack, and Lab operator surfaces.
+engine domain/materialization explicit, by adding a schema-backed metadata
+gate for current Core, CDP-pack, and Lab operator surfaces, and by comparing
+those declared surfaces against runtime discovery descriptors.
 
 ## Executive Status
 
-The first three cross-repository naming/metadata slices are implemented and
+The first four cross-repository naming/metadata slices are implemented and
 verified.
 
 `xyona-core` now exposes transitional operator module identity fields directly
@@ -50,6 +51,18 @@ transitional `specs/operators/*.op.yaml` data for all 16 currently registered
 CDP operators. Lab publishes equivalent specs for 17 current public host
 operators. Core, CDP pack, and Lab now expose CTest metadata gates for these
 surfaces.
+
+Slice 4 closes the first spec/runtime drift loop. Core now compares legacy
+`src/processes/**/meta.yaml` records against actual registered runtime
+descriptors. CDP pack compares `specs/operators/cdp-current.op.yaml` against
+the loaded dynamic-pack descriptors and operator metadata JSON. Lab compares
+`specs/operators/lab-public.op.yaml` against `DiscoveryService` descriptors
+and palette UI metadata. This gate found and fixed real drift: Core
+`audio_clip` was not registered through `registerAllProcesses()` and had a
+descriptor category mismatch, CDP descriptor labels still repeated provider
+and family names, and Lab discovery needed full provider-local family defaults,
+explicit domain/materialization defaults, analyzer test registration, and a
+stable `grid` node-name stem for `lab.grid_source`.
 
 ## Current Baseline Before This Slice
 
@@ -128,6 +141,21 @@ Slice 3 additions:
 - Core CTest now runs the validator against existing
   `src/processes/**/meta.yaml` through a transitional legacy adapter
 
+Slice 4 additions:
+
+- `xyona::api::getAllOperators()` and `xyona::api::getOperatorDesc()` now
+  normalize discovery defaults for legacy/Core descriptors, including
+  provider, provider label, family, module name, short label, node-name stem,
+  domain, and materialization
+- `audio_clip` is registered by `registerAllProcesses()` and its runtime
+  category now matches the existing `meta.yaml` value `I/O`
+- added `test_operator_module_runtime`, which scans
+  `src/processes/**/meta.yaml`, compares each metadata record to the runtime
+  descriptor, and fails if the registered Core operator set drifts from the
+  metadata files
+- dynamic-pack descriptors with no explicit materialization now normalize to
+  the contract value `none`
+
 The loader remains backward-compatible with existing packs because every field
 has a deterministic fallback.
 
@@ -193,6 +221,23 @@ Slice 3 additions:
   `moduleName`, `ui.nodeNameStem`, capability, engine domain, materialization,
   and CDP provenance surface without moving the flat C++ operator files yet
 
+Slice 4 additions:
+
+- `cdp_descriptor_metadata_tests` now loads
+  `specs/operators/cdp-current.op.yaml`
+- the test compares every current loaded pack descriptor against the spec for
+  provider, provider label, family, module name, label, operator type,
+  category, short label, node-name stem, capabilities, domain, and
+  materialization
+- the same test compares operator metadata JSON against the spec for process
+  shape, domain, materialization, whole-file requirement, length-changing flag,
+  short label, and node-name stem
+- all current CDP public descriptor labels were made provider-free and
+  family-free, for example `Loudness Gain`, `PVOC Analysis`, `dB Gain`, and
+  `Cut`, with provider/family context left in structured fields
+- metadata-test failures now exit non-interactively instead of relying on a
+  debug assert dialog
+
 ### xyona-lab
 
 Updated `DiscoveryService`:
@@ -239,6 +284,19 @@ Slice 3 additions:
   `ui.nodeNameStem`, capability, domain, and materialization vocabulary as
   Core and pack operators
 
+Slice 4 additions:
+
+- added `OperatorModuleSpecRuntimeTests`, which loads
+  `specs/operators/lab-public.op.yaml` and compares it to `DiscoveryService`
+  descriptors plus palette UI metadata
+- `DiscoveryService` now derives Lab families from the full provider-local
+  category tail, for example `lab.system.audio` becomes `system.audio`
+- Lab discovery now supplies explicit fallback `domain` and `materialization`
+  values for public Lab operators
+- the Lab test harness registers analyzer operators so the spec/runtime test
+  covers the full public Lab spec set
+- `lab.grid_source` now declares the stable node-name stem `grid`
+
 ## Boundary Notes
 
 - CDP algorithms remain in `xyona-cdp-pack`.
@@ -255,6 +313,8 @@ Observed on Windows / MSVC debug builds:
 
 - `xyona-core`
   - `cmake --preset windows-msvc-debug`
+  - `cmake --build build/windows-msvc-debug --target test_operator_module_runtime test_operator_packs --config Debug`
+  - `ctest --test-dir build/windows-msvc-debug -C Debug -R operator_module_runtime_tests --output-on-failure`
   - `ctest --test-dir build/windows-msvc-debug -C Debug -R operator_module_metadata_tests --output-on-failure`
   - `cmake --build build/windows-msvc-debug --target test_operator_packs --config Debug`
   - `ctest --test-dir build/windows-msvc-debug -C Debug -R operator_packs_tests --output-on-failure`
@@ -264,13 +324,14 @@ Observed on Windows / MSVC debug builds:
   - `cmake --preset windows-msvc-debug`
   - `ctest --test-dir build/windows-msvc-debug -C Debug -R cdp_operator_module_metadata_tests --output-on-failure`
   - `cmake --build build/windows-msvc-debug --target test_cdp_descriptor_metadata --config Debug`
-  - `ctest --test-dir build/windows-msvc-debug -C Debug -R cdp_descriptor_metadata --output-on-failure`
+  - `ctest --test-dir build/windows-msvc-debug -C Debug -R cdp_descriptor_metadata_tests --output-on-failure`
   - Result: passed
 
 - `xyona-lab`
   - `cmake --preset windows-dev`
   - `ctest --test-dir build/windows-dev -C Debug -R lab_operator_module_metadata_tests --output-on-failure`
   - `cmake --build build/windows-dev --target xyona_lab_tests --config Debug`
+  - `build/windows-dev/tests/Debug/xyona_lab_tests.exe --test="Operator Module Spec Runtime" --xyona-only --summary-only`
   - `XYONA_OPERATOR_PACK_PATH=D:\GITHUB\XYONA\xyona-cdp-pack\build\windows-msvc-debug\Debug`
   - `build/windows-dev/tests/Debug/xyona_lab_tests.exe --test="CDP Pack Canvas Smoke" --xyona-only --summary-only`
   - `build/windows-dev/tests/Debug/xyona_lab_tests.exe --test="Canvas Param Persistence" --xyona-only --summary-only`
@@ -294,8 +355,10 @@ Remaining roadmap work:
   generated metadata pipeline.
 - Split transitional aggregate `*.op.yaml` files into canonical per-operator
   module roots as folders are migrated.
-- Compare validated specs directly against runtime discovery descriptors,
-  generated descriptors, and pack metadata JSON so spec/runtime drift fails CI.
+- Promote the current focused C++ spec/runtime comparison parsers into the
+  final shared validator/codegen path once descriptor generation exists.
+- Compare generated descriptors against runtime discovery once the generated
+  descriptor pipeline replaces handwritten descriptors.
 - Move explicit `engine.domain` and `engine.materialization` facts out of
   handwritten JSON/string macros and into generated metadata from `op.yaml`.
 - Replace minimal JSON string extraction in the pack loader with a structured
@@ -335,5 +398,16 @@ Slice 3:
   - `feat(cdp-pack): add operator module specs gate`
 - `xyona-lab`: `f2061824f948afe768b87f7f5e8cf263b01818c9`
   - `feat(lab): add public operator module specs gate`
+- Workspace root: `0db82e3ae660f86d59ca63131b1c1aff13ae352a`
+  - `docs: report operator module validation slice`
+
+Slice 4:
+
+- `xyona-core`: `1c8acd29e0d98906123269c3cfcfe75a0a8bb613`
+  - `feat(core): compare operator metadata specs to runtime`
+- `xyona-cdp-pack`: `7ade2795f151b84c46f3935c183879d5af556f69`
+  - `test(cdp-pack): compare operator specs to runtime metadata`
+- `xyona-lab`: `c39c66453e7790ff19de6aabdf8fcc7db1de6cde`
+  - `test(lab): compare public operator specs to discovery`
 - Workspace root: this report commit plus the updated `xyona-cdp-pack`
   gitlink.
