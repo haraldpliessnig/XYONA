@@ -1,6 +1,6 @@
 # Report: Operator Module Naming Structure
 
-Status: Implementation slices 1-39 landed
+Status: Implementation slices 1-40 landed
 Scope: workspace, xyona-core, xyona-cdp-pack, xyona-lab  
 Date: 2026-04-29  
 Roadmap: `ROADMAP_OPERATOR_MODULE_STRUCTURE.md`  
@@ -18,7 +18,7 @@ the physical operator-module folder migration in the CDP pack.
 
 ## Executive Status
 
-The first thirty-nine cross-repository naming/metadata slices are implemented and
+The first forty cross-repository naming/metadata slices are implemented and
 verified.
 
 `xyona-core` now exposes transitional operator module identity fields directly
@@ -323,6 +323,12 @@ root, adapter ownership, `adapter.sharedSources`, forbidden legacy paths,
 required `op.yaml` fields, and package placement. Root, Core, CDP pack, and Lab
 `AGENTS.md` files link the package-local guides and restate the guardrails most
 likely to prevent future wrong structure.
+
+Slice 40 closes the roadmap and contract documents against the implemented
+state. `OPERATOR_MODULE_CONTRACT.md` is now the current workspace standard
+instead of a draft/migration text, and `ROADMAP_OPERATOR_MODULE_STRUCTURE.md`
+is now a completion record with explicit phase results, verification gates, and
+future follow-ups separated from the completed naming/structure migration.
 
 ## Current Baseline Before This Slice
 
@@ -970,6 +976,21 @@ Slice 39 documentation additions:
 - verified Core, CDP pack, Lab, and root docs with the repo-local validators,
   generator staleness check where relevant, and `git diff --check`
 
+Slice 40 closure additions:
+
+- rewrote `OPERATOR_MODULE_CONTRACT.md` as version 1.3 workspace standard,
+  removing obsolete statements that Core still uses `src/processes` or
+  `meta.yaml`
+- rewrote `ROADMAP_OPERATOR_MODULE_STRUCTURE.md` as a completed roadmap for
+  the current public operator surface
+- documented completed end state by responsibility: shared contract, naming and
+  discovery, Core, CDP pack, Lab, and CDP8 reference workflow
+- documented current verification gates per repo
+- marked remaining naming/structure migration work as complete and separated
+  future non-migration follow-ups such as installed pack help packaging and
+  future Offline Session ABI expansion
+- verified root docs with `git diff --check`
+
 ### xyona-lab
 
 Updated `DiscoveryService`:
@@ -1160,20 +1181,20 @@ Observed warnings:
 
 ## Remaining Work
 
-After Slice 38, Core and the CDP pack both generate current runtime descriptor
+After Slice 40, Core and the CDP pack both generate current runtime descriptor
 metadata from module-local `op.yaml`, the pack loader requires explicit module
 metadata, Core no longer uses substring-based JSON reads for pack metadata, and
 Core/Lab discovery no longer fills missing operator-module identity fields from
 IDs, categories, labels, or private paths. The current shared CDP Cut/CutEnd
 implementation is now declared as common implementation code, not as one
 operator module borrowing another module's adapter. The shared validator now
-guards the old physical structure from being reintroduced.
-Remaining roadmap work:
+guards the old physical structure from being reintroduced, and the contract,
+roadmap, authoring guides, and package-local agent instructions describe the
+current standard.
 
-- Promote the current focused C++ spec/runtime comparison parsers into the
-  final shared validator/codegen path once descriptor generation exists.
-- Compare generated descriptors against runtime discovery once the generated
-  descriptor pipeline replaces handwritten descriptors.
+No remaining naming/structure migration work is required for the current public
+operator surface. Future work listed in the roadmap is outside this completed
+migration and should be scoped as normal feature work.
 
 ## Commit Map
 
@@ -1456,3 +1477,7 @@ Slice 39:
   - `docs(lab): finalize operator module authoring rules`
 - Workspace root: this report/root-guide commit plus the updated
   `xyona-cdp-pack` gitlink.
+
+Slice 40:
+
+- Workspace root: this report/contract/roadmap closure commit.
