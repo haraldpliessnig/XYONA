@@ -1,6 +1,6 @@
 # Report: Operator Module Naming Structure
 
-Status: Implementation slices 1-35 landed
+Status: Implementation slices 1-36 landed
 Scope: workspace, xyona-core, xyona-cdp-pack, xyona-lab  
 Date: 2026-04-29  
 Roadmap: `ROADMAP_OPERATOR_MODULE_STRUCTURE.md`  
@@ -18,7 +18,7 @@ the physical operator-module folder migration in the CDP pack.
 
 ## Executive Status
 
-The first thirty-five cross-repository naming/metadata slices are implemented and
+The first thirty-six cross-repository naming/metadata slices are implemented and
 verified.
 
 `xyona-core` now exposes transitional operator module identity fields directly
@@ -291,6 +291,14 @@ API no longer derives provider, family, module name, UI labels, node-name
 stems, domain, or materialization from IDs and categories after registration.
 Current Core and pack descriptors therefore have to carry their module contract
 metadata before they reach public discovery.
+
+Slice 36 removes Lab's matching discovery and node-name fallbacks. Lab-owned
+public operators now apply explicit module metadata during descriptor creation,
+the CustomOperator registry rejects incomplete Lab descriptors, DiscoveryService
+passes metadata through instead of deriving it, and NodeBinder refuses to create
+or restore operator nodes that lack a valid `ui.nodeNameStem`. The Lab public
+operator spec now also declares default port surfaces so the shared validator no
+longer has to accept port-less host operator records.
 
 ## Current Baseline Before This Slice
 
@@ -940,6 +948,23 @@ Slice 4 additions:
   covers the full public Lab spec set
 - `lab.grid_source` now declares the stable node-name stem `grid`
 
+Slice 36 additions:
+
+- moved Lab-owned public operator module metadata into explicit descriptor
+  construction via `CustomOperator::applyOperatorModuleMetadata(...)`
+- made `CustomOperatorRegistry` reject Lab descriptors missing provider,
+  family/module, UI stem, domain, or materialization metadata
+- removed `DiscoveryService` provider/family/module/UI/domain/materialization
+  fallback derivation
+- changed `NodeBinder` to require a valid descriptor `nodeNameStem` instead of
+  deriving visible node names from module names, labels, or dotted IDs
+- added explicit default `ports` entries to all 17 Lab public operator spec
+  records
+- verified Lab validator, Lab metadata CTest, targeted Lab test binary build,
+  `Operator Module Spec Runtime`, `Canvas Param Persistence`,
+  `CDP Pack Canvas Smoke`, `MainBusOutOperator`, `MainBusLayoutChangeSmoke`,
+  `BusAccumulator`, post-rebase metadata checks, and `git diff --check`
+
 ## Boundary Notes
 
 - CDP algorithms remain in `xyona-cdp-pack`.
@@ -1020,6 +1045,15 @@ Observed on Windows / MSVC debug builds:
   - `XYONA_OPERATOR_PACK_PATH=D:\GITHUB\XYONA\xyona-cdp-pack\build\windows-msvc-debug\Debug` with the generated CDP metadata pack
   - `build/windows-dev/tests/Debug/xyona_lab_tests.exe --test="CDP Pack Canvas Smoke" --xyona-only --summary-only`
   - `build/windows-dev/tests/Debug/xyona_lab_tests.exe --test="Canvas Param Persistence" --xyona-only --summary-only`
+  - `C:\Python3.9.5\python.exe scripts\validate_operator_modules.py`
+  - `cmake --build build/windows-dev --target xyona_lab_tests --config Debug`
+  - `ctest --test-dir build/windows-dev -C Debug -R lab_operator_module_metadata_tests --output-on-failure --timeout 60`
+  - `build/windows-dev/tests/Debug/xyona_lab_tests.exe --test="Operator Module Spec Runtime" --xyona-only --summary-only`
+  - `build/windows-dev/tests/Debug/xyona_lab_tests.exe --test="Canvas Param Persistence" --xyona-only --summary-only`
+  - `XYONA_OPERATOR_PACK_PATH=D:\GITHUB\XYONA\xyona-cdp-pack\build\windows-msvc-debug\Debug build/windows-dev/tests/Debug/xyona_lab_tests.exe --test="CDP Pack Canvas Smoke" --xyona-only --summary-only`
+  - `build/windows-dev/tests/Debug/xyona_lab_tests.exe --test="MainBusOutOperator" --xyona-only --summary-only`
+  - `build/windows-dev/tests/Debug/xyona_lab_tests.exe --test="MainBusLayoutChangeSmoke" --xyona-only --summary-only`
+  - `build/windows-dev/tests/Debug/xyona_lab_tests.exe --test="BusAccumulator" --xyona-only --summary-only`
   - Result: passed
 
 - Diff hygiene:
@@ -1037,13 +1071,13 @@ Observed warnings:
 
 ## Remaining Work
 
-After Slice 34, Core and the CDP pack both generate current runtime descriptor
+After Slice 36, Core and the CDP pack both generate current runtime descriptor
 metadata from module-local `op.yaml`, the pack loader requires explicit module
-metadata, and Core no longer uses substring-based JSON reads for pack metadata.
+metadata, Core no longer uses substring-based JSON reads for pack metadata, and
+Core/Lab discovery no longer fills missing operator-module identity fields from
+IDs, categories, labels, or private paths.
 Remaining roadmap work:
 
-- Remove remaining Core/Lab discovery defaults once those repos expose the
-  final generated descriptor/metadata pipeline.
 - Keep Core operator modules under `src/operators/<family>/<module>/`; do not
   reintroduce `src/processes` or `meta.yaml` for public operator modules.
 - Keep new CDP operators on the module-root path from first commit; do not
@@ -1305,4 +1339,10 @@ Slice 35:
 
 - `xyona-core`: `6ed5a7cb1e3aef21f2a042ab5eec10463f1c9c71`
   - `refactor(core): remove operator discovery defaults`
+- Workspace root: this report commit.
+
+Slice 36:
+
+- `xyona-lab`: `be7f1c1bb439c2e833016132445ffb6ce99f09c8`
+  - `refactor(lab): require explicit operator module metadata`
 - Workspace root: this report commit.
