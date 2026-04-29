@@ -135,4 +135,3 @@ Use repo-local commands. The workspace root is not a monorepo build.
 - `xyona-lab`: Lab owns host/UI public operators and HelpCenter consumption.
   It must consume Core/pack metadata through public discovery and must not
   infer names from private folders or dotted IDs.
-
