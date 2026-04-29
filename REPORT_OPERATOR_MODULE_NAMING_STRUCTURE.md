@@ -1,21 +1,22 @@
 # Report: Operator Module Naming Structure
 
-Status: Implementation slices 1-2 landed
+Status: Implementation slices 1-3 landed
 Scope: workspace, xyona-core, xyona-cdp-pack, xyona-lab  
 Date: 2026-04-29  
 Roadmap: `ROADMAP_OPERATOR_MODULE_STRUCTURE.md`  
 Contract: `OPERATOR_MODULE_CONTRACT.md`
 
 This report tracks the implementation slices for structured operator identity,
-provider-aware UI metadata, deterministic Canvas node naming, and the first
-metadata validation gate. The initial goal was to remove Lab-side label mutation
-such as `CDP: ...` and stop deriving default node names from dotted operator IDs
-such as `cdp.modify.loudness_gain`. The second slice hardens the same surface by
-making engine domain/materialization explicit and test-visible.
+provider-aware UI metadata, deterministic Canvas node naming, and operator
+module validation. The initial goal was to remove Lab-side label mutation such
+as `CDP: ...` and stop deriving default node names from dotted operator IDs such
+as `cdp.modify.loudness_gain`. Later slices hardened the same surface by making
+engine domain/materialization explicit and by adding a schema-backed metadata
+gate for current Core, CDP-pack, and Lab operator surfaces.
 
 ## Executive Status
 
-The first two cross-repository naming/metadata slices are implemented and
+The first three cross-repository naming/metadata slices are implemented and
 verified.
 
 `xyona-core` now exposes transitional operator module identity fields directly
@@ -42,6 +43,13 @@ shared node-name-stem validity helper and only reads pack `domain` and
 publish explicit domain/materialization values for every current process shape.
 Lab discovery coverage now proves that Lab-authored and Core-authored operators
 receive the same naming defaults as pack operators.
+
+Slice 3 adds the first real operator module validator. Core now owns the shared
+`xyona-operator-v1` schema and validation script. CDP pack publishes
+transitional `specs/operators/*.op.yaml` data for all 16 currently registered
+CDP operators. Lab publishes equivalent specs for 17 current public host
+operators. Core, CDP pack, and Lab now expose CTest metadata gates for these
+surfaces.
 
 ## Current Baseline Before This Slice
 
@@ -109,6 +117,17 @@ Slice 2 additions:
 - extended pack-loader tests so `ui.nodeNameStem`, invalid stems,
   `engine.domain`, and `engine.materialization` are contract-visible
 
+Slice 3 additions:
+
+- added `tools/operator_modules/schema/xyona-operator-v1.schema.json`
+- added `tools/operator_modules/validate_operator_modules.py`
+- validator enforces provider/family/module separation, lowercase safe
+  `ui.nodeNameStem`, duplicate ID/stem detection, required
+  `engine.domain`, required `engine.materialization`, whole-file realtime
+  guardrails, CDP provenance, and help ID shape
+- Core CTest now runs the validator against existing
+  `src/processes/**/meta.yaml` through a transitional legacy adapter
+
 The loader remains backward-compatible with existing packs because every field
 has a deterministic fallback.
 
@@ -163,6 +182,17 @@ Slice 2 additions:
 - nested artifact materialization, for example `artifact.materialization`, is
   no longer allowed to satisfy the descriptor-level materialization contract
 
+Slice 3 additions:
+
+- added `specs/operators/cdp-current.op.yaml` with one validated record for
+  every currently registered CDP pack operator
+- added `scripts/validate_operator_modules.py` wrapper that uses the shared
+  Core validator from the workspace or `XYONA_CORE_PATH`
+- added `cdp_operator_module_metadata_tests` to CTest
+- the specs validate the current `provider`, provider-local `family`,
+  `moduleName`, `ui.nodeNameStem`, capability, engine domain, materialization,
+  and CDP provenance surface without moving the flat C++ operator files yet
+
 ### xyona-lab
 
 Updated `DiscoveryService`:
@@ -198,6 +228,17 @@ Slice 2 additions:
   the visible default node name is `audio_in1` while `opId` stays
   `lab.audio_in`
 
+Slice 3 additions:
+
+- added `specs/operators/lab-public.op.yaml` with validated records for 17
+  current public Lab-authored host operators
+- added `scripts/validate_operator_modules.py` wrapper that uses the shared
+  Core validator from the workspace or `XYONA_CORE_PATH`
+- added `lab_operator_module_metadata_tests` to CTest
+- the specs make Lab-owned host nodes follow the same provider/family/module,
+  `ui.nodeNameStem`, capability, domain, and materialization vocabulary as
+  Core and pack operators
+
 ## Boundary Notes
 
 - CDP algorithms remain in `xyona-cdp-pack`.
@@ -213,16 +254,22 @@ Slice 2 additions:
 Observed on Windows / MSVC debug builds:
 
 - `xyona-core`
+  - `cmake --preset windows-msvc-debug`
+  - `ctest --test-dir build/windows-msvc-debug -C Debug -R operator_module_metadata_tests --output-on-failure`
   - `cmake --build build/windows-msvc-debug --target test_operator_packs --config Debug`
   - `ctest --test-dir build/windows-msvc-debug -C Debug -R operator_packs_tests --output-on-failure`
   - Result: passed
 
 - `xyona-cdp-pack`
+  - `cmake --preset windows-msvc-debug`
+  - `ctest --test-dir build/windows-msvc-debug -C Debug -R cdp_operator_module_metadata_tests --output-on-failure`
   - `cmake --build build/windows-msvc-debug --target test_cdp_descriptor_metadata --config Debug`
   - `ctest --test-dir build/windows-msvc-debug -C Debug -R cdp_descriptor_metadata --output-on-failure`
   - Result: passed
 
 - `xyona-lab`
+  - `cmake --preset windows-dev`
+  - `ctest --test-dir build/windows-dev -C Debug -R lab_operator_module_metadata_tests --output-on-failure`
   - `cmake --build build/windows-dev --target xyona_lab_tests --config Debug`
   - `XYONA_OPERATOR_PACK_PATH=D:\GITHUB\XYONA\xyona-cdp-pack\build\windows-msvc-debug\Debug`
   - `build/windows-dev/tests/Debug/xyona_lab_tests.exe --test="CDP Pack Canvas Smoke" --xyona-only --summary-only`
@@ -245,9 +292,10 @@ Remaining roadmap work:
 
 - Move transitional flat descriptor fields behind the final `op.yaml` /
   generated metadata pipeline.
-- Add schema validation for Core, CDP pack, and Lab-authored operator metadata.
-- Add uniqueness checks for `ui.nodeNameStem` across the discovered operator
-  set.
+- Split transitional aggregate `*.op.yaml` files into canonical per-operator
+  module roots as folders are migrated.
+- Compare validated specs directly against runtime discovery descriptors,
+  generated descriptors, and pack metadata JSON so spec/runtime drift fails CI.
 - Move explicit `engine.domain` and `engine.materialization` facts out of
   handwritten JSON/string macros and into generated metadata from `op.yaml`.
 - Replace minimal JSON string extraction in the pack loader with a structured
@@ -276,5 +324,16 @@ Slice 2:
   - `feat(cdp-pack): require explicit engine domain metadata`
 - `xyona-lab`: `473f13905faad3bffe36e4629ed39f551ee01fe7`
   - `test(lab): cover discovery naming metadata`
+- Workspace root: `5348070d60b68d46e98a8e49b25eba6cd223943c`
+  - `docs: report operator metadata validation slice`
+
+Slice 3:
+
+- `xyona-core`: `6005f573d939d523f2b69b657167c79b516962d5`
+  - `feat(core): add operator module validator`
+- `xyona-cdp-pack`: `d6d839a771f581ab3478b7b9af87188b449dd04d`
+  - `feat(cdp-pack): add operator module specs gate`
+- `xyona-lab`: `f2061824f948afe768b87f7f5e8cf263b01818c9`
+  - `feat(lab): add public operator module specs gate`
 - Workspace root: this report commit plus the updated `xyona-cdp-pack`
   gitlink.
