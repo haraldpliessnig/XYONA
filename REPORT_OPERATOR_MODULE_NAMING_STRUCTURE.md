@@ -1,6 +1,6 @@
 # Report: Operator Module Naming Structure
 
-Status: Implementation slices 1-11 landed
+Status: Implementation slices 1-12 landed
 Scope: workspace, xyona-core, xyona-cdp-pack, xyona-lab  
 Date: 2026-04-29  
 Roadmap: `ROADMAP_OPERATOR_MODULE_STRUCTURE.md`  
@@ -18,7 +18,7 @@ the physical operator-module folder migration in the CDP pack.
 
 ## Executive Status
 
-The first eleven cross-repository naming/metadata slices are implemented and
+The first twelve cross-repository naming/metadata slices are implemented and
 verified.
 
 `xyona-core` now exposes transitional operator module identity fields directly
@@ -119,6 +119,15 @@ are gone from `pack_descriptors.h`; PVOC artifact and spectral contract facts
 now live in the relevant module-local `op.yaml` files. Adapter code still owns
 CDP provenance, validation, port, parameter, descriptor, and registration
 surfaces until the next generation slices replace them.
+
+Slice 12 moves the remaining operator-level CDP provenance and validation JSON
+out of handwritten adapter fragments and into module-local `op.yaml`.
+`scripts/generate_operator_metadata.py` now emits complete operator metadata
+JSON for all current CDP operators, including `xyona`, provider/family/module,
+UI naming, `cdp`, `engine`, and `validation` objects. The adapters now only
+reference generated `XYONA_CDP_OP_META_*` macros for operator metadata; port,
+parameter, descriptor, CMake, and registration generation remain the next
+Phase-2 work.
 
 ## Current Baseline Before This Slice
 
@@ -396,6 +405,18 @@ Slice 11 additions:
 - extended the descriptor metadata test's transitional YAML reader so block
   `engine:` mappings remain covered by the same runtime/spec comparison gate
 
+Slice 12 additions:
+
+- extended `scripts/generate_operator_metadata.py` so it generates complete
+  operator metadata JSON from `op.yaml`, not only identity/UI/engine fragments
+- moved CDP provenance details such as `command`, `sourceFile`,
+  `compatibilityNote`, and validation `cdp8Reference` into module-local
+  `op.yaml`
+- replaced every adapter's hand-concatenated `cdp` and `validation` operator
+  metadata JSON with generated `XYONA_CDP_OP_META_*` macros
+- kept compatibility `XYONA_CDP_OP_ENGINE_*` fragments for focused spectral
+  tests until the descriptor generator fully replaces those test macros
+
 ### xyona-lab
 
 Updated `DiscoveryService`:
@@ -537,9 +558,9 @@ Remaining roadmap work:
   reintroduce flat `src/operators/cdp_*.cpp` public operator files.
 - Split the current shared Cut/CutEnd adapter if descriptor generation or
   future edit modes make separate adapters materially cleaner.
-- Move the remaining CDP provenance, validation, parameter, port, descriptor,
-  CMake, and registration facts out of handwritten C++ surfaces and into
-  generated outputs from module-local `op.yaml`.
+- Operator-level CDP provenance and validation are now generated; remaining
+  CDP handwritten descriptor debt is parameter metadata, port metadata, pack
+  descriptor structs, CMake source ownership, and registration tables.
 - Promote the current focused C++ spec/runtime comparison parsers into the
   final shared validator/codegen path once descriptor generation exists.
 - Compare generated descriptors against runtime discovery once the generated
@@ -641,5 +662,12 @@ Slice 11:
 
 - `xyona-cdp-pack`: `d72145796e0e4dcce48a49c51ae4676b7332af5c`
   - `feat(cdp-pack): generate operator metadata fragments`
+- Workspace root: this report commit plus the updated `xyona-cdp-pack`
+  gitlink.
+
+Slice 12:
+
+- `xyona-cdp-pack`: `3a73ca81845d9285b7ccefec28fd59f0cb8ad07d`
+  - `feat(cdp-pack): generate full operator metadata json`
 - Workspace root: this report commit plus the updated `xyona-cdp-pack`
   gitlink.
