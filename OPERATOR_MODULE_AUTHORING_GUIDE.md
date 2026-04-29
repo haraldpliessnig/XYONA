@@ -1,15 +1,16 @@
 # Operator Module Authoring Guide
 
-This guide is the practical companion to `OPERATOR_MODULE_CONTRACT.md`.
-Follow it before adding, moving, or wiring any public operator in Core, Lab, or
-a runtime pack.
+This is the practical authoring guide for public XYONA operators. It applies to
+`xyona-core`, `xyona-cdp-pack`, and Lab-authored public host operators. The
+formal naming and descriptor vocabulary lives in `OPERATOR_MODULE_CONTRACT.md`;
+this guide states the exact file and implementation structure to use.
 
-## Canonical Module Shape
+## Required Source Shape
 
-Every new public operator must have one module root:
+Public operator code must live in a module root:
 
 ```text
-src/operators/<provider-local-family>/<module_name>/
+src/operators/<family>/<module_name>/
   op.yaml
   README.md
   docs/
@@ -21,21 +22,66 @@ src/operators/<provider-local-family>/<module_name>/
   golden/
 ```
 
-`family` is provider-local. Use `modify`, `pvoc`, `utility`,
-`system.audio`, or `timeline.grid`; never use provider-prefixed family folders
-such as `cdp.modify` or `lab.system.audio`.
+Required rules:
 
-Current legacy Core code may still exist under `src/processes` while the Core
-folder migration is active. Do not create new flat operator files or new
-provider-prefixed folders. If a repository cannot yet build from
-`src/operators`, add the smallest migration slice first or document the
-temporary exception in that package.
+- `src/operators/<family>/<module_name>/op.yaml` is the authoritative operator
+  module spec.
+- `<family>` is provider-local. Source-module family folders use one safe path
+  segment such as `modify`, `pvoc`, `utility`, `dynamics`, or `signal`.
+  Multi-segment host families such as `system.audio` and `timeline.grid` are
+  metadata values in Lab specs unless Lab introduces a dedicated physical
+  module tree for them.
+- Source folders may not contain dotted provider-prefixed names such as
+  `cdp.modify` or `lab.system.audio`.
+- `<module_name>` must match `moduleName` and the final operator ID segment.
+- Public operator modules must not live under `src/processes`.
+- Public operator modules must not use `meta.yaml`.
+- Public CDP operators must not use flat `src/operators/cdp_*.cpp` or
+  `src/operators/cdp_*.h` files.
+- Shared implementation used by multiple modules in the same family belongs in
+  `src/operators/<family>/common/`. It is not an operator module and must not
+  contain `op.yaml`.
 
-## Naming Rules
+## Adapter Structure
 
-`op.yaml` is authoritative for identity and UI naming.
+Adapters are module-owned. A module that needs C++ adapter code places it under
+its own `adapter/` directory:
 
-Required identity fields:
+```text
+src/operators/edit/cut/
+  op.yaml
+  adapter/
+    cdp_edit_cut.h
+    cdp_edit_cut.cpp
+```
+
+The module spec must declare the adapter files:
+
+```yaml
+adapter:
+  header: operators/edit/cut/adapter/cdp_edit_cut.h
+  source: src/operators/edit/cut/adapter/cdp_edit_cut.cpp
+  registrationFunction: registerEditCutV2
+```
+
+If multiple modules share implementation, keep registration adapters separate
+and declare shared sources explicitly:
+
+```yaml
+adapter:
+  header: operators/edit/cutend/adapter/cdp_edit_cutend.h
+  source: src/operators/edit/cutend/adapter/cdp_edit_cutend.cpp
+  sharedSources:
+    - src/operators/edit/common/cdp_edit_cut_sessions.cpp
+  registrationFunction: registerEditCutEndV2
+```
+
+Do not point one module's `adapter.header` or `adapter.source` at another
+module's adapter directory.
+
+## Required Naming
+
+`op.yaml` owns identity and UI naming:
 
 ```yaml
 schema: xyona-operator-v1
@@ -46,7 +92,6 @@ family: modify
 moduleName: loudness_gain
 label: Loudness Gain
 category: CDP/Modify
-
 ui:
   shortLabel: Loudness Gain
   nodeNameStem: loud_gain
@@ -54,84 +99,78 @@ ui:
 
 Rules:
 
-- `id` is the immutable machine identity for lookup, persistence, help, tests,
-  and provenance.
+- `id` is immutable and used for lookup, persistence, help, tests, and
+  provenance.
 - Pack and Lab IDs must start with `<provider>.`.
 - `family` must not repeat `provider`.
-- `moduleName`, parameter IDs, and `ui.nodeNameStem` use lowercase ASCII
-  snake_case. Do not use hyphens.
-- `label` is a human label. Do not prefix it with `CDP:` or provider/family
-  text that belongs in metadata.
-- `ui.nodeNameStem` is the Canvas default-name stem. It must not contain dots or
-  provider namespace fragments. `cdp.modify.loudness_gain` should create
-  `loud_gain1`, not `cdp.modify.loudness_gain1`.
+- `moduleName`, parameter IDs, port IDs, and `ui.nodeNameStem` use lowercase
+  ASCII snake_case. Hyphens are not allowed.
+- `label` is human-facing text. Do not prefix it with provider text such as
+  `CDP:`.
+- `ui.shortLabel` is the compact palette/control label.
+- `ui.nodeNameStem` is the only source for default Canvas node names. For
+  example, `cdp.modify.loudness_gain` creates `loud_gain1`, not
+  `cdp.modify.loudness_gain1`.
 
-## `op.yaml` Contents
+## Required `op.yaml` Surface
 
-Every public operator spec must declare:
+Every public operator spec declares:
 
-- identity: `id`, `provider`, `providerLabel`, `family`, `moduleName`
-- display: `label`, `summary`, `description`, `category`, `icon`, `version`,
-  `ui.shortLabel`, `ui.nodeNameStem`
-- ownership: repository, license, algorithm owner, host boundary
+- identity: `schema`, `id`, `provider`, `providerLabel`, `family`,
+  `moduleName`
+- display: `label`, `summary`, `description`, `operatorType`, `category`,
+  `icon`, `version`, `ui.shortLabel`, `ui.nodeNameStem`
+- ownership: `repository`, `license` where applicable, `algorithmOwner`,
+  `hostBoundary`
 - capabilities: `canRealtime`, `canHQ`
-- engine: `processShape`, `domain`, `materialization`, whole-file and
-  length-changing flags
-- ports: input/output IDs, channel policy, typed-data tags, and data metadata
-- params: IDs plus descriptor facts for label, type, range, default, unit,
-  group, display, precision, and RT/HQ availability
-- help: `help.node.<operator_id>`, locales/tags where supported
-- provenance and validation strategy
+- engine: `processShape`, `domain`, `materialization`,
+  `wholeFileRequired`, `lengthChanging`
+- ports: `ports.inputs[]` and `ports.outputs[]` with stable IDs, channel
+  policy, tags, and typed-data metadata where relevant
+- params: stable IDs plus descriptor facts for label, type, range, default,
+  unit, group, display, precision, availability, scope, and visibility rules
+- help: `help.node.<operator_id>` plus tags/locales where supported
+- provenance and validation strategy for algorithmic operators
 
-CDP-derived operators must include CDP8 provenance with `sourceFile` under
-`dev/` unless the operator is explicitly marked as a technical synthetic host
-fixture.
-
-## Layering
-
-Use these ownership boundaries:
-
-- `dsp/`: host-agnostic DSP and data transforms only.
-- `adapter/`: Core operator or pack ABI lifecycle, parameter conversion,
-  descriptor binding, and registration.
-- `docs/`: HelpCenter prose with front matter matching `help.node.<id>`.
-- `tests/`: descriptor, behavior, host-contract, and golden validation.
-- `golden/`: fixtures and manifests when a stable reference exists.
-
-Lab does not own Core or CDP DSP. Lab-authored public operators are host
-operators and still need the same identity and naming metadata.
+CDP-derived operators include CDP8 provenance with `sourceFile` under `dev/`
+unless the operator is an explicitly technical synthetic fixture.
 
 ## Generated Surfaces
 
-Descriptor facts should be generated or validated from `op.yaml`, not repeated
-by hand:
+Descriptor facts are generated or validated from `op.yaml`. Do not duplicate
+them by hand unless the runtime value is genuinely dynamic.
+
+Generated or validated surfaces include:
 
 - operator metadata JSON
-- parameter metadata and parameter descriptors
-- port metadata and port descriptors
+- parameter metadata and descriptors
+- port metadata and descriptors
 - top-level operator descriptors
 - registration lists
 - build source lists
 - help/doc indexes
 
-Adapters should keep behavior code and reference generated descriptor surfaces.
+Adapters keep behavior code: lifecycle, parameter conversion, topology changes
+that are genuinely runtime-dependent, DSP/offline-session calls, and ABI
+registration glue.
+
+## Package Placement
+
+- `xyona-core`: host-free DSP/runtime operators under
+  `src/operators/<family>/<module>/`. Core owns the shared validator and pack
+  ABI.
+- `xyona-cdp-pack`: dynamic LGPL CDP pack operators under
+  `src/operators/<family>/<module>/`. CDP pack owns CDP provenance,
+  generated pack descriptors, generated registration, generated source lists,
+  and pack-local tests.
+- `xyona-lab`: host/UI public operators are declared in Lab specs and explicit
+  descriptor metadata. Lab consumes Core/pack descriptors through public
+  discovery and must not infer names from private paths or dotted IDs.
 
 ## Verification
 
 Before committing an operator-structure change, run the affected package's
-validator, generation staleness check, targeted build, targeted CTest, and any
-Lab smoke test that consumes the operator discovery surface.
+validator, generation staleness check if it has one, targeted build, targeted
+CTest, and any Lab smoke test that consumes the changed discovery surface.
 
 Use repo-local commands. The workspace root is not a monorepo build.
-
-## Package Notes
-
-- `xyona-core`: Core operators are host-free DSP/runtime operators. Current
-  legacy modules under `src/processes` are migration debt; new structure should
-  move toward `src/operators/<family>/<module>/op.yaml`.
-- `xyona-cdp-pack`: CDP operators must be dynamic-pack modules under
-  `src/operators/<family>/<module>/` and must use the generated descriptor,
-  registration, and source-list pipeline.
-- `xyona-lab`: Lab owns host/UI public operators and HelpCenter consumption.
-  It must consume Core/pack metadata through public discovery and must not
-  infer names from private folders or dotted IDs.

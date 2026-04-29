@@ -1,6 +1,6 @@
 # Report: Operator Module Naming Structure
 
-Status: Implementation slices 1-38 landed
+Status: Implementation slices 1-39 landed
 Scope: workspace, xyona-core, xyona-cdp-pack, xyona-lab  
 Date: 2026-04-29  
 Roadmap: `ROADMAP_OPERATOR_MODULE_STRUCTURE.md`  
@@ -18,7 +18,7 @@ the physical operator-module folder migration in the CDP pack.
 
 ## Executive Status
 
-The first thirty-eight cross-repository naming/metadata slices are implemented and
+The first thirty-nine cross-repository naming/metadata slices are implemented and
 verified.
 
 `xyona-core` now exposes transitional operator module identity fields directly
@@ -316,6 +316,13 @@ their family/module identity, and adapter declarations that point outside their
 own module root unless the file is an explicit family-local `common` shared
 source. CDP pack and Lab pass the same stricter validator through their existing
 wrappers.
+
+Slice 39 updates the permanent authoring instructions from migration guidance
+to final structure rules. The workspace guide now states the canonical module
+root, adapter ownership, `adapter.sharedSources`, forbidden legacy paths,
+required `op.yaml` fields, and package placement. Root, Core, CDP pack, and Lab
+`AGENTS.md` files link the package-local guides and restate the guardrails most
+likely to prevent future wrong structure.
 
 ## Current Baseline Before This Slice
 
@@ -943,6 +950,26 @@ Slice 38 additions:
   `operator_module_runtime_tests|operator_module_metadata_tests|operator_module_validator_guardrail_tests`,
   CDP and Lab metadata CTests through their wrappers, and `git diff --check`
 
+Slice 39 documentation additions:
+
+- replaced the workspace authoring guide's transitional language with final
+  source-shape, adapter, shared-source, naming, required `op.yaml`, generated
+  surface, and verification rules
+- linked Core and CDP package-local `AGENTS.md` files from root `AGENTS.md`
+  alongside the existing Lab agent instructions
+- updated root ownership text from legacy `meta.yaml` to `op.yaml`
+- finalized Core's package-local guide and agent instructions around
+  `src/operators/<family>/<module>/`, no `src/processes`, no `meta.yaml`, and
+  validator guardrail tests
+- finalized CDP pack's package-local guide and agent instructions around
+  module-owned adapters, generated pack surfaces, and `adapter.sharedSources`
+- finalized Lab's package-local guide and agent instructions around
+  `specs/operators/lab-public.op.yaml`, explicit
+  `CustomOperator::applyOperatorModuleMetadata(...)`, and no discovery
+  fallbacks for incomplete descriptors
+- verified Core, CDP pack, Lab, and root docs with the repo-local validators,
+  generator staleness check where relevant, and `git diff --check`
+
 ### xyona-lab
 
 Updated `DiscoveryService`:
@@ -1418,3 +1445,14 @@ Slice 38:
 - `xyona-core`: `047644e6cd02b2ed4170c25053453de6860a641b`
   - `test(core): guard operator module structure`
 - Workspace root: this report commit.
+
+Slice 39:
+
+- `xyona-core`: `25044c330c0a12eab372025234b8838897aa2195`
+  - `docs(core): finalize operator module authoring rules`
+- `xyona-cdp-pack`: `9c2c24fe3bf715325b76a3c0cf81bb5c3e222d8c`
+  - `docs(cdp-pack): finalize operator module authoring rules`
+- `xyona-lab`: `8d9188c684b18faa3f7dbf5e007e9c46ccd61ece`
+  - `docs(lab): finalize operator module authoring rules`
+- Workspace root: this report/root-guide commit plus the updated
+  `xyona-cdp-pack` gitlink.

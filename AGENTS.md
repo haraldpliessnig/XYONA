@@ -37,7 +37,9 @@ Each package also has a package-local guide and, where present, a package-local
 `AGENTS.md`. Follow those before package edits:
 
 - `xyona-core/OPERATOR_MODULE_AUTHORING_GUIDE.md`
+- `xyona-core/AGENTS.md`
 - `xyona-cdp-pack/OPERATOR_MODULE_AUTHORING_GUIDE.md`
+- `xyona-cdp-pack/AGENTS.md`
 - `xyona-lab/OPERATOR_MODULE_AUTHORING_GUIDE.md`
 - `xyona-lab/AGENTS.md`
 
@@ -48,7 +50,7 @@ Each package also has a package-local guide and, where present, a package-local
 - DSP algorithms and reusable DSP families.
 - `xyona::Operator` implementations.
 - Operator metadata/descriptors (`OpDesc`, `ParamDesc`, `IODesc`,
-  capabilities, `meta.yaml`, generated metadata).
+  capabilities, `op.yaml`, generated metadata).
 - Processing-level file I/O operators such as audio clip/file-out operators.
 - Host-agnostic runtime kernels when they do not know about Lab, UI, projects,
   devices, graph plans, windows, timeline models, or product-specific bindings.
