@@ -1,8 +1,8 @@
 # XYONA Operator Module Contract
 
 **Status:** Workspace standard
-**Version:** 1.3
-**Date:** 2026-04-29
+**Version:** 1.4
+**Date:** 2026-04-30
 **Applies to:** `xyona-core`, `xyona-cdp-pack`, future operator packs, and
 Lab-authored public host operators
 
@@ -86,8 +86,9 @@ Every public operator spec declares:
 - capabilities: `canRealtime`, `canHQ`
 - engine: `processShape`, `domain`, `materialization`,
   `wholeFileRequired`, `lengthChanging`
-- ports: `ports.inputs[]` and `ports.outputs[]` with stable IDs, channel
-  policy, tags, and typed-data metadata where relevant
+- ports: `ports.inputs[]` and `ports.outputs[]` with stable IDs, explicit
+  port types, channel policy, tags, and typed-data schema/format metadata
+  where relevant
 - params: stable IDs plus descriptor facts for label, type, range, default,
   unit, group, display, precision, availability, scope, and visibility rules
 - help: `help.node.<operator_id>` plus tags/locales where supported
@@ -192,6 +193,29 @@ Materialization is one of:
 Whole-file and length-changing operators must not claim realtime support unless
 there is an explicit realtime/preview contract.
 
+## Port Type And Patch Compatibility
+
+Port compatibility is a contract-level rule. Lab may render it and enforce it,
+but Lab must not invent, infer, or silently repair missing operator port types.
+
+Every public input and output port must declare an explicit type according to
+`OPERATOR_PORT_TYPE_AND_COMPATIBILITY_CONTRACT.md`.
+
+Rules:
+
+- Missing port types are validation errors.
+- Missing typed-data schema or format facts are validation errors.
+- Public descriptors must expose stable descriptor port IDs and port type facts.
+- Canvas state and project persistence must use stable descriptor port IDs, not
+  generic semantic stand-ins such as `in_0` or `out_0`.
+- Patchability is decided by source and destination port facts, not by operator
+  ID, visible label, category, source path, or `engine.domain` alone.
+- Cross-domain conversion must be represented by explicit operators.
+
+Valid spectral/audio bridges are modeled through ports, for example audio into
+PVOC analysis, PVOC typed data into PVOC synthesis, and audio out of synthesis.
+Direct PVOC typed data to a normal time-domain audio input is invalid.
+
 ## Descriptor And ABI Transport
 
 The naming contract must reach Lab through public discovery. Private source
@@ -210,6 +234,7 @@ The public descriptor/discovery surface consumed by Lab must expose:
 - `engine.processShape`
 - `engine.domain`
 - `engine.materialization`
+- input and output port IDs, port types, and typed-data schema/format facts
 
 Current implementation requirements:
 

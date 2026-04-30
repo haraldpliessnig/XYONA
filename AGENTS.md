@@ -24,24 +24,42 @@ the specific repo or repos you will touch.
 ## Operator Module Authoring
 
 Before adding, moving, or wiring any public operator, read
-`OPERATOR_MODULE_AUTHORING_GUIDE.md` and `OPERATOR_MODULE_CONTRACT.md`.
+`OPERATOR_MODULE_AUTHORING_GUIDE.md`, `OPERATOR_MODULE_CONTRACT.md`, and
+`OPERATOR_PORT_TYPE_AND_COMPATIBILITY_CONTRACT.md`.
+
+For the active port typing and patch compatibility rollout, also read
+`ROADMAP_OPERATOR_PORT_TYPES_AND_PATCH_COMPATIBILITY.md` and update
+`REPORT_OPERATOR_PORT_TYPES_AND_PATCH_COMPATIBILITY_2026-04-30.md` after each
+completed phase.
 
 Do not create flat public operator files, provider-prefixed module folders such
 as `src/operators/cdp.modify`, provider-prefixed labels such as `CDP: ...`, or
 Canvas default names derived from dotted operator IDs. Operator identity,
 provider, family/type, module name, short label, node-name stem, engine domain,
-materialization, ports, params, help, provenance, and generated descriptor
-surfaces must come from the operator module contract.
+materialization, explicit port types, params, help, provenance, and generated
+descriptor surfaces must come from the operator module contract.
+
+Port compatibility is a contract-level rule. Do not add untyped public ports,
+do not infer patch compatibility from operator IDs, labels, source paths,
+domains, or generic `in_N`/`out_N` names, and do not add fallback logic that
+silently repairs incomplete operator port metadata.
 
 Each package also has a package-local guide and, where present, a package-local
 `AGENTS.md`. Follow those before package edits:
 
 - `xyona-core/OPERATOR_MODULE_AUTHORING_GUIDE.md`
 - `xyona-core/AGENTS.md`
+- `xyona-core/docs/OPERATOR_PORT_TYPES.md` for port descriptor, validator, or
+  pack ABI work
 - `xyona-cdp-pack/OPERATOR_MODULE_AUTHORING_GUIDE.md`
 - `xyona-cdp-pack/AGENTS.md`
+- `xyona-cdp-pack/docs/CDP_PORT_TYPES.md` for CDP typed-data port work
 - `xyona-lab/OPERATOR_MODULE_AUTHORING_GUIDE.md`
 - `xyona-lab/AGENTS.md`
+- `xyona-lab/docs/subsystems/canvas/CANVAS_PORT_TYPES_AND_PATCH_COMPATIBILITY.md`
+  for Canvas wiring and patch compatibility work
+- `xyona-lab/docs/subsystems/ui/OPERATOR_PORT_VISUAL_TOKENS.md` for port
+  colors, icons, hover states, and cable styling
 
 ### xyona-core
 

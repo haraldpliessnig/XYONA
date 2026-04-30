@@ -3,7 +3,9 @@
 This is the practical authoring guide for public XYONA operators. It applies to
 `xyona-core`, `xyona-cdp-pack`, and Lab-authored public host operators. The
 formal naming and descriptor vocabulary lives in `OPERATOR_MODULE_CONTRACT.md`;
-this guide states the exact file and implementation structure to use.
+port typing and patch compatibility live in
+`OPERATOR_PORT_TYPE_AND_COMPATIBILITY_CONTRACT.md`. This guide states the exact
+file and implementation structure to use.
 
 ## Required Source Shape
 
@@ -116,6 +118,41 @@ Rules:
   `Core/Dynamics`, `CDP/Modify`, or `Lab/System Audio`. Do not use `category`,
   dotted IDs, source paths, or provider-prefixed labels for that UI context.
 
+## Required Port Typing
+
+Every public input and output in `op.yaml` must declare an explicit `type`.
+Do not rely on tags, channel count, operator domain, port name, or Lab fallback
+logic to imply a type.
+
+```yaml
+ports:
+  inputs:
+    - id: in
+      type: xyona.audio.signal
+      channelPolicy: any
+  outputs:
+    - id: out
+      type: xyona.audio.signal
+      channelPolicy: match_input
+```
+
+Typed-data ports must declare enough facts for compatibility without guessing:
+
+```yaml
+ports:
+  outputs:
+    - id: pvoc
+      type: cdp.pvoc.analysis.v1
+      kind: typed_data
+      domain: spectral_pvoc
+      rate: offline_artifact
+      schema: cdp.pvoc.analysis.v1
+      format: pvoc_analysis
+      mergePolicy: single_source
+```
+
+Missing `type` or incomplete typed-data metadata is a contract error.
+
 ## Required `op.yaml` Surface
 
 Every public operator spec declares:
@@ -129,8 +166,9 @@ Every public operator spec declares:
 - capabilities: `canRealtime`, `canHQ`
 - engine: `processShape`, `domain`, `materialization`,
   `wholeFileRequired`, `lengthChanging`
-- ports: `ports.inputs[]` and `ports.outputs[]` with stable IDs, channel
-  policy, tags, and typed-data metadata where relevant
+- ports: `ports.inputs[]` and `ports.outputs[]` with stable IDs, explicit
+  port types, channel policy, tags, and typed-data schema/format metadata
+  where relevant
 - params: stable IDs plus descriptor facts for label, type, range, default,
   unit, group, display, precision, availability, scope, and visibility rules
 - help: `help.node.<operator_id>` plus tags/locales where supported
