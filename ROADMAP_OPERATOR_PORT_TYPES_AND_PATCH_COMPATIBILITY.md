@@ -242,15 +242,14 @@ Progress:
 
 ## Phase 6: Visual Tokens And UX Polish
 
-Status: technical scaffold complete; final differentiated palette pending.
+Status: complete.
 
 Deliverables:
 
 - Central Lab port visual token registry.
 - Port colors, labels, and tooltips derived from type facts.
 - Cable styling aligned with port type.
-- Multicore/bundled cable thickness reserved in the central visual registry;
-  actual bundled connection semantics require a separate graph-model plan.
+- Multicore/bundled cable thickness owned by the central visual registry.
 - Header runtime stripes remain separate from port-type visuals.
 - No port icons/glyphs. Port visuals use geometry, color/stroke, tooltips, and
   cable styling only.
@@ -268,6 +267,39 @@ Progress:
   tooltip text, and a future lane-count thickness hook.
 - Generic node rendering and `PatchCableOverlay` consume the registry instead
   of deriving port/cable styling locally.
+
+## Phase 7: Multicore Cable Foundation
+
+Status: foundation complete.
+
+Deliverables:
+
+- Extend the Canvas connection model with optional lane pairs so one visible
+  cable can carry multiple source/target port mappings.
+- Keep legacy single-lane connection serialization compatible.
+- Serialize multicore lanes explicitly in project connection data.
+- Validate every bundled lane through the same `ConnectionCompatibility`
+  service.
+- Render and hit-test a multicore cable as one cable, with thickness derived
+  from lane count through the central visual registry.
+- Expand multicore lanes into normal per-port GraphBuilder wires before plan
+  execution.
+
+Progress:
+
+- `Connection` now supports optional `lanes`.
+- Canvas creation rejects duplicate or incompatible bundled lanes atomically.
+- Project export/import round-trips multicore lane arrays.
+- Realtime and offline graph builders expand bundled lanes before adjacency,
+  wire routing, observer extraction, and typed-data edge handling.
+- Tests cover descriptor-backed multicore validation, invalid lane rejection,
+  serialization round-trip, overlay hit-testing, and slot-based GraphBuilder
+  wire expansion.
+
+Remaining product work:
+
+- User gesture/UX for creating bundled cables from slot groups.
+- Descriptor contract for automatic lane grouping beyond explicit port IDs.
 
 ## Verification Matrix
 

@@ -208,6 +208,31 @@ Completed in this phase slice:
 - Phase 6 keeps the current neutral port/cable look. It changes ownership and
   data flow, not the visible palette.
 
+## Phase 7 Status
+
+Foundation complete.
+
+Completed in this phase slice:
+
+- Extended Lab `Connection` with optional multicore lane pairs while preserving
+  legacy single-lane aggregate construction and serialization.
+- Canvas validates every lane atomically through `ConnectionCompatibility` and
+  rejects duplicate or incompatible bundled lanes without partial creation.
+- Project connection export/import now round-trips explicit `lanes` arrays.
+- `PatchCableOverlay` renders and hit-tests multicore as one cable and derives
+  cable thickness from lane count through `PortVisualRegistry`.
+- Realtime and offline GraphBuilder paths expand bundled lanes to normal
+  per-port wires before adjacency, wire routing, observer extraction, and
+  typed-data edge handling.
+- Tests cover descriptor-backed multicore validation, invalid lane rejection,
+  serialization round-trip, overlay hit-testing, and slot-based GraphBuilder
+  wire expansion.
+
+Remaining product work:
+
+- Add user-facing cable creation gestures for slot groups.
+- Add descriptor/UX rules for automatic lane grouping beyond explicit port IDs.
+
 ## Verification
 
 Completed:
@@ -263,12 +288,12 @@ Result:
 - Lab `Operator Module Spec Runtime` passed: 1 test, 513 passes.
 - Lab `CDP Pack Canvas Smoke` passed with `XYONA_OPERATOR_PACK_PATH` set to the
   CDP debug pack folder: 14 tests, 410 passes.
-- Lab `Connection System` passed: 22 tests, 73 passes.
-- Lab `Overlay Visual` passed: 8 tests, 16 passes.
+- Lab `Connection System` passed: 24 tests, 82 passes.
+- Lab `Overlay Visual` passed: 9 tests, 20 passes.
 - Lab `Wire Routing` passed: 8 tests, 27 passes.
-- Lab `AudioEngineManager Minimal Plan` passed: 37 tests, 559 passes.
+- Lab `AudioEngineManager Minimal Plan` passed: 38 tests, 566 passes.
 - Lab `Canvas Stress Suite` passed: 3 tests, 3004 passes.
-- Lab `Connection Persistence` passed: 4 tests, 11 passes.
+- Lab `Connection Persistence` passed: 5 tests, 19 passes.
 - Lab targeted Canvas/connection-adjacent tests passed:
   `GridSourceHostAdapter`, `GridActionFilterHostAdapter`,
   `GridValueHostAdapter`, `Signal`, `Adapter Lifetime`,
@@ -292,20 +317,16 @@ Notes:
   staged so each repo can be made green before moving to the next layer.
 - `IODesc` is marked deprecated but still consumed in Lab and pack discovery.
   The bridge from `IODesc` to richer port type facts must be deliberate.
-- Phase 6 visual typing is now technically centralized, but final differentiated
-  color/stroke choices are still pending UI direction.
 - Builder validation currently skips invalid edges and logs diagnostics. If a
   future caller needs a hard plan-build failure, that should be added as an
   explicit policy above the shared compatibility check.
-- Multicore/bundled cables are visually reserved only. They still need an
-  explicit connection model, project serialization, hit-testing, and GraphBuilder
-  compatibility plan.
+- Multicore/bundled cable model is present, but there is not yet a user-facing
+  slot-group gesture or descriptor-driven automatic grouping policy.
 
 ## Next Step
 
-Decide the visible Phase 6 palette:
+Define multicore UX:
 
-- keep the neutral palette until the differentiated port/cable language is
-  designed
-- derive port/cable color and tooltip language from descriptor type facts only
-- keep header runtime stripes separate from port type visuals
+- how a user creates a bundled cable from slot groups
+- how bundled lanes are shown/edited/removed in the inspector
+- how descriptors advertise recommended lane groups beyond explicit port IDs
