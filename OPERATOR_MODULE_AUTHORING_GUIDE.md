@@ -128,11 +128,11 @@ logic to imply a type.
 ports:
   inputs:
     - id: in
-      type: xyona.audio.signal
+      type: xyona.audio
       channelPolicy: any
   outputs:
     - id: out
-      type: xyona.audio.signal
+      type: xyona.audio
       channelPolicy: match_input
 ```
 

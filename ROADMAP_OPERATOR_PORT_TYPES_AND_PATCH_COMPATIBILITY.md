@@ -2,7 +2,7 @@
 
 **Status:** Active
 **Started:** 2026-04-30
-**Branch:** `operator-port-types-contract`
+**Branch:** `port-type-taxonomy`
 **Primary contract:** `OPERATOR_PORT_TYPE_AND_COMPATIBILITY_CONTRACT.md`
 **Applies to:** `xyona-core`, `xyona-lab`, `xyona-cdp-pack`, future operator
 packs
@@ -11,6 +11,17 @@ packs
 
 Make operator patching explicit, typed, and enforceable across descriptor
 generation, pack discovery, Canvas UI, project persistence, and graph building.
+
+The built-in public taxonomy is:
+
+```text
+xyona.audio
+xyona.signal
+xyona.signal.cv
+xyona.signal.gate
+xyona.signal.clock
+xyona.midi.*
+```
 
 The end state is:
 
@@ -27,7 +38,8 @@ metadata.
 The current system has useful pieces but no single enforced port-type contract:
 
 - Core has `SignalKind`, `PortKind`, `IODesc`, and `PortDesc`, but descriptor
-  consumption still often flows through tag-based or legacy-compatible shapes.
+  consumption still often flows through tag-based or compatibility-oriented
+  shapes.
 - CDP PVOC typed-data metadata exists, but it is expressed through port JSON
   and tags rather than a canonical port type field used by all layers.
 - Lab Canvas still has generic port naming paths such as `in_0` and `out_0`
@@ -94,8 +106,8 @@ Progress:
 - Core operator-module validator now requires `type` on fixed and variable
   public ports.
 - Core validator tests cover missing port type and typed-data schema guardrails.
-- Current Core operator specs declare `xyona.audio.signal` or
-  `xyona.control.cv` as appropriate.
+- Current Core operator specs declare `xyona.audio`, `xyona.signal`, or
+  concrete signal subtypes such as `xyona.signal.cv` as appropriate.
 - Core `IODesc`, `VariablePortRangeDesc`, and `PortDesc` now carry explicit
   port type fields and optional typed-data compatibility facts.
 - Core codegen transports port type facts from `op.yaml` into runtime `OpDesc`.
@@ -108,7 +120,7 @@ Status: complete.
 Deliverables:
 
 - Update all public CDP `op.yaml` files with explicit port types.
-- Use `xyona.audio.signal` for audio ports.
+- Use `xyona.audio` for audio ports.
 - Use `cdp.pvoc.analysis.v1` for PVOC typed-data ports.
 - Update CDP metadata generator and generated surfaces.
 - Extend CDP tests for PVOC analysis/synth compatibility metadata.
@@ -122,7 +134,7 @@ Exit criteria:
 Progress:
 
 - All public CDP operator ports declare explicit `type` in `op.yaml`.
-- CDP audio ports use `xyona.audio.signal`.
+- CDP audio ports use `xyona.audio`.
 - CDP PVOC typed-data ports use `cdp.pvoc.analysis.v1` with
   `kind=typed_data`, `domain=spectral_pvoc`, `rate=offline_artifact`,
   payload schema `xyona.cdp.pvoc.analysis.v1`, format `pvoc_analysis`, and
@@ -155,8 +167,8 @@ Progress:
 
 - `xyona-lab/specs/operators/lab-public.op.yaml` now declares explicit port
   types for all Lab-authored public operators.
-- Lab CustomOperator port factories create typed audio/control/gate/clock
-  descriptor ports instead of raw untyped `IODesc` records.
+- Lab CustomOperator port factories create typed audio, generic signal, CV,
+  gate, and clock descriptor ports instead of raw untyped `IODesc` records.
 - Lab custom operator registration rejects descriptors with incomplete public
   port type metadata.
 - Lab discovery filters incomplete descriptors out of normal palette/discovery
@@ -181,7 +193,7 @@ Exit criteria:
 - Valid audio-to-audio connection works.
 - Valid PVOC analysis-to-synth connection works.
 - PVOC typed data to audio input is blocked.
-- Audio signal to PVOC typed-data input is blocked unless the target input is
+- Audio to PVOC typed-data input is blocked unless the target input is
   actually an audio input on an analysis operator.
 
 Progress:
@@ -207,13 +219,13 @@ Progress:
 - Project connection import now lets descriptor-backed nodes validate through
   `createConnection()` instead of forcing generic `out_N -> in_N` names.
 - Lab signal sink/source host ports that represent CV values now use
-  `xyona.control.cv` consistently.
+  `xyona.signal.cv` consistently.
 - Tests cover:
-  - audio signal -> audio signal valid
-  - audio signal -> CV invalid
+  - audio -> audio valid
+  - audio -> CV invalid
   - PVOC typed data -> PVOC typed data valid
   - PVOC typed data -> audio invalid
-  - audio signal -> PVOC typed data invalid
+  - audio -> PVOC typed data invalid
 
 ## Phase 5: GraphBuilder Runtime Guardrail
 
@@ -276,7 +288,7 @@ Deliverables:
 
 - Extend the Canvas connection model with optional lane pairs so one visible
   cable can carry multiple source/target port mappings.
-- Keep legacy single-lane connection serialization compatible.
+- Keep existing single-lane connection serialization compatible.
 - Serialize multicore lanes explicitly in project connection data.
 - Validate every bundled lane through the same `ConnectionCompatibility`
   service.
@@ -300,6 +312,42 @@ Remaining product work:
 
 - User gesture/UX for creating bundled cables from slot groups.
 - Descriptor contract for automatic lane grouping beyond explicit port IDs.
+
+## Phase 8: Built-In Port Taxonomy
+
+Status: complete.
+
+Deliverables:
+
+- Make `xyona.audio` the canonical audio port type.
+- Make `xyona.signal` the generic non-audio signal stream type.
+- Make `xyona.signal.cv`, `xyona.signal.gate`, and `xyona.signal.clock` the
+  concrete built-in signal subtypes.
+- Keep MIDI under `xyona.midi.*`.
+- Remove old public type IDs from specs, validators, generated metadata,
+  tests, docs, Canvas compatibility rules, and visual-token docs.
+- Add direct audio outputs where Core signal generators are audio-capable.
+
+Progress:
+
+- Core validator vocabulary, descriptor conversion, pack metadata conversion,
+  and operator specs now use the taxonomy above.
+- CDP audio specs and generated metadata now use `xyona.audio`; PVOC remains
+  `cdp.pvoc.analysis.v1`.
+- Lab public specs, typed port helpers, Canvas compatibility, port visuals, and
+  tests now use the taxonomy above.
+- `signal_lfo`, `signal_noise`, `signal_dust`, `signal_velvet`, and
+  `signal_crackle` expose `out_0` as `xyona.signal.cv` and `out_1` as
+  `xyona.audio`.
+
+Exit criteria:
+
+- Source and docs contain no old public type IDs.
+- Core and CDP operator validators pass.
+- CDP generated metadata check passes.
+- Core signal process tests pass.
+- Lab full XYONA-only test suite passes.
+- CDP pack CTest passes.
 
 ## Verification Matrix
 

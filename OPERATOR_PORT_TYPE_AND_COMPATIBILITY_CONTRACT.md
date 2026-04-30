@@ -54,7 +54,7 @@ facts:
 
 | Field | Meaning | Example |
 |---|---|---|
-| `type` | Stable namespaced port type ID. | `xyona.audio.signal` |
+| `type` | Stable namespaced port type ID. | `xyona.audio` |
 | `kind` | Broad runtime class. | `audio`, `control`, `event`, `midi`, `typed_data` |
 | `domain` | Fachlicher signal/data Bereich. | `time_audio`, `spectral_pvoc`, `control_data` |
 | `rate` | Execution/data cadence. | `audio_rate`, `control_rate`, `event_rate`, `offline_artifact` |
@@ -70,7 +70,7 @@ YAML shape:
 ports:
   inputs:
     - id: in
-      type: xyona.audio.signal
+      type: xyona.audio
       channelPolicy: any
   outputs:
     - id: pvoc
@@ -99,11 +99,12 @@ broad kinds.
 
 | Type ID | Kind | Domain | Notes |
 |---|---|---|---|
-| `xyona.audio.signal` | `audio` | `time_audio` | Realtime or block audio signal. |
+| `xyona.audio` | `audio` | `time_audio` | Realtime or block audio stream. |
 | `xyona.audio.buffer` | `typed_data` | `time_audio` | Materialized audio buffer or whole-file artifact. |
-| `xyona.control.cv` | `control` | `control_data` | Continuous scalar/modulation value. |
-| `xyona.control.gate` | `event` | `control_data` | Gate/trigger edge. |
-| `xyona.control.clock` | `event` | `control_data` | Clock/transport pulse. |
+| `xyona.signal` | `control` | `control_data` | Generic non-audio signal stream. |
+| `xyona.signal.cv` | `control` | `control_data` | Continuous scalar/modulation value. |
+| `xyona.signal.gate` | `event` | `control_data` | Gate/trigger edge. |
+| `xyona.signal.clock` | `event` | `control_data` | Clock/transport pulse. |
 | `xyona.midi.v1` | `midi` | `control_data` | MIDI 1.0 event stream. |
 | `xyona.midi.mpe.v1` | `midi` | `control_data` | MPE profile, compatible only by rule. |
 | `xyona.midi.v2` | `midi` | `control_data` | Reserved future MIDI 2.0 profile. |
@@ -118,31 +119,32 @@ Compatibility is decided by port facts, not by operator facts.
 
 Default rules:
 
-- `xyona.audio.signal` connects to `xyona.audio.signal`.
-- `xyona.control.cv` connects to `xyona.control.cv`.
-- `xyona.control.gate` connects to `xyona.control.gate`.
-- `xyona.control.clock` connects to `xyona.control.clock`.
+- `xyona.audio` connects to `xyona.audio`.
+- `xyona.signal` connects to `xyona.signal`.
+- `xyona.signal.cv` connects to `xyona.signal.cv`.
+- `xyona.signal.gate` connects to `xyona.signal.gate`.
+- `xyona.signal.clock` connects to `xyona.signal.clock`.
 - MIDI ports connect only when the MIDI profile compatibility rule allows it.
 - Typed-data ports connect only when `type`, `schema`, and `format` are
   compatible.
-- A typed-data port does not connect directly to an audio signal port.
-- An audio signal port does not connect directly to a typed-data input.
+- A typed-data port does not connect directly to an audio port.
+- An audio port does not connect directly to a typed-data input.
 - Cross-domain conversion requires an explicit operator.
 
 Valid spectral example:
 
 ```text
-xyona.audio.signal -> cdp.pvoc.anal.in
+xyona.audio -> cdp.pvoc.anal.in
 cdp.pvoc.anal.pvoc -> cdp.pvoc.synth.pvoc
-cdp.pvoc.synth.out -> xyona.audio.signal
+cdp.pvoc.synth.out -> xyona.audio
 ```
 
 Invalid examples:
 
 ```text
-cdp.pvoc.analysis.v1 -> xyona.audio.signal
-xyona.audio.signal -> cdp.pvoc.analysis.v1
-cdp.pvoc.analysis.v1 -> xyona.control.cv
+cdp.pvoc.analysis.v1 -> xyona.audio
+xyona.audio -> cdp.pvoc.analysis.v1
+cdp.pvoc.analysis.v1 -> xyona.signal.cv
 ```
 
 ## Operator Domain Is Not Patch Compatibility
@@ -159,6 +161,9 @@ Examples:
   audio output.
 - A time-audio operator may be incompatible with PVOC typed data even when both
   are offline-capable.
+- An audio-rate signal generator may expose both `xyona.signal.cv` and
+  `xyona.audio` outputs when the same generated stream is useful as modulation
+  and direct audio.
 
 The rule is:
 
@@ -173,7 +178,7 @@ compatibility   = whether this exact connection may exist
 Future packs such as Faust, Maximilian, or vendor-specific XYONA packs may
 register namespaced port types. New concrete types must:
 
-- use a stable namespaced ID, for example `faust.audio.signal` or
+- use a stable namespaced ID, for example `faust.audio` or
   `vendor.spectral.frame.v1`
 - map to a known broad `kind`
 - declare `domain`, `rate`, and `executionContext`

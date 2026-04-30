@@ -1,7 +1,7 @@
 # Report: Operator Port Types And Patch Compatibility
 
 **Date:** 2026-04-30
-**Branch:** `operator-port-types-contract`
+**Branch:** `port-type-taxonomy`
 **Roadmap:** `ROADMAP_OPERATOR_PORT_TYPES_AND_PATCH_COMPATIBILITY.md`
 **Contract:** `OPERATOR_PORT_TYPE_AND_COMPATIBILITY_CONTRACT.md`
 
@@ -10,6 +10,10 @@
 This work formalizes XYONA operator patching as an explicit descriptor-port
 contract. The goal is to stop relying on implicit audio defaults, generic
 Canvas port names, tags-only classification, or operator-domain guesses.
+
+The current built-in taxonomy is `xyona.audio`, `xyona.signal`,
+`xyona.signal.cv`, `xyona.signal.gate`, `xyona.signal.clock`, and
+`xyona.midi.*`.
 
 ## Decisions
 
@@ -71,13 +75,14 @@ Core:
   `OpDesc` descriptors.
 - Core runtime descriptor tests now compare port type facts against `op.yaml`.
 - The current Core `op.yaml` set now declares:
-  - `xyona.audio.signal` for audio ports
-  - `xyona.control.cv` for Core signal/CV ports
+  - `xyona.audio` for audio ports
+  - `xyona.signal` for generic non-audio signal streams
+  - `xyona.signal.cv` for Core CV signal ports
 
 CDP pack:
 
 - All public CDP `op.yaml` ports now declare explicit type facts.
-- Audio CDP ports use `xyona.audio.signal`.
+- Audio CDP ports use `xyona.audio`.
 - PVOC typed-data ports use canonical port type `cdp.pvoc.analysis.v1` and
   payload schema `xyona.cdp.pvoc.analysis.v1`.
 - Generated CDP port metadata keeps `xyona.schema=port_meta` as the envelope
@@ -109,8 +114,8 @@ Completed in this phase:
 - Regenerated CDP operator metadata.
 - Extended CDP descriptor metadata tests to assert descriptor and metadata port
   type facts.
-- Updated Core pack loader so V2 pack port metadata populates `IODesc` and
-  `PortDesc`.
+- Updated Core pack loader so versioned pack port metadata populates `IODesc`
+  and `PortDesc`.
 - Documented the CDP distinction between canonical port type
   `cdp.pvoc.analysis.v1` and payload schema `xyona.cdp.pvoc.analysis.v1`.
 
@@ -123,10 +128,11 @@ Completed in this phase:
 - Updated `xyona-lab/specs/operators/lab-public.op.yaml` so every public Lab
   operator port declares a type.
 - Added Lab CustomOperator port factory helpers for:
-  - `xyona.audio.signal`
-  - `xyona.control.cv`
-  - `xyona.control.gate`
-  - `xyona.control.clock`
+  - `xyona.audio`
+  - `xyona.signal`
+  - `xyona.signal.cv`
+  - `xyona.signal.gate`
+  - `xyona.signal.clock`
 - Replaced Lab-authored raw `IODesc` port construction with typed helpers.
 - Extended Lab custom operator registration and DiscoveryService to reject or
   skip incomplete public port type metadata.
@@ -162,7 +168,7 @@ Completed in this phase slice:
 - Removed unreachable disabled flow-overlay code in the then-current cable renderer, which
   eliminated the C4702 build warning without changing cable rendering behavior.
 - Corrected Lab signal selector/provider/CV sink contract ports that carry
-  scalar CV values to `xyona.control.cv`.
+  scalar CV values to `xyona.signal.cv`.
 - Typed older test-only fake descriptors that participate in Canvas
   connections, so tests no longer rely on implicit audio fallbacks.
 - Added focused Canvas connection tests for valid audio, invalid audio/CV,
@@ -215,7 +221,7 @@ Foundation complete.
 Completed in this phase slice:
 
 - Extended Lab `Connection` with optional multicore lane pairs while preserving
-  legacy single-lane aggregate construction and serialization.
+  existing single-lane aggregate construction and serialization.
 - Canvas validates every lane atomically through `ConnectionCompatibility` and
   rejects duplicate or incompatible bundled lanes without partial creation.
 - Project connection export/import now round-trips explicit `lanes` arrays.
@@ -264,82 +270,125 @@ Verification for this phase slice:
 - `xyona-lab`: `./build/macos-dev/tests/xyona_lab_tests --test="Canvas Cable Visual" --xyona-only --summary-only`
 - `xyona-lab`: `./build/macos-dev/tests/xyona_lab_tests --test="Connection System" --xyona-only --summary-only`
 
+## Phase 9 Status
+
+Built-in port taxonomy complete.
+
+Completed in this phase slice:
+
+- Replaced the public built-in port vocabulary across Core, Lab, CDP pack, and
+  root documentation with:
+  - `xyona.audio`
+  - `xyona.signal`
+  - `xyona.signal.cv`
+  - `xyona.signal.gate`
+  - `xyona.signal.clock`
+  - `xyona.midi.*`
+- Removed old public type IDs from source specs, descriptors, generated CDP
+  metadata, tests, validators, visual tokens, Canvas compatibility rules, and
+  docs.
+- Added `xyona.signal` as the generic non-audio signal stream type in the root
+  contract, Core validator vocabulary, Lab Canvas compatibility, and Lab port
+  visual registry.
+- Updated Core pack metadata loading so pack ports using `xyona.audio`,
+  `xyona.signal`, and concrete signal subtypes map to the correct host-neutral
+  `PortKind` and `SignalKind`.
+- Added dedicated audio outputs on audio-capable signal generators:
+  `signal_lfo`, `signal_noise`, `signal_dust`, `signal_velvet`, and
+  `signal_crackle` now expose `out_0` as `xyona.signal.cv` and `out_1` as
+  `xyona.audio`.
+- Signal generator processing computes each sample once and writes it to the
+  CV and audio buffers only when those buffers are present.
+- Lab graph processing now allocates per-node output scratch buffers only for
+  ports demanded by downstream wires or observer taps.
+- Lab's Core host adapter omits disconnected multi-output Core port groups
+  from `ProcessContext`, so dual outputs such as `out_1` audio are not cooked
+  when not connected.
+- Single-output Core operators keep the trash-buffer fallback for
+  `ctx.output("out")` safety.
+- Updated Core signal operator README/help docs and Lab boundary tests for the
+  dual-output contract.
+
+Verification for this phase slice:
+
+- Workspace/root/Core/Lab/CDP: `git diff --check`
+- Workspace retired public type ID sweeps across non-build files.
+- `xyona-core`: `./.venv/bin/python tools/operator_modules/validate_operator_modules.py --root .`
+- `xyona-core`: `./.venv/bin/python tools/operator_modules/test_validate_operator_modules.py`
+- `xyona-core`: `cmake --build build/macos-clang-debug --target test_signal_processes`
+- `xyona-core`: `build/macos-clang-debug/tests/test_signal_processes`
+- `xyona-lab`: `cmake --build build/macos-dev --target xyona_lab_tests`
+- `xyona-lab`: `build/macos-dev/tests/xyona_lab_tests --test="CoreOperatorHostAdapter" --xyona-only --summary-only`
+- `xyona-lab`: `build/macos-dev/tests/xyona_lab_tests --test="AudioEngineManager Minimal Plan" --xyona-only --summary-only`
+- `xyona-lab`: `build/macos-dev/tests/xyona_lab_tests --xyona-only --summary-only`
+- `xyona-cdp-pack`: `../xyona-core/.venv/bin/python scripts/validate_operator_modules.py --root .`
+- `xyona-cdp-pack`: `../xyona-core/.venv/bin/python scripts/generate_operator_metadata.py --check`
+- `xyona-cdp-pack`: `cmake --build build/macos-clang-debug --target xyona_pack_cdp_ops`
+- `xyona-cdp-pack`: `cmake --build build/macos-clang-debug --target test_cdp_descriptor_metadata`
+- `xyona-cdp-pack`: `ctest --test-dir build/macos-clang-debug --output-on-failure`
+
+Result:
+
+- Core operator module validation passed: 16 `op.yaml` records.
+- Core operator module validator guardrail tests passed: 7 tests.
+- Core signal process tests passed.
+- Root/Core/Lab/CDP `git diff --check` passed.
+- Retired public type ID sweeps returned no matches.
+- Lab `CoreOperatorHostAdapter` passed: 4 tests, 136 passes, 0 failures.
+- Lab `AudioEngineManager Minimal Plan` passed: 38 tests, 566 passes,
+  0 failures.
+- Lab `xyona_lab_tests --xyona-only --summary-only` passed: 1191 tests,
+  944300 passes, 0 failures.
+- CDP operator module validation passed: 16 `op.yaml` records.
+- CDP generated metadata check passed.
+- CDP pack CTest passed: 21 tests, 0 failures.
+- Lab optional CDP Pack Canvas Smoke and SOFA smoke cases were skipped in the
+  full Lab run because `XYONA_OPERATOR_PACK_PATH` and `XYONA_TEST_SOFA_PATH`
+  were not set for that invocation. CDP pack behavior was verified separately
+  in the CDP pack repo.
+
 ## Verification
 
-Completed:
+Completed for the current `port-type-taxonomy` branch on macOS:
 
 ```text
 git diff --check
-C:\Python3.9.5\python.exe tools\operator_modules\test_validate_operator_modules.py
-C:\Python3.9.5\python.exe tools\operator_modules\validate_operator_modules.py --root .
-cmake --build build/windows-msvc-debug --target test_operator_module_runtime test_operator_packs test_signal_processes --config Debug
-ctest --test-dir build/windows-msvc-debug -C Debug -R "operator_module_runtime_tests|operator_module_metadata_tests|operator_module_validator_guardrail_tests|operator_packs_tests" --output-on-failure
-ctest --test-dir build/windows-msvc-debug -C Debug -R "signal_process_tests" --output-on-failure
-C:\Python3.9.5\python.exe scripts\validate_operator_modules.py
-C:\Python3.9.5\python.exe scripts\generate_operator_metadata.py --check
-cmake --build build/windows-msvc-debug --target xyona_pack_cdp_ops test_cdp_descriptor_metadata test_cdp_spectral_contract test_cdp_pack test_cdp_pack_env_discovery --config Debug
-ctest --test-dir build/windows-msvc-debug -C Debug -R "cdp_generated_operator_metadata_tests|cdp_operator_module_metadata_tests|cdp_descriptor_metadata_tests|cdp_spectral_contract_tests|cdp_pack_loader_tests|cdp_pack_env_discovery_tests" --output-on-failure
-cmake --build build/windows-dev --target xyona_lab_tests --config Debug
-ctest --test-dir build/windows-dev -C Debug -R lab_operator_module_metadata_tests --output-on-failure
-build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="Operator Module Spec Runtime" --xyona-only --summary-only
-$env:XYONA_OPERATOR_PACK_PATH='D:\GITHUB\XYONA\xyona-cdp-pack\build\windows-msvc-debug\Debug'; build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="CDP Pack Canvas Smoke" --xyona-only --summary-only
-build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="Connection System" --xyona-only --summary-only
-build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="Canvas Cable Visual" --xyona-only --summary-only
-build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="Wire Routing" --xyona-only --summary-only
-build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="GridSourceHostAdapter" --xyona-only --summary-only
-build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="GridActionFilterHostAdapter" --xyona-only --summary-only
-build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="GridValueHostAdapter" --xyona-only --summary-only
-build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="Signal" --xyona-only --summary-only
-build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="Adapter Lifetime" --xyona-only --summary-only
-build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="AudioEngineManager Minimal Plan" --xyona-only --summary-only
-build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="Stage 11 - AudioEngineManager Integration" --xyona-only --summary-only
-build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="Audio Routing Integration" --xyona-only --summary-only
-build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="BusAccumulator" --xyona-only --summary-only
-build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="Connection Persistence" --xyona-only --summary-only
-build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="DeleteNodeCommand Tests" --xyona-only --summary-only
-build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="Canvas Param Persistence" --xyona-only --summary-only
-build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="Canvas Stress Suite" --xyona-only --summary-only
+./.venv/bin/python tools/operator_modules/validate_operator_modules.py --root .
+./.venv/bin/python tools/operator_modules/test_validate_operator_modules.py
+cmake --build build/macos-clang-debug --target test_signal_processes
+build/macos-clang-debug/tests/test_signal_processes
+../xyona-core/.venv/bin/python scripts/validate_operator_modules.py --root .
+../xyona-core/.venv/bin/python scripts/generate_operator_metadata.py --check
+cmake --build build/macos-clang-debug --target xyona_pack_cdp_ops test_cdp_descriptor_metadata
+ctest --test-dir build/macos-clang-debug --output-on-failure
+cmake --build build/macos-dev --target xyona_lab_tests
+build/macos-dev/tests/xyona_lab_tests --test="CoreOperatorHostAdapter" --xyona-only --summary-only
+build/macos-dev/tests/xyona_lab_tests --test="AudioEngineManager Minimal Plan" --xyona-only --summary-only
+build/macos-dev/tests/xyona_lab_tests --xyona-only --summary-only
 ```
 
 Result:
 
-- Passed in Root.
-- Passed in `xyona-core`.
-- Passed in `xyona-lab`.
-- Passed in `xyona-cdp-pack`.
-- Core operator module validator guardrail tests passed: 7 tests.
+- Root/Core/Lab/CDP diff checks passed.
+- Retired public type ID sweeps returned no matches across non-build files.
 - Core operator module validation passed: 16 `op.yaml` records.
-- Core targeted CTest passed: 4 tests, 0 failures.
-- Core signal process CTest passed: 1 test, 0 failures.
+- Core operator module validator guardrail tests passed: 7 tests.
+- Core signal process tests passed.
 - CDP operator module validation passed: 16 `op.yaml` records.
 - CDP generated metadata check passed.
-- CDP targeted CTest passed: 6 tests, 0 failures.
-- Lab operator module validation passed: 17 `op.yaml` records.
-- Lab operator module metadata CTest passed.
-- Lab `Operator Module Spec Runtime` passed: 1 test, 513 passes.
-- Lab `CDP Pack Canvas Smoke` passed with `XYONA_OPERATOR_PACK_PATH` set to the
-  CDP debug pack folder: 14 tests, 410 passes.
-- Lab `Connection System` passed: 24 tests, 82 passes.
-- Lab `Canvas Cable Visual` passed: 9 tests, 21 passes.
-- Lab `Wire Routing` passed: 8 tests, 27 passes.
+- CDP pack CTest passed: 21 tests, 0 failures.
+- Lab `xyona_lab_tests` build passed.
+- Lab `CoreOperatorHostAdapter` passed: 4 tests, 136 passes.
 - Lab `AudioEngineManager Minimal Plan` passed: 38 tests, 566 passes.
-- Lab `Canvas Stress Suite` passed: 3 tests, 3004 passes.
-- Lab `Connection Persistence` passed: 5 tests, 19 passes.
-- Lab targeted Canvas/connection-adjacent tests passed:
-  `GridSourceHostAdapter`, `GridActionFilterHostAdapter`,
-  `GridValueHostAdapter`, `Signal`, `Adapter Lifetime`,
-  `AudioEngineManager Minimal Plan`, `Stage 11 - AudioEngineManager
-  Integration`, `Audio Routing Integration`, `BusAccumulator`,
-  `Connection Persistence`, `DeleteNodeCommand Tests`, `Canvas Cable Visual`,
-  `Canvas Param Persistence`, and `Canvas Stress Suite`.
+- Lab full `xyona_lab_tests --xyona-only --summary-only` passed: 1191 tests,
+  944300 passes, 0 failures.
 
 Notes:
 
-- Existing Windows line-ending warnings are present.
-- No whitespace errors were reported.
-- A full unfiltered `xyona_lab_tests --xyona-only --summary-only` run was
-  attempted and timed out after 10 minutes; targeted affected suites above
-  completed successfully.
+- Lab optional CDP Pack Canvas Smoke and SOFA smoke cases were skipped in the
+  full Lab run because `XYONA_OPERATOR_PACK_PATH` and `XYONA_TEST_SOFA_PATH`
+  were not set for that invocation. CDP pack behavior was verified separately
+  in the CDP pack repo.
 
 ## Open Risks
 
