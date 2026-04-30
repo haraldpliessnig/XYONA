@@ -159,7 +159,7 @@ Completed in this phase slice:
   `out_N -> in_N` port names.
 - Updated Generic node rendering and hit-testing to use visible descriptor
   port IDs instead of local generic aliases for descriptor-backed operators.
-- Removed unreachable disabled flow-overlay code in `PatchCableOverlay`, which
+- Removed unreachable disabled flow-overlay code in the then-current cable renderer, which
   eliminated the C4702 build warning without changing cable rendering behavior.
 - Corrected Lab signal selector/provider/CV sink contract ports that carry
   scalar CV values to `xyona.control.cv`.
@@ -197,8 +197,8 @@ Completed in this phase slice:
   helpers now carry `PortVisualFacts` beside visible descriptor port IDs.
 - Generic node port rendering asks the registry for neutral port fill/outline
   tokens instead of hardcoding per-renderer port visuals.
-- `PatchCableOverlay` asks the registry for cable color/thickness tokens. The
-  current palette intentionally preserves the existing neutral cable look.
+- Cable rendering asks `PortVisualRegistry` for cable color/thickness tokens.
+  The current palette intentionally preserves the existing neutral cable look.
 - Canvas exposes port and connection tooltips derived from descriptor facts:
   type, kind, domain, rate, schema, format, merge policy, and compatibility
   hint.
@@ -219,7 +219,7 @@ Completed in this phase slice:
 - Canvas validates every lane atomically through `ConnectionCompatibility` and
   rejects duplicate or incompatible bundled lanes without partial creation.
 - Project connection export/import now round-trips explicit `lanes` arrays.
-- `PatchCableOverlay` renders and hit-tests multicore as one cable and derives
+- Canvas cable rendering renders and hit-tests multicore as one cable and derives
   cable thickness from lane count through `PortVisualRegistry`.
 - Realtime and offline GraphBuilder paths expand bundled lanes to normal
   per-port wires before adjacency, wire routing, observer extraction, and
@@ -232,6 +232,37 @@ Remaining product work:
 
 - Add user-facing cable creation gestures for slot groups.
 - Add descriptor/UX rules for automatic lane grouping beyond explicit port IDs.
+
+## Phase 8 Status
+
+Canvas cable layer cleanup complete.
+
+Completed in this phase slice:
+
+- Removed Lab's app-wide transparent `PatchCableOverlay` component and
+  `MainComponent` cable overlay ownership.
+- Removed the obsolete multi-provider `AnchorRegistry`; Sidebar and
+  ParameterBar are not patch surfaces.
+- Added Canvas-owned `CanvasCableRenderer`, a non-component helper that draws
+  and hit-tests cables from the Canvas paint path.
+- Changed cable anchor coordinates to Canvas-local screen coordinates.
+- Preserved drag-to-connect, hover/selection, compatible target hover, focus
+  highlighting, endpoint detach, right-click cable context menu, debug anchor
+  rects, multicore cable hit-testing, and descriptor-backed cable visual token
+  usage.
+- Removed cable hover tooltips/toolbox behavior; cable deletion remains
+  available through both the cable context menu and cable selection plus
+  Delete/Backspace.
+- Updated the cable visual test surface from `Overlay Visual` to
+  `Canvas Cable Visual`.
+
+Verification for this phase slice:
+
+- `git diff --check`
+- `xyona-lab`: `git diff --check`
+- `xyona-lab`: `./build-dev.sh`
+- `xyona-lab`: `./build/macos-dev/tests/xyona_lab_tests --test="Canvas Cable Visual" --xyona-only --summary-only`
+- `xyona-lab`: `./build/macos-dev/tests/xyona_lab_tests --test="Connection System" --xyona-only --summary-only`
 
 ## Verification
 
@@ -253,7 +284,7 @@ ctest --test-dir build/windows-dev -C Debug -R lab_operator_module_metadata_test
 build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="Operator Module Spec Runtime" --xyona-only --summary-only
 $env:XYONA_OPERATOR_PACK_PATH='D:\GITHUB\XYONA\xyona-cdp-pack\build\windows-msvc-debug\Debug'; build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="CDP Pack Canvas Smoke" --xyona-only --summary-only
 build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="Connection System" --xyona-only --summary-only
-build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="Overlay Visual" --xyona-only --summary-only
+build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="Canvas Cable Visual" --xyona-only --summary-only
 build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="Wire Routing" --xyona-only --summary-only
 build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="GridSourceHostAdapter" --xyona-only --summary-only
 build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="GridActionFilterHostAdapter" --xyona-only --summary-only
@@ -289,7 +320,7 @@ Result:
 - Lab `CDP Pack Canvas Smoke` passed with `XYONA_OPERATOR_PACK_PATH` set to the
   CDP debug pack folder: 14 tests, 410 passes.
 - Lab `Connection System` passed: 24 tests, 82 passes.
-- Lab `Overlay Visual` passed: 9 tests, 20 passes.
+- Lab `Canvas Cable Visual` passed: 9 tests, 21 passes.
 - Lab `Wire Routing` passed: 8 tests, 27 passes.
 - Lab `AudioEngineManager Minimal Plan` passed: 38 tests, 566 passes.
 - Lab `Canvas Stress Suite` passed: 3 tests, 3004 passes.
@@ -299,7 +330,7 @@ Result:
   `GridValueHostAdapter`, `Signal`, `Adapter Lifetime`,
   `AudioEngineManager Minimal Plan`, `Stage 11 - AudioEngineManager
   Integration`, `Audio Routing Integration`, `BusAccumulator`,
-  `Connection Persistence`, `DeleteNodeCommand Tests`, `Overlay Visual`,
+  `Connection Persistence`, `DeleteNodeCommand Tests`, `Canvas Cable Visual`,
   `Canvas Param Persistence`, and `Canvas Stress Suite`.
 
 Notes:
