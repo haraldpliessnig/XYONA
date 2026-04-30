@@ -83,8 +83,13 @@ CDP pack:
 
 Lab:
 
-- Lab public operator specs currently list port IDs without explicit type
-  fields.
+- Lab public operator specs now declare explicit port types.
+- Lab CustomOperator runtime descriptors now use typed port factory helpers for
+  audio, CV, gate, and clock ports.
+- Lab custom operator registration rejects incomplete public port type
+  metadata.
+- Lab DiscoveryService filters incomplete descriptors out of normal
+  palette/discovery results.
 - Canvas/GraphBuilder compatibility still needs a central service.
 
 ## Phase 2 Status
@@ -104,6 +109,25 @@ Completed in this phase:
 - Documented the CDP distinction between canonical port type
   `cdp.pvoc.analysis.v1` and payload schema `xyona.cdp.pvoc.analysis.v1`.
 
+## Phase 3 Status
+
+Completed.
+
+Completed in this phase:
+
+- Updated `xyona-lab/specs/operators/lab-public.op.yaml` so every public Lab
+  operator port declares a type.
+- Added Lab CustomOperator port factory helpers for:
+  - `xyona.audio.signal`
+  - `xyona.control.cv`
+  - `xyona.control.gate`
+  - `xyona.control.clock`
+- Replaced Lab-authored raw `IODesc` port construction with typed helpers.
+- Extended Lab custom operator registration and DiscoveryService to reject or
+  skip incomplete public port type metadata.
+- Extended Lab runtime metadata tests to compare spec port IDs/types against
+  Discovery descriptors.
+
 ## Verification
 
 Completed:
@@ -119,6 +143,10 @@ C:\Python3.9.5\python.exe scripts\validate_operator_modules.py
 C:\Python3.9.5\python.exe scripts\generate_operator_metadata.py --check
 cmake --build build/windows-msvc-debug --target xyona_pack_cdp_ops test_cdp_descriptor_metadata test_cdp_spectral_contract test_cdp_pack test_cdp_pack_env_discovery --config Debug
 ctest --test-dir build/windows-msvc-debug -C Debug -R "cdp_generated_operator_metadata_tests|cdp_operator_module_metadata_tests|cdp_descriptor_metadata_tests|cdp_spectral_contract_tests|cdp_pack_loader_tests|cdp_pack_env_discovery_tests" --output-on-failure
+cmake --build build/windows-dev --target xyona_lab_tests --config Debug
+ctest --test-dir build/windows-dev -C Debug -R lab_operator_module_metadata_tests --output-on-failure
+build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="Operator Module Spec Runtime" --xyona-only --summary-only
+$env:XYONA_OPERATOR_PACK_PATH='D:\GITHUB\XYONA\xyona-cdp-pack\build\windows-msvc-debug\Debug'; build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="CDP Pack Canvas Smoke" --xyona-only --summary-only
 ```
 
 Result:
@@ -134,6 +162,11 @@ Result:
 - CDP operator module validation passed: 16 `op.yaml` records.
 - CDP generated metadata check passed.
 - CDP targeted CTest passed: 6 tests, 0 failures.
+- Lab operator module validation passed: 17 `op.yaml` records.
+- Lab operator module metadata CTest passed.
+- Lab `Operator Module Spec Runtime` passed: 1 test, 513 passes.
+- Lab `CDP Pack Canvas Smoke` passed with `XYONA_OPERATOR_PACK_PATH` set to the
+  CDP debug pack folder: 14 tests, 410 passes.
 
 Notes:
 
@@ -147,15 +180,14 @@ Notes:
   staged so each repo can be made green before moving to the next layer.
 - `IODesc` is marked deprecated but still consumed in Lab and pack discovery.
   The bridge from `IODesc` to richer port type facts must be deliberate.
-- Lab still needs Phase 3/4 enforcement. Until then, descriptors carry the
-  facts but Canvas and GraphBuilder are not yet centrally blocking every
-  invalid cross-type edge.
+- Lab still needs Phase 4/5 enforcement. Descriptors now carry the facts, but
+  Canvas and GraphBuilder are not yet centrally blocking every invalid
+  cross-type edge.
 
 ## Next Step
 
-Continue with Phase 3:
+Continue with Phase 4:
 
-- update Lab public operator specs and runtime metadata to carry explicit
-  type facts
-- make Lab discovery reject or quarantine incomplete descriptor port type data
-- then implement Lab connection compatibility against descriptor facts
+- add a central Lab connection compatibility service
+- use it for Canvas drag highlighting and connection creation
+- keep GraphBuilder runtime revalidation as the following guardrail

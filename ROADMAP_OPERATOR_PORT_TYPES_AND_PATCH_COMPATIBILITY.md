@@ -135,7 +135,7 @@ Progress:
 
 ## Phase 3: Lab Public Operators And Discovery
 
-Status: pending.
+Status: complete.
 
 Deliverables:
 
@@ -150,6 +150,19 @@ Exit criteria:
 
 - Lab public operator metadata tests pass.
 - No Lab-authored public operator has untyped ports.
+
+Progress:
+
+- `xyona-lab/specs/operators/lab-public.op.yaml` now declares explicit port
+  types for all Lab-authored public operators.
+- Lab CustomOperator port factories create typed audio/control/gate/clock
+  descriptor ports instead of raw untyped `IODesc` records.
+- Lab custom operator registration rejects descriptors with incomplete public
+  port type metadata.
+- Lab discovery filters incomplete descriptors out of normal palette/discovery
+  results and logs the skipped operator ID.
+- Lab runtime metadata tests compare spec port IDs/types against Discovery
+  descriptors.
 
 ## Phase 4: Canvas Port Identity And Compatibility Service
 
