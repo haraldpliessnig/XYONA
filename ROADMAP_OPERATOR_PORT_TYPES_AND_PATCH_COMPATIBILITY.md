@@ -166,7 +166,7 @@ Progress:
 
 ## Phase 4: Canvas Port Identity And Compatibility Service
 
-Status: pending.
+Status: in progress.
 
 Deliverables:
 
@@ -183,6 +183,31 @@ Exit criteria:
 - PVOC typed data to audio input is blocked.
 - Audio signal to PVOC typed-data input is blocked unless the target input is
   actually an audio input on an analysis operator.
+
+Progress:
+
+- Added a central Lab `ConnectionCompatibility` service for descriptor-backed
+  port resolution and default compatibility rules.
+- Canvas `createConnection()` now rejects incompatible descriptor-backed
+  edges, missing descriptor ports, missing port types, and duplicate incoming
+  edges to `single_source` inputs.
+- Project connection import now lets descriptor-backed nodes validate through
+  `createConnection()` instead of forcing generic `out_N -> in_N` names.
+- Lab signal sink/source host ports that represent CV values now use
+  `xyona.control.cv` consistently.
+- Tests cover:
+  - audio signal -> audio signal valid
+  - audio signal -> CV invalid
+  - PVOC typed data -> PVOC typed data valid
+  - PVOC typed data -> audio invalid
+  - audio signal -> PVOC typed data invalid
+
+Remaining:
+
+- Drag hover/highlighting still needs to consume the central service.
+- The visual renderer and hit-test path still expose generic `in_N`/`out_N`
+  aliases for some expanded ports; this needs a separate UI-safe pass.
+- GraphBuilder runtime revalidation remains Phase 5.
 
 ## Phase 5: GraphBuilder Runtime Guardrail
 

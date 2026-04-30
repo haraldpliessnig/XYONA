@@ -128,6 +128,35 @@ Completed in this phase:
 - Extended Lab runtime metadata tests to compare spec port IDs/types against
   Discovery descriptors.
 
+## Phase 4 Status
+
+In progress.
+
+Completed in this phase slice:
+
+- Added Lab `ConnectionCompatibility`, a central descriptor-port compatibility
+  service.
+- Wired Canvas `createConnection()` through that service, so command/undo and
+  direct programmatic connection creation share the same blocking rule.
+- Added `single_source` target enforcement for descriptor-backed inputs.
+- Updated project connection import so descriptor-backed edges are validated by
+  the same Canvas connection path instead of being limited to generic
+  `out_N -> in_N` port names.
+- Corrected Lab signal selector/provider/CV sink contract ports that carry
+  scalar CV values to `xyona.control.cv`.
+- Typed older test-only fake descriptors that participate in Canvas
+  connections, so tests no longer rely on implicit audio fallbacks.
+- Added focused Canvas connection tests for valid audio, invalid audio/CV,
+  valid PVOC typed data, invalid PVOC-to-audio, and invalid audio-to-PVOC
+  edges.
+
+Still open for Phase 4/5:
+
+- Drag hover/highlighting has not yet been moved onto the central service.
+- Renderer/hit-test port IDs still need a UI-safe pass to stop presenting
+  generic aliases where descriptor IDs should be visible.
+- GraphBuilder revalidation is still the next runtime guardrail.
+
 ## Verification
 
 Completed:
@@ -147,6 +176,22 @@ cmake --build build/windows-dev --target xyona_lab_tests --config Debug
 ctest --test-dir build/windows-dev -C Debug -R lab_operator_module_metadata_tests --output-on-failure
 build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="Operator Module Spec Runtime" --xyona-only --summary-only
 $env:XYONA_OPERATOR_PACK_PATH='D:\GITHUB\XYONA\xyona-cdp-pack\build\windows-msvc-debug\Debug'; build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="CDP Pack Canvas Smoke" --xyona-only --summary-only
+build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="Connection System" --xyona-only --summary-only
+build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="GridSourceHostAdapter" --xyona-only --summary-only
+build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="GridActionFilterHostAdapter" --xyona-only --summary-only
+build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="GridValueHostAdapter" --xyona-only --summary-only
+build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="Signal" --xyona-only --summary-only
+build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="Adapter Lifetime" --xyona-only --summary-only
+build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="AudioEngineManager Minimal Plan" --xyona-only --summary-only
+build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="Stage 11 - AudioEngineManager Integration" --xyona-only --summary-only
+build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="Audio Routing Integration" --xyona-only --summary-only
+build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="Wire Routing" --xyona-only --summary-only
+build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="BusAccumulator" --xyona-only --summary-only
+build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="Connection Persistence" --xyona-only --summary-only
+build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="DeleteNodeCommand Tests" --xyona-only --summary-only
+build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="Overlay Visual" --xyona-only --summary-only
+build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="Canvas Param Persistence" --xyona-only --summary-only
+build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="Canvas Stress Suite" --xyona-only --summary-only
 ```
 
 Result:
@@ -167,11 +212,22 @@ Result:
 - Lab `Operator Module Spec Runtime` passed: 1 test, 513 passes.
 - Lab `CDP Pack Canvas Smoke` passed with `XYONA_OPERATOR_PACK_PATH` set to the
   CDP debug pack folder: 14 tests, 410 passes.
+- Lab `Connection System` passed: 20 tests, 55 passes.
+- Lab targeted Canvas/connection-adjacent tests passed:
+  `GridSourceHostAdapter`, `GridActionFilterHostAdapter`,
+  `GridValueHostAdapter`, `Signal`, `Adapter Lifetime`,
+  `AudioEngineManager Minimal Plan`, `Stage 11 - AudioEngineManager
+  Integration`, `Audio Routing Integration`, `Wire Routing`, `BusAccumulator`,
+  `Connection Persistence`, `DeleteNodeCommand Tests`, `Overlay Visual`,
+  `Canvas Param Persistence`, and `Canvas Stress Suite`.
 
 Notes:
 
 - Existing Windows line-ending warnings are present.
 - No whitespace errors were reported.
+- A full unfiltered `xyona_lab_tests --xyona-only --summary-only` run was
+  attempted and timed out after 10 minutes; targeted affected suites above
+  completed successfully.
 
 ## Open Risks
 
@@ -183,11 +239,14 @@ Notes:
 - Lab still needs Phase 4/5 enforcement. Descriptors now carry the facts, but
   Canvas and GraphBuilder are not yet centrally blocking every invalid
   cross-type edge.
+- Canvas connection creation now blocks descriptor-backed invalid edges, but UI
+  drag highlighting and GraphBuilder runtime revalidation are still open.
 
 ## Next Step
 
-Continue with Phase 4:
+Continue with the remaining Phase 4/5 work:
 
-- add a central Lab connection compatibility service
-- use it for Canvas drag highlighting and connection creation
-- keep GraphBuilder runtime revalidation as the following guardrail
+- move drag hover/highlighting onto `ConnectionCompatibility`
+- make the renderer/hit-test path expose descriptor port IDs without visual
+  regressions
+- add GraphBuilder runtime revalidation against the same compatibility service
