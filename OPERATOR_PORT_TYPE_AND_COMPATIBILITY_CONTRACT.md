@@ -179,7 +179,7 @@ register namespaced port types. New concrete types must:
 - declare `domain`, `rate`, and `executionContext`
 - declare `schema` and `format` for typed data
 - declare compatibility with built-in or pack-local types explicitly
-- avoid relying on Lab-specific colors, icons, or renderer behavior
+- avoid relying on Lab-specific colors, cable styling, or renderer behavior
 
 Core should only grow a new broad `kind` when a new runtime class genuinely
 cannot be modeled by the existing vocabulary.
@@ -200,12 +200,16 @@ This contract must be enforced at multiple layers:
 
 ## Visual Tokens
 
-Port colors, icons, tooltip text, and hit-target styling are Lab concerns. They
+Port colors, tooltip text, cable styling, and hit-target styling are Lab concerns. They
 must be derived from port type facts through a Lab registry, not hardcoded in
 individual node renderers.
 
 Core and packs may provide semantic facts. They must not provide JUCE colors or
 Canvas layout rules.
+
+Port icons/glyphs are out of scope for port visuals. Future multicore/bundled
+cables must be represented by explicit connection facts and styled through the
+same Lab registry rather than by overlay-local rules.
 
 ## Initial Implementation Plan
 

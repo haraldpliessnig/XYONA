@@ -59,7 +59,7 @@ Each package also has a package-local guide and, where present, a package-local
 - `xyona-lab/docs/subsystems/canvas/CANVAS_PORT_TYPES_AND_PATCH_COMPATIBILITY.md`
   for Canvas wiring and patch compatibility work
 - `xyona-lab/docs/subsystems/ui/OPERATOR_PORT_VISUAL_TOKENS.md` for port
-  colors, icons, hover states, and cable styling
+  colors, hover states, tooltips, and cable styling
 
 ### xyona-core
 

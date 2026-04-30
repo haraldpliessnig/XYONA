@@ -21,6 +21,11 @@ Canvas port names, tags-only classification, or operator-domain guesses.
 - Lab renders and enforces port compatibility but does not invent missing port
   metadata.
 - Packs may add namespaced concrete port types that map to known broad kinds.
+- Port visuals do not include icons/glyphs. Port differentiation is via central
+  color/stroke/shape, tooltip text, and cable styling.
+- Future multicore/bundled cables require an explicit graph/serialization
+  model; visual thickness is prepared centrally but bundling semantics are not
+  inferred.
 
 ## Phase 0 Status
 
@@ -180,6 +185,29 @@ Completed in this phase slice:
 - Runtime guardrail diagnostics include source node/port, target node/port,
   concrete source/target port types, and the blocking rule.
 
+## Phase 6 Status
+
+Technical scaffold complete; final differentiated palette pending.
+
+Completed in this phase slice:
+
+- Added Lab `PortVisuals`, a central descriptor-backed port visual registry in
+  `xyona-lab/src/app/lab/canvas/ports/`.
+- `NodeData`, `NodeBinder`, Canvas topology refresh, and descriptor test
+  helpers now carry `PortVisualFacts` beside visible descriptor port IDs.
+- Generic node port rendering asks the registry for neutral port fill/outline
+  tokens instead of hardcoding per-renderer port visuals.
+- `PatchCableOverlay` asks the registry for cable color/thickness tokens. The
+  current palette intentionally preserves the existing neutral cable look.
+- Canvas exposes port and connection tooltips derived from descriptor facts:
+  type, kind, domain, rate, schema, format, merge policy, and compatibility
+  hint.
+- The registry has a reserved `laneCount -> cableThicknessScale` hook for
+  future multicore/bundled cables. Current connections use lane count 1.
+- Port icons/glyphs are explicitly out of scope.
+- Phase 6 keeps the current neutral port/cable look. It changes ownership and
+  data flow, not the visible palette.
+
 ## Verification
 
 Completed:
@@ -235,9 +263,12 @@ Result:
 - Lab `Operator Module Spec Runtime` passed: 1 test, 513 passes.
 - Lab `CDP Pack Canvas Smoke` passed with `XYONA_OPERATOR_PACK_PATH` set to the
   CDP debug pack folder: 14 tests, 410 passes.
-- Lab `Connection System` passed: 22 tests, 67 passes.
+- Lab `Connection System` passed: 22 tests, 73 passes.
 - Lab `Overlay Visual` passed: 8 tests, 16 passes.
 - Lab `Wire Routing` passed: 8 tests, 27 passes.
+- Lab `AudioEngineManager Minimal Plan` passed: 37 tests, 559 passes.
+- Lab `Canvas Stress Suite` passed: 3 tests, 3004 passes.
+- Lab `Connection Persistence` passed: 4 tests, 11 passes.
 - Lab targeted Canvas/connection-adjacent tests passed:
   `GridSourceHostAdapter`, `GridActionFilterHostAdapter`,
   `GridValueHostAdapter`, `Signal`, `Adapter Lifetime`,
@@ -261,17 +292,20 @@ Notes:
   staged so each repo can be made green before moving to the next layer.
 - `IODesc` is marked deprecated but still consumed in Lab and pack discovery.
   The bridge from `IODesc` to richer port type facts must be deliberate.
-- Phase 6 visual typing is still open: port colors/icons/tooltips and cable
-  styling should be derived from descriptor type facts through a central Lab
-  visual registry.
+- Phase 6 visual typing is now technically centralized, but final differentiated
+  color/stroke choices are still pending UI direction.
 - Builder validation currently skips invalid edges and logs diagnostics. If a
   future caller needs a hard plan-build failure, that should be added as an
   explicit policy above the shared compatibility check.
+- Multicore/bundled cables are visually reserved only. They still need an
+  explicit connection model, project serialization, hit-testing, and GraphBuilder
+  compatibility plan.
 
 ## Next Step
 
-Continue with Phase 6 visual typing:
+Decide the visible Phase 6 palette:
 
-- add a central Lab port visual token registry
-- derive port/cable color, icon, and tooltip language from descriptor type facts
+- keep the neutral palette until the differentiated port/cable language is
+  designed
+- derive port/cable color and tooltip language from descriptor type facts only
 - keep header runtime stripes separate from port type visuals
