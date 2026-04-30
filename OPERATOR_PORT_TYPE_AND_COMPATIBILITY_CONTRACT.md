@@ -58,7 +58,7 @@ facts:
 | `kind` | Broad runtime class. | `audio`, `control`, `event`, `midi`, `typed_data` |
 | `domain` | Fachlicher signal/data Bereich. | `time_audio`, `spectral_pvoc`, `control_data` |
 | `rate` | Execution/data cadence. | `audio_rate`, `control_rate`, `event_rate`, `offline_artifact` |
-| `schema` | Required for typed data. | `cdp.pvoc.analysis.v1` |
+| `schema` | Required payload/schema contract for typed data. | `xyona.cdp.pvoc.analysis.v1` |
 | `format` | Concrete data format/profile where needed. | `pvoc_analysis`, `breakpoint_curve` |
 | `channelPolicy` | Channel behavior. | `mono`, `stereo`, `any`, `match_input`, `fixed_n` |
 | `mergePolicy` | Whether multiple incoming edges can merge. | `sum`, `merge`, `single_source` |
@@ -78,7 +78,7 @@ ports:
       kind: typed_data
       domain: spectral_pvoc
       rate: offline_artifact
-      schema: cdp.pvoc.analysis.v1
+      schema: xyona.cdp.pvoc.analysis.v1
       format: pvoc_analysis
       mergePolicy: single_source
 ```
@@ -86,6 +86,10 @@ ports:
 The exact on-disk field layout may evolve, but the generated descriptor and
 public discovery surface must expose enough information for Lab to decide
 compatibility without guessing.
+
+When generated JSON metadata uses `xyona.schema` as the metadata envelope
+marker, the typed-data payload schema must be emitted under a non-conflicting
+key such as `xyona.dataSchema` and mapped into descriptor `schema`.
 
 ## Built-In Type Vocabulary
 

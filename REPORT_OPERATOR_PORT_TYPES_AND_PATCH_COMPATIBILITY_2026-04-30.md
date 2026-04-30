@@ -71,16 +71,38 @@ Core:
 
 CDP pack:
 
-- PVOC typed-data metadata already carries schema/format-like facts in port
-  metadata JSON.
-- Audio ports and many non-PVOC CDP ports do not yet expose canonical
-  `xyona.audio.signal` type facts through a shared field.
+- All public CDP `op.yaml` ports now declare explicit type facts.
+- Audio CDP ports use `xyona.audio.signal`.
+- PVOC typed-data ports use canonical port type `cdp.pvoc.analysis.v1` and
+  payload schema `xyona.cdp.pvoc.analysis.v1`.
+- Generated CDP port metadata keeps `xyona.schema=port_meta` as the envelope
+  marker and emits typed-data payload schema as `xyona.dataSchema`.
+- Core pack loading maps generated pack port metadata into `IODesc` and
+  `PortDesc`, so Lab can consume CDP port facts without parsing CDP-private
+  source files.
 
 Lab:
 
 - Lab public operator specs currently list port IDs without explicit type
   fields.
 - Canvas/GraphBuilder compatibility still needs a central service.
+
+## Phase 2 Status
+
+Completed.
+
+Completed in this phase:
+
+- Updated CDP `op.yaml` files with explicit port `type`.
+- Updated CDP generator to emit port type facts for audio and PVOC typed-data
+  ports.
+- Regenerated CDP operator metadata.
+- Extended CDP descriptor metadata tests to assert descriptor and metadata port
+  type facts.
+- Updated Core pack loader so V2 pack port metadata populates `IODesc` and
+  `PortDesc`.
+- Documented the CDP distinction between canonical port type
+  `cdp.pvoc.analysis.v1` and payload schema `xyona.cdp.pvoc.analysis.v1`.
 
 ## Verification
 
@@ -93,6 +115,10 @@ C:\Python3.9.5\python.exe tools\operator_modules\validate_operator_modules.py --
 cmake --build build/windows-msvc-debug --target test_operator_module_runtime test_operator_packs test_signal_processes --config Debug
 ctest --test-dir build/windows-msvc-debug -C Debug -R "operator_module_runtime_tests|operator_module_metadata_tests|operator_module_validator_guardrail_tests|operator_packs_tests" --output-on-failure
 ctest --test-dir build/windows-msvc-debug -C Debug -R "signal_process_tests" --output-on-failure
+C:\Python3.9.5\python.exe scripts\validate_operator_modules.py
+C:\Python3.9.5\python.exe scripts\generate_operator_metadata.py --check
+cmake --build build/windows-msvc-debug --target xyona_pack_cdp_ops test_cdp_descriptor_metadata test_cdp_spectral_contract test_cdp_pack test_cdp_pack_env_discovery --config Debug
+ctest --test-dir build/windows-msvc-debug -C Debug -R "cdp_generated_operator_metadata_tests|cdp_operator_module_metadata_tests|cdp_descriptor_metadata_tests|cdp_spectral_contract_tests|cdp_pack_loader_tests|cdp_pack_env_discovery_tests" --output-on-failure
 ```
 
 Result:
@@ -105,6 +131,9 @@ Result:
 - Core operator module validation passed: 16 `op.yaml` records.
 - Core targeted CTest passed: 4 tests, 0 failures.
 - Core signal process CTest passed: 1 test, 0 failures.
+- CDP operator module validation passed: 16 `op.yaml` records.
+- CDP generated metadata check passed.
+- CDP targeted CTest passed: 6 tests, 0 failures.
 
 Notes:
 
@@ -118,16 +147,15 @@ Notes:
   staged so each repo can be made green before moving to the next layer.
 - `IODesc` is marked deprecated but still consumed in Lab and pack discovery.
   The bridge from `IODesc` to richer port type facts must be deliberate.
-- CDP PVOC currently uses schema string `xyona.cdp.pvoc.analysis.v1` in some
-  metadata. The new canonical type proposal uses `cdp.pvoc.analysis.v1`; the
-  implementation needs one explicit mapping decision rather than silent drift.
+- Lab still needs Phase 3/4 enforcement. Until then, descriptors carry the
+  facts but Canvas and GraphBuilder are not yet centrally blocking every
+  invalid cross-type edge.
 
 ## Next Step
 
-Continue with Phase 2/bridge preparation:
+Continue with Phase 3:
 
-- repeat explicit typing work for CDP pack metadata generation
-- map CDP PVOC metadata to canonical type `cdp.pvoc.analysis.v1`
 - update Lab public operator specs and runtime metadata to carry explicit
   type facts
-- then implement Lab connection compatibility against these descriptor facts
+- make Lab discovery reject or quarantine incomplete descriptor port type data
+- then implement Lab connection compatibility against descriptor facts

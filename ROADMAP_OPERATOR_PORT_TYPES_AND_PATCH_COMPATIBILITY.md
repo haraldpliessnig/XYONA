@@ -69,7 +69,7 @@ Exit criteria:
 
 ## Phase 1: Core Descriptor And Validator Surface
 
-Status: in progress.
+Status: complete.
 
 Deliverables:
 
@@ -103,7 +103,7 @@ Progress:
 
 ## Phase 2: CDP Pack Typed Port Metadata
 
-Status: pending.
+Status: complete.
 
 Deliverables:
 
@@ -118,6 +118,20 @@ Exit criteria:
 - CDP pack generation check passes.
 - CDP descriptor metadata tests assert port type facts.
 - CDP PVOC typed-data cannot be represented as a generic audio edge.
+
+Progress:
+
+- All public CDP operator ports declare explicit `type` in `op.yaml`.
+- CDP audio ports use `xyona.audio.signal`.
+- CDP PVOC typed-data ports use `cdp.pvoc.analysis.v1` with
+  `kind=typed_data`, `domain=spectral_pvoc`, `rate=offline_artifact`,
+  payload schema `xyona.cdp.pvoc.analysis.v1`, format `pvoc_analysis`, and
+  `mergePolicy=single_source`.
+- Generated CDP port metadata preserves `xyona.schema=port_meta` and emits the
+  payload schema as `xyona.dataSchema`.
+- Core pack loading maps generated pack port metadata into `IODesc` and
+  `PortDesc` type facts.
+- CDP descriptor metadata tests assert audio and PVOC typed-data port facts.
 
 ## Phase 3: Lab Public Operators And Discovery
 

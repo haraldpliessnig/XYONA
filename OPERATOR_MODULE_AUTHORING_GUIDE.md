@@ -146,7 +146,7 @@ ports:
       kind: typed_data
       domain: spectral_pvoc
       rate: offline_artifact
-      schema: cdp.pvoc.analysis.v1
+      schema: xyona.cdp.pvoc.analysis.v1
       format: pvoc_analysis
       mergePolicy: single_source
 ```
