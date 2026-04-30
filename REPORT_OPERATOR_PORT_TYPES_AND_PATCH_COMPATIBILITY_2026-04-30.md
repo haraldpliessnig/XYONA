@@ -56,10 +56,15 @@ Completed in this phase:
 Core:
 
 - `IODesc` currently carries `id`, `channels`, and `tags`.
-- `PortDesc` carries richer host-neutral facts, but no canonical namespaced
-  `type` field yet.
+- `IODesc`, `VariablePortRangeDesc`, and `PortDesc` now carry canonical
+  namespaced port `type` plus optional compatibility facts for `kind`,
+  `domain`, `rate`, `schema`, `format`, `channelPolicy`, `mergePolicy`, and
+  `executionContext`.
 - The Core operator-module validator now checks explicit `type` for fixed and
   variable public ports.
+- Core codegen now transports port type facts from `op.yaml` into runtime
+  `OpDesc` descriptors.
+- Core runtime descriptor tests now compare port type facts against `op.yaml`.
 - The current Core `op.yaml` set now declares:
   - `xyona.audio.signal` for audio ports
   - `xyona.control.cv` for Core signal/CV ports
@@ -85,7 +90,9 @@ Completed:
 git diff --check
 C:\Python3.9.5\python.exe tools\operator_modules\test_validate_operator_modules.py
 C:\Python3.9.5\python.exe tools\operator_modules\validate_operator_modules.py --root .
+cmake --build build/windows-msvc-debug --target test_operator_module_runtime test_operator_packs test_signal_processes --config Debug
 ctest --test-dir build/windows-msvc-debug -C Debug -R "operator_module_runtime_tests|operator_module_metadata_tests|operator_module_validator_guardrail_tests|operator_packs_tests" --output-on-failure
+ctest --test-dir build/windows-msvc-debug -C Debug -R "signal_process_tests" --output-on-failure
 ```
 
 Result:
@@ -97,6 +104,7 @@ Result:
 - Core operator module validator guardrail tests passed: 7 tests.
 - Core operator module validation passed: 16 `op.yaml` records.
 - Core targeted CTest passed: 4 tests, 0 failures.
+- Core signal process CTest passed: 1 test, 0 failures.
 
 Notes:
 
@@ -116,11 +124,10 @@ Notes:
 
 ## Next Step
 
-Continue Phase 1 in Core:
+Continue with Phase 2/bridge preparation:
 
-- extend descriptor/metadata surfaces so the explicit port type leaves
-  `op.yaml` and reaches runtime discovery
-- decide whether `IODesc` gains transitional type fields or whether Lab moves
-  directly to richer `PortDesc`-backed compatibility facts
-- then repeat the same explicit typing work for CDP pack metadata generation
-  and Lab public operator specs
+- repeat explicit typing work for CDP pack metadata generation
+- map CDP PVOC metadata to canonical type `cdp.pvoc.analysis.v1`
+- update Lab public operator specs and runtime metadata to carry explicit
+  type facts
+- then implement Lab connection compatibility against these descriptor facts

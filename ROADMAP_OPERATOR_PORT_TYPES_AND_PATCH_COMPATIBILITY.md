@@ -96,6 +96,10 @@ Progress:
 - Core validator tests cover missing port type and typed-data schema guardrails.
 - Current Core operator specs declare `xyona.audio.signal` or
   `xyona.control.cv` as appropriate.
+- Core `IODesc`, `VariablePortRangeDesc`, and `PortDesc` now carry explicit
+  port type fields and optional typed-data compatibility facts.
+- Core codegen transports port type facts from `op.yaml` into runtime `OpDesc`.
+- Core runtime descriptor tests compare port type facts against `op.yaml`.
 
 ## Phase 2: CDP Pack Typed Port Metadata
 
