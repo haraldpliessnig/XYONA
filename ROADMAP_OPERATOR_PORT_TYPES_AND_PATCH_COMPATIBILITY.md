@@ -166,7 +166,7 @@ Progress:
 
 ## Phase 4: Canvas Port Identity And Compatibility Service
 
-Status: in progress.
+Status: complete.
 
 Deliverables:
 
@@ -186,8 +186,21 @@ Exit criteria:
 
 Progress:
 
+- Added central `PortIdentity` helpers for descriptor-derived visible port IDs
+  and channel expansion.
+- `NodeData` now stores visible input/output port IDs derived from descriptors.
+- `NodeBinder` and Canvas topology refresh populate those IDs from the
+  operator contract.
 - Added a central Lab `ConnectionCompatibility` service for descriptor-backed
   port resolution and default compatibility rules.
+- Generic node rendering, anchor resolution, and port hit-testing now use the
+  same visible descriptor IDs instead of inventing generic aliases for
+  descriptor-backed ports.
+- Canvas anchors carry optional side information so reused descriptor IDs such
+  as `pvoc` can resolve to separate input and output anchor positions.
+- Drag hover/highlighting and mouse-up connection creation now use
+  `ConnectionCompatibility`, including duplicate and `single_source` input
+  checks.
 - Canvas `createConnection()` now rejects incompatible descriptor-backed
   edges, missing descriptor ports, missing port types, and duplicate incoming
   edges to `single_source` inputs.
@@ -202,16 +215,9 @@ Progress:
   - PVOC typed data -> audio invalid
   - audio signal -> PVOC typed data invalid
 
-Remaining:
-
-- Drag hover/highlighting still needs to consume the central service.
-- The visual renderer and hit-test path still expose generic `in_N`/`out_N`
-  aliases for some expanded ports; this needs a separate UI-safe pass.
-- GraphBuilder runtime revalidation remains Phase 5.
-
 ## Phase 5: GraphBuilder Runtime Guardrail
 
-Status: pending.
+Status: complete.
 
 Deliverables:
 
@@ -224,6 +230,15 @@ Exit criteria:
 - Non-UI construction paths cannot execute invalid cross-domain edges.
 - Error messages identify source port type, target port type, and blocking
   rule.
+
+Progress:
+
+- Realtime `GraphBuilder` and `OfflineGraphBuilder` revalidate descriptor
+  compatibility before building adjacency and wires.
+- Observer extraction and analyzer-only live closure use the same validation
+  guard.
+- Guardrail logs source node/port, target node/port, concrete source/target
+  port type pair, and the blocking rule.
 
 ## Phase 6: Visual Tokens And UX Polish
 
@@ -239,7 +254,8 @@ Deliverables:
 Exit criteria:
 
 - No individual renderer hardcodes port type colors.
-- Incompatible targets are visually unavailable during drag.
+- Incompatible targets are visually unavailable during drag. Done by Phase 4
+  compatibility hover checks; Phase 6 still owns type-derived visual language.
 
 ## Verification Matrix
 

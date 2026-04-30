@@ -130,18 +130,32 @@ Completed in this phase:
 
 ## Phase 4 Status
 
-In progress.
+Complete.
 
 Completed in this phase slice:
 
 - Added Lab `ConnectionCompatibility`, a central descriptor-port compatibility
   service.
+- Added Lab `PortIdentity`, a central visible-port-ID helper for descriptor
+  ports and channel expansion.
+- `NodeData`, `NodeBinder`, and Canvas topology refresh now carry descriptor
+  visible port IDs for rendering, hit-testing, and anchors.
+- Canvas anchors are side-aware when needed, so an operator can legally reuse a
+  descriptor ID such as `pvoc` on input and output without drawing cables from
+  the wrong side.
 - Wired Canvas `createConnection()` through that service, so command/undo and
   direct programmatic connection creation share the same blocking rule.
+- Wired drag hover/highlighting and mouse-up connection creation through the
+  same service, so incompatible targets are not presented as valid drag
+  targets.
 - Added `single_source` target enforcement for descriptor-backed inputs.
 - Updated project connection import so descriptor-backed edges are validated by
   the same Canvas connection path instead of being limited to generic
   `out_N -> in_N` port names.
+- Updated Generic node rendering and hit-testing to use visible descriptor
+  port IDs instead of local generic aliases for descriptor-backed operators.
+- Removed unreachable disabled flow-overlay code in `PatchCableOverlay`, which
+  eliminated the C4702 build warning without changing cable rendering behavior.
 - Corrected Lab signal selector/provider/CV sink contract ports that carry
   scalar CV values to `xyona.control.cv`.
 - Typed older test-only fake descriptors that participate in Canvas
@@ -149,13 +163,22 @@ Completed in this phase slice:
 - Added focused Canvas connection tests for valid audio, invalid audio/CV,
   valid PVOC typed data, invalid PVOC-to-audio, and invalid audio-to-PVOC
   edges.
+- Added focused anchor tests proving descriptor IDs like `out` and `in`
+  resolve without `out_0`/`in_0` aliases, and reused IDs like `pvoc` resolve
+  correctly on both input and output sides.
 
-Still open for Phase 4/5:
+## Phase 5 Status
 
-- Drag hover/highlighting has not yet been moved onto the central service.
-- Renderer/hit-test port IDs still need a UI-safe pass to stop presenting
-  generic aliases where descriptor IDs should be visible.
-- GraphBuilder revalidation is still the next runtime guardrail.
+Complete.
+
+Completed in this phase slice:
+
+- Realtime `GraphBuilder` and `OfflineGraphBuilder` now revalidate descriptor
+  compatibility before building adjacency and wires.
+- Analyzer observer extraction and analyzer-only live closure use the same
+  compatibility guard.
+- Runtime guardrail diagnostics include source node/port, target node/port,
+  concrete source/target port types, and the blocking rule.
 
 ## Verification
 
@@ -177,6 +200,8 @@ ctest --test-dir build/windows-dev -C Debug -R lab_operator_module_metadata_test
 build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="Operator Module Spec Runtime" --xyona-only --summary-only
 $env:XYONA_OPERATOR_PACK_PATH='D:\GITHUB\XYONA\xyona-cdp-pack\build\windows-msvc-debug\Debug'; build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="CDP Pack Canvas Smoke" --xyona-only --summary-only
 build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="Connection System" --xyona-only --summary-only
+build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="Overlay Visual" --xyona-only --summary-only
+build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="Wire Routing" --xyona-only --summary-only
 build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="GridSourceHostAdapter" --xyona-only --summary-only
 build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="GridActionFilterHostAdapter" --xyona-only --summary-only
 build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="GridValueHostAdapter" --xyona-only --summary-only
@@ -185,11 +210,9 @@ build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="Adapter Lifetime" --xy
 build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="AudioEngineManager Minimal Plan" --xyona-only --summary-only
 build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="Stage 11 - AudioEngineManager Integration" --xyona-only --summary-only
 build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="Audio Routing Integration" --xyona-only --summary-only
-build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="Wire Routing" --xyona-only --summary-only
 build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="BusAccumulator" --xyona-only --summary-only
 build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="Connection Persistence" --xyona-only --summary-only
 build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="DeleteNodeCommand Tests" --xyona-only --summary-only
-build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="Overlay Visual" --xyona-only --summary-only
 build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="Canvas Param Persistence" --xyona-only --summary-only
 build\windows-dev\tests\Debug\xyona_lab_tests.exe --test="Canvas Stress Suite" --xyona-only --summary-only
 ```
@@ -212,12 +235,14 @@ Result:
 - Lab `Operator Module Spec Runtime` passed: 1 test, 513 passes.
 - Lab `CDP Pack Canvas Smoke` passed with `XYONA_OPERATOR_PACK_PATH` set to the
   CDP debug pack folder: 14 tests, 410 passes.
-- Lab `Connection System` passed: 20 tests, 55 passes.
+- Lab `Connection System` passed: 22 tests, 67 passes.
+- Lab `Overlay Visual` passed: 8 tests, 16 passes.
+- Lab `Wire Routing` passed: 8 tests, 27 passes.
 - Lab targeted Canvas/connection-adjacent tests passed:
   `GridSourceHostAdapter`, `GridActionFilterHostAdapter`,
   `GridValueHostAdapter`, `Signal`, `Adapter Lifetime`,
   `AudioEngineManager Minimal Plan`, `Stage 11 - AudioEngineManager
-  Integration`, `Audio Routing Integration`, `Wire Routing`, `BusAccumulator`,
+  Integration`, `Audio Routing Integration`, `BusAccumulator`,
   `Connection Persistence`, `DeleteNodeCommand Tests`, `Overlay Visual`,
   `Canvas Param Persistence`, and `Canvas Stress Suite`.
 
@@ -236,17 +261,17 @@ Notes:
   staged so each repo can be made green before moving to the next layer.
 - `IODesc` is marked deprecated but still consumed in Lab and pack discovery.
   The bridge from `IODesc` to richer port type facts must be deliberate.
-- Lab still needs Phase 4/5 enforcement. Descriptors now carry the facts, but
-  Canvas and GraphBuilder are not yet centrally blocking every invalid
-  cross-type edge.
-- Canvas connection creation now blocks descriptor-backed invalid edges, but UI
-  drag highlighting and GraphBuilder runtime revalidation are still open.
+- Phase 6 visual typing is still open: port colors/icons/tooltips and cable
+  styling should be derived from descriptor type facts through a central Lab
+  visual registry.
+- Builder validation currently skips invalid edges and logs diagnostics. If a
+  future caller needs a hard plan-build failure, that should be added as an
+  explicit policy above the shared compatibility check.
 
 ## Next Step
 
-Continue with the remaining Phase 4/5 work:
+Continue with Phase 6 visual typing:
 
-- move drag hover/highlighting onto `ConnectionCompatibility`
-- make the renderer/hit-test path expose descriptor port IDs without visual
-  regressions
-- add GraphBuilder runtime revalidation against the same compatibility service
+- add a central Lab port visual token registry
+- derive port/cable color, icon, and tooltip language from descriptor type facts
+- keep header runtime stripes separate from port type visuals
