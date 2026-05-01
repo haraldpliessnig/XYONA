@@ -3,7 +3,7 @@
 **Date:** 2026-04-30
 **Branch:** `port-type-taxonomy`
 **Roadmap:** `ROADMAP_OPERATOR_PORT_TYPES_AND_PATCH_COMPATIBILITY.md`
-**Contract:** `OPERATOR_PORT_TYPE_AND_COMPATIBILITY_CONTRACT.md`
+**Contract:** `OPERATOR_CONTRACT.md`
 
 ## Summary
 
@@ -38,10 +38,10 @@ Completed.
 Completed in this phase:
 
 - Added root workspace contract:
-  `OPERATOR_PORT_TYPE_AND_COMPATIBILITY_CONTRACT.md`
+  `OPERATOR_CONTRACT.md`
 - Updated root:
   - `AGENTS.md`
-  - `OPERATOR_MODULE_CONTRACT.md`
+  - `OPERATOR_CONTRACT.md`
   - `OPERATOR_MODULE_AUTHORING_GUIDE.md`
 - Added Core implementation contract:
   `xyona-core/docs/OPERATOR_PORT_TYPES.md`

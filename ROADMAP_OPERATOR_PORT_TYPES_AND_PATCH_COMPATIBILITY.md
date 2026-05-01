@@ -3,7 +3,7 @@
 **Status:** Active
 **Started:** 2026-04-30
 **Branch:** `port-type-taxonomy`
-**Primary contract:** `OPERATOR_PORT_TYPE_AND_COMPATIBILITY_CONTRACT.md`
+**Primary contract:** `OPERATOR_CONTRACT.md`
 **Applies to:** `xyona-core`, `xyona-lab`, `xyona-cdp-pack`, future operator
 packs
 
@@ -64,7 +64,7 @@ Status: complete.
 Deliverables:
 
 - Root contract:
-  `OPERATOR_PORT_TYPE_AND_COMPATIBILITY_CONTRACT.md`
+  `OPERATOR_CONTRACT.md`
 - Root operator contract and authoring guide references.
 - Repo-local guidance:
   - `xyona-core/docs/OPERATOR_PORT_TYPES.md`

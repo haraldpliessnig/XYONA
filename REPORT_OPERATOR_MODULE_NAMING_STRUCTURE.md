@@ -4,7 +4,7 @@ Status: Implementation slices 1-40 landed
 Scope: workspace, xyona-core, xyona-cdp-pack, xyona-lab  
 Date: 2026-04-29  
 Roadmap: `ROADMAP_OPERATOR_MODULE_STRUCTURE.md`  
-Contract: `OPERATOR_MODULE_CONTRACT.md`
+Contract: `OPERATOR_CONTRACT.md`
 
 This report tracks the implementation slices for structured operator identity,
 provider-aware UI metadata, deterministic Canvas node naming, and operator
@@ -159,10 +159,11 @@ operator adapter in `CMakeLists.txt`.
 Slice 17 moves current CDP port descriptor facts onto the generated path.
 The generator now emits `XYONA_CDP_INPUT_PORT_DESC_*` and
 `XYONA_CDP_OUTPUT_PORT_DESC_*` macros from module-local `op.yaml` port
-semantics, including variable audio ports, fixed stereo ports, mono PVOC
-analysis/synthesis ports, and typed PVOC data ports. Current adapters no
-longer hand-write the port descriptor calls; they keep only the local C arrays
-that bind generated port descriptors into each operator descriptor. The slice
+semantics, including variable audio ports, fixed two-channel audio buffer
+ports, mono PVOC analysis/synthesis ports, and typed PVOC data ports. Current
+adapters no longer hand-write the port descriptor calls; they keep only the
+local C arrays that bind generated port descriptors into each operator
+descriptor. The slice
 also fixes the shared Cut/CutEnd adapter so CutEnd's `splice_ms` descriptor
 uses CutEnd's generated parameter metadata instead of Cut's metadata.
 
@@ -325,7 +326,7 @@ required `op.yaml` fields, and package placement. Root, Core, CDP pack, and Lab
 likely to prevent future wrong structure.
 
 Slice 40 closes the roadmap and contract documents against the implemented
-state. `OPERATOR_MODULE_CONTRACT.md` is now the current workspace standard
+state. `OPERATOR_CONTRACT.md` is now the current workspace standard
 instead of a draft/migration text, and `ROADMAP_OPERATOR_MODULE_STRUCTURE.md`
 is now a completion record with explicit phase results, verification gates, and
 future follow-ups separated from the completed naming/structure migration.
@@ -978,7 +979,7 @@ Slice 39 documentation additions:
 
 Slice 40 closure additions:
 
-- rewrote `OPERATOR_MODULE_CONTRACT.md` as version 1.3 workspace standard,
+- rewrote the operator contract as a workspace standard,
   removing obsolete statements that Core still uses `src/processes` or
   `meta.yaml`
 - rewrote `ROADMAP_OPERATOR_MODULE_STRUCTURE.md` as a completed roadmap for

@@ -3,7 +3,7 @@
 **Status:** Completed for the current public operator surface
 **Date:** 2026-04-29
 **Scope:** `xyona-core`, `xyona-cdp-pack`, `xyona-lab`, `CDP8` reference workflow  
-**Normative contract:** `OPERATOR_MODULE_CONTRACT.md`
+**Normative contract:** `OPERATOR_CONTRACT.md`
 
 ## Purpose
 
@@ -30,7 +30,7 @@ operator surface.
 
 Done:
 
-- `OPERATOR_MODULE_CONTRACT.md` defines the required identity, naming, engine,
+- `OPERATOR_CONTRACT.md` defines the required identity, naming, engine,
   materialization, adapter, help, and validation contract.
 - `OPERATOR_MODULE_AUTHORING_GUIDE.md` gives the practical module authoring
   rules.

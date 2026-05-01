@@ -2,10 +2,9 @@
 
 This is the practical authoring guide for public XYONA operators. It applies to
 `xyona-core`, `xyona-cdp-pack`, and Lab-authored public host operators. The
-formal naming and descriptor vocabulary lives in `OPERATOR_MODULE_CONTRACT.md`;
-port typing and patch compatibility live in
-`OPERATOR_PORT_TYPE_AND_COMPATIBILITY_CONTRACT.md`. This guide states the exact
-file and implementation structure to use.
+normative identity, descriptor, classification, port type, and compatibility
+contract lives in `OPERATOR_CONTRACT.md`. This guide states the exact file and
+implementation structure to use.
 
 ## Required Source Shape
 

@@ -24,8 +24,7 @@ the specific repo or repos you will touch.
 ## Operator Module Authoring
 
 Before adding, moving, or wiring any public operator, read
-`OPERATOR_MODULE_AUTHORING_GUIDE.md`, `OPERATOR_MODULE_CONTRACT.md`, and
-`OPERATOR_PORT_TYPE_AND_COMPATIBILITY_CONTRACT.md`.
+`OPERATOR_CONTRACT.md` and `OPERATOR_MODULE_AUTHORING_GUIDE.md`.
 
 For the active port typing and patch compatibility rollout, also read
 `ROADMAP_OPERATOR_PORT_TYPES_AND_PATCH_COMPATIBILITY.md` and update
