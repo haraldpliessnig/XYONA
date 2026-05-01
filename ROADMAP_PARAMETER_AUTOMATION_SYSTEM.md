@@ -1,6 +1,6 @@
 # Roadmap: Parameter Automation System
 
-**Status:** Implementation active; M0-M8 completed; M9.1 completed; M9 active
+**Status:** Implementation active; M0-M8 completed; M9.1-M9.2 completed; M9 active
 **Started:** 2026-05-01
 **Planning branch:** `parameter-automation-review`
 **Implementation branch:** `parameter-automation-system`
@@ -921,6 +921,8 @@ Persist:
 ### Commit M9.2
 
 `lab(project): add parameter target migration records`
+
+Status: completed in `xyona-lab` commit `e07d8dc6`.
 
 Handle:
 

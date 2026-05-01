@@ -3,7 +3,7 @@
 Date: 2026-05-01
 Roadmap: `ROADMAP_PARAMETER_AUTOMATION_SYSTEM.md`
 Planning review: `REPORT_PARAMETER_AUTOMATION_SYSTEM_TECHNICAL_REVIEW_2026-05-01.md`
-Status: M9.1 completed; M9 active
+Status: M9.2 completed; M9 active
 Repositories: workspace root, `xyona-lab`, `xyona-core`, `xyona-cdp-pack`
 
 ## Execution Rules
@@ -940,7 +940,7 @@ Planned commits:
 | Roadmap | Repository | Status | Commit | Subject |
 |---|---|---|---|---|
 | M9.1 | `xyona-lab` | completed | `13e6e6fc` | `lab(project): version parameter automation schema` |
-| M9.2 | `xyona-lab` | pending | | `lab(project): add parameter target migration records` |
+| M9.2 | `xyona-lab` | completed | `e07d8dc6` | `lab(project): add parameter target migration records` |
 | M9.3 | `xyona-lab` | pending | | `lab(ui): add parameter source breakdown` |
 | M9.4 | `xyona-lab` | pending | | `lab(ui): add target-aware automation diagnostics` |
 
@@ -968,4 +968,32 @@ xyona-lab: ./build/tests/xyona_lab_tests --match "Timeline Automation Reconcilia
 xyona-lab: ./build/tests/xyona_lab_tests --match "TimelineLaneStackController" --summary-only passed, 14 tests, 119 passes, 0 failures
 xyona-lab: git diff --check passed for M9.1 files
 xyona-lab: pushed parameter-automation-system with commit 13e6e6fc
+```
+
+M9.2 scope update:
+
+```text
+Lab now has structured parameter target migration records under the timeline
+automation tree. Records carry owner kind/id, migration kind, outcome, previous
+and current full ParamAddress, target status, and previous/current semantic
+revision. Supported record kinds cover renamed params, removed params, changed
+ranges via semantic revision change, unavailable packs, slot-count/scope changes,
+and macro-target changes.
+
+ProjectState persists and round-trips these records with stable ids. Timeline
+automation reconciliation adds records only for explicit resolver/descriptor
+facts and de-duplicates equivalent records, so repeated reconciliation does not
+spam diagnostics. Invalid persisted record keys are skipped instead of silently
+mapped to defaults. No backward-compatibility repair layer was added.
+```
+
+M9.2 local verification:
+
+```text
+xyona-lab: cmake --build build --target xyona_lab_tests -- -j8 passed
+xyona-lab: ./build/tests/xyona_lab_tests --match "ProjectState Timeline Automation" --summary-only passed, 19 tests, 290 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --match "Timeline Automation Reconciliation" --summary-only passed, 7 tests, 62 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --match "TimelineLaneStackController" --summary-only passed, 14 tests, 119 passes, 0 failures
+xyona-lab: git diff --check passed for M9.2 files
+xyona-lab: pushed parameter-automation-system with commit e07d8dc6
 ```
