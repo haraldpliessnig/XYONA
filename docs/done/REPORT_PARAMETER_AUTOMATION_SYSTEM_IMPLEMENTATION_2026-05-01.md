@@ -86,9 +86,20 @@ Planned commits:
 
 | Roadmap | Repository | Status | Commit | Subject |
 |---|---|---|---|---|
-| Branch policy | workspace root | in progress | pending | `docs(parameters): use single automation implementation branch` |
-| M1.1 | `xyona-lab` | pending | pending | `lab(parameters): introduce parameter target resolver interface` |
+| Branch policy | workspace root | completed | `1e590f0` | `docs(parameters): use single automation implementation branch` |
+| M1.1 | `xyona-lab` | completed | `2c9a8e7c` | `lab(parameters): introduce parameter target resolver interface` |
 | M1.2 | `xyona-lab` | pending | pending | `lab(timeline): inject target resolver into automation recorder and playback` |
 | M1.3 | `xyona-lab` | pending | pending | `lab(timeline): persist full ParamAddress for automation lanes` |
 | M1.4 | `xyona-lab` | pending | pending | `lab(modulation): migrate route target storage to full ParamAddress` |
 | M1.5 | `xyona-lab` | pending | pending | `lab(midi): migrate MIDI mappings to full ParamAddress` |
+
+M1.1 local verification:
+
+```text
+xyona-lab: cmake --build build --target xyona_lab_tests -- -j8 passed
+xyona-lab: ./build/tests/xyona_lab_tests --test="ParamTargetResolver" --xyona-only --summary-only passed, 4 tests, 22 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --test="AutomationRecorder" --xyona-only --summary-only passed, 5 tests, 15 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --test="AutomationPlaybackEngine" --xyona-only --summary-only passed, 4 tests, 15 passes, 0 failures
+xyona-lab: git diff --check passed
+xyona-lab: pushed parameter-automation-system with commit 2c9a8e7c
+```
