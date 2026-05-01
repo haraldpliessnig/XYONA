@@ -1,6 +1,6 @@
 # Roadmap: Parameter Automation System
 
-**Status:** Implementation active; M0-M7 completed; M8.1 completed; M8.2 pending
+**Status:** Implementation active; M0-M7 completed; M8.1-M8.2 completed; M8.3 pending
 **Started:** 2026-05-01
 **Planning branch:** `parameter-automation-review`
 **Implementation branch:** `parameter-automation-system`
@@ -586,7 +586,6 @@ Until the listed milestones land, these paths may still contain compatibility
 conversion logic:
 
 - MIDI range override behavior until M5/M8.
-- Modulation contribution math until M8.
 - Existing audio runtime hash/update path until M6/M7.
 - Legacy parameter model helpers until all UI surfaces are migrated.
 
@@ -830,6 +829,8 @@ Modes:
 ### Commit M8.2
 
 `lab(modulation): map modulation through target semantics`
+
+Status: completed in `xyona-lab` commit `1073dc6a`.
 
 Changes:
 

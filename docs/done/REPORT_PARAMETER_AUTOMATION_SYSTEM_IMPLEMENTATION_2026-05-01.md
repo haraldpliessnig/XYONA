@@ -3,7 +3,7 @@
 Date: 2026-05-01
 Roadmap: `ROADMAP_PARAMETER_AUTOMATION_SYSTEM.md`
 Planning review: `REPORT_PARAMETER_AUTOMATION_SYSTEM_TECHNICAL_REVIEW_2026-05-01.md`
-Status: M7 completed; M8.1 completed; M8.2 pending
+Status: M7 completed; M8.1-M8.2 completed; M8.3 pending
 Repositories: workspace root, `xyona-lab`, `xyona-core`, `xyona-cdp-pack`
 
 ## Execution Rules
@@ -741,7 +741,7 @@ Planned commits:
 | Roadmap | Repository | Status | Commit | Subject |
 |---|---|---|---|---|
 | M8.1 | `xyona-core` | completed | `e37bbd2` | `core(parameters): add modulation contribution modes` |
-| M8.2 | `xyona-lab` | pending | | `lab(modulation): map modulation through target semantics` |
+| M8.2 | `xyona-lab` | completed | `1073dc6a` | `lab(modulation): map modulation through target semantics` |
 | M8.3 | `xyona-lab` | pending | | `lab(audio): apply host smoothing where policy allows` |
 | M8.4 | `xyona-lab` | pending | | `lab(parameters): quarantine incomplete Expr and Bind sources` |
 | M8.5 | `xyona-lab` | pending | | `lab(parameters): implement deterministic value-source evaluation` |
@@ -765,4 +765,37 @@ xyona-core: ./build/tests/test_param_value_codec passed
 xyona-core: ./build/tests/test_parameter_semantics passed
 xyona-core: git diff --check passed
 xyona-core: pushed parameter-automation-system with commit e37bbd2
+```
+
+M8.2 scope update:
+
+```text
+Lab modulation no longer maps target contributions with native min/max ranges.
+Prepared modulation routes now carry resolved ParamDesc/ParamSemantics, reject
+non-modulatable or unsupported targets through ParamTargetEligibilityService,
+hash the full ParamAddress storage key, and apply block-stable contributions via
+xyona::applyParamModulationContribution().
+
+The control-rate ModulationEngine and ParameterControlHub now exchange
+normalized contributions. ParameterControlHub requires seeded descriptor
+semantics before accepting modulation for a target, so missing/unsupported target
+semantics do not fall back to range-only math. MainComponent seeds the hub from
+Canvas descriptors instead of derived bounds. The roadmap transitional bypass
+list no longer includes modulation contribution math.
+```
+
+M8.2 local verification:
+
+```text
+xyona-lab: cmake --build build --target xyona_lab_tests -- -j8 passed
+xyona-lab: ./build/tests/xyona_lab_tests --match "ModulationMath" --summary-only passed, 4 tests, 7 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --match "ParameterControlHub" --summary-only passed, 15 tests, 68 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --match "ModulationEngine" --summary-only passed, 8 tests, 62 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --match "PreparedModulationRuntime" --summary-only passed, 1 test, 32 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --match "AudioGraphProcessor Modulation Runtime" --summary-only passed, 4 tests, 9 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --match "AudioGraphProcessor Parameter Automation Runtime" --summary-only passed, 6 tests, 28 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --match "ModulationController" --summary-only passed, 5 tests, 36 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --match "AudioEngineManager Minimal Plan" --summary-only passed, 39 tests, 575 passes, 0 failures
+xyona-lab: git diff --check passed
+xyona-lab: pushed parameter-automation-system with commit 1073dc6a
 ```
