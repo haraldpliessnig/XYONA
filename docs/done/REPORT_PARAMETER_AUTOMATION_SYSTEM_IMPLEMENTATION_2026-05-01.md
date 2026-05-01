@@ -3,7 +3,7 @@
 Date: 2026-05-01
 Roadmap: `ROADMAP_PARAMETER_AUTOMATION_SYSTEM.md`
 Planning review: `REPORT_PARAMETER_AUTOMATION_SYSTEM_TECHNICAL_REVIEW_2026-05-01.md`
-Status: M1 completed, M2 next
+Status: M2 started
 Repositories: workspace root, `xyona-lab`
 
 ## Execution Rules
@@ -152,4 +152,30 @@ xyona-lab: ./build/tests/xyona_lab_tests --test="ModulationRoutingTable" --xyona
 xyona-lab: ./build/tests/xyona_lab_tests --test="ParamTargetResolver" --xyona-only --summary-only passed, 4 tests, 22 passes, 0 failures
 xyona-lab: git diff --check passed
 xyona-lab: pushed parameter-automation-system with commit b7e2e643
+```
+
+## M2 - Automation Value-Domain Fix For Resolved Targets
+
+Planned commits:
+
+| Roadmap | Repository | Status | Commit | Subject |
+|---|---|---|---|---|
+| M2.1 | `xyona-lab` | completed | `caa7bbc6` | `lab(timeline): add automation value-domain schema` |
+| M2.2 | `xyona-lab` | pending | pending | `lab(parameters): add descriptor-backed linear automation codec adapter` |
+| M2.3 | `xyona-lab` | pending | pending | `lab(timeline): record resolved automation as normalized values` |
+| M2.4 | `xyona-lab` | pending | pending | `lab(timeline): play normalized automation as plain values` |
+| M2.5 | `xyona-lab` | pending | pending | `lab(timeline): add descriptor-aware post-load automation reconciliation` |
+| M2.6 | `xyona-lab` | pending | pending | `test(timeline): verify automation domain reconciliation` |
+
+M2.1 local verification:
+
+```text
+xyona-lab: cmake --build build --target xyona_lab_tests -- -j8 passed
+xyona-lab: ./build/tests/xyona_lab_tests --test="ProjectState Timeline Automation" --xyona-only --summary-only passed, 17 tests, 244 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --test="AutomationRecorder" --xyona-only --summary-only passed, 6 tests, 19 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --test="AutomationPlaybackEngine" --xyona-only --summary-only passed, 5 tests, 18 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --test="TimelineAutomationModel" --xyona-only --summary-only passed, 20 tests, 300 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --test="Timeline Automation Lane Resolver" --xyona-only --summary-only passed, 4 tests, 32 passes, 0 failures
+xyona-lab: git diff --check passed
+xyona-lab: pushed parameter-automation-system with commit caa7bbc6
 ```
