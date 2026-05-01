@@ -1,6 +1,6 @@
 # Roadmap: Parameter Automation System
 
-**Status:** Implementation active; M0-M6 completed; M7.3 completed; M7.4 pending
+**Status:** Implementation active; M0-M7 completed; M8 pending
 **Started:** 2026-05-01
 **Planning branch:** `parameter-automation-review`
 **Implementation branch:** `parameter-automation-system`
@@ -797,6 +797,8 @@ Changes:
 ### Commit M7.4
 
 `lab(audio): update host adapter parameter bindings to prepared indices`
+
+Status: completed in `xyona-lab` commit `566dcd07`.
 
 Changes:
 

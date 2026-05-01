@@ -3,7 +3,7 @@
 Date: 2026-05-01
 Roadmap: `ROADMAP_PARAMETER_AUTOMATION_SYSTEM.md`
 Planning review: `REPORT_PARAMETER_AUTOMATION_SYSTEM_TECHNICAL_REVIEW_2026-05-01.md`
-Status: M6 completed; M7.3 completed; M7.4 pending
+Status: M7 completed; M8 pending
 Repositories: workspace root, `xyona-lab`, `xyona-core`, `xyona-cdp-pack`
 
 ## Execution Rules
@@ -644,7 +644,7 @@ Planned commits:
 | M7.1 | `xyona-lab` | completed | `f6152bd8` | `lab(audio): build parameter index maps in graph runtime cache` |
 | M7.2 | `xyona-lab` | completed | `2bdd3883` | `lab(parameters): introduce CompiledParamTarget` |
 | M7.3 | `xyona-lab` | completed | `d8adbac4` | `lab(audio): apply queued updates through compiled targets` |
-| M7.4 | `xyona-lab` | pending | | `lab(audio): update host adapter parameter bindings to prepared indices` |
+| M7.4 | `xyona-lab` | completed | `566dcd07` | `lab(audio): update host adapter parameter bindings to prepared indices` |
 
 M7.1 scope update:
 
@@ -710,4 +710,26 @@ xyona-lab: ./build/tests/xyona_lab_tests --match "ParameterUpdateQueue" --summar
 xyona-lab: ./build/tests/xyona_lab_tests --match "AudioEngineManager Minimal Plan" --summary-only passed, 39 tests, 575 passes, 0 failures
 xyona-lab: git diff --check passed for M7.3 files
 xyona-lab: pushed parameter-automation-system with commit d8adbac4
+```
+
+M7.4 scope update:
+
+```text
+CoreOperatorHostAdapter now caches snapshot indices for descriptor parameter
+bindings and per-slot override bindings. The binding cache is refreshed only
+when the ParameterSnapshot identity or shape changes; steady-state processing
+uses prepared indices to copy values into the Core ParameterSnapshot and avoids
+repeated per-block binding scans. Slot override behavior remains keyed by full
+storage hashes such as gain@slot=N.
+```
+
+M7.4 local verification:
+
+```text
+xyona-lab: cmake --build build --target xyona_lab_tests -- -j8 passed
+xyona-lab: ./build/tests/xyona_lab_tests --match "CoreOperatorHostAdapter" --summary-only passed, 6 tests, 217 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --match "AudioGraphProcessor Parameter Automation Runtime" --summary-only passed, 6 tests, 28 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --match "AudioEngineManager Minimal Plan" --summary-only passed, 39 tests, 575 passes, 0 failures
+xyona-lab: git diff --check passed for M7.4 files
+xyona-lab: pushed parameter-automation-system with commit 566dcd07
 ```
