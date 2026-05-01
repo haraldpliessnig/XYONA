@@ -250,7 +250,7 @@ Planned commits:
 | M3.1 | `xyona-core` | completed | `72d85fc` | `core(parameters): decide parameter semantic transport contract` |
 | M3.2 | `xyona-core` | completed | `46321fb` | `core(parameters): introduce ParamValueDomain and ParamScale` |
 | M3.3 | `xyona-core` | completed | `d5ade79` | `core(parameters): add ParamSemantics and ParamValueCodec` |
-| M3.4 | `xyona-core` | pending | pending | `core(parameters): add step, nonlinear scale, and control policy` |
+| M3.4 | `xyona-core` | completed | `985b71c` | `core(parameters): add step nonlinear scale and control policy` |
 | M3.5 | `xyona-core` | pending | pending | `core(packs): expose parameter semantics through chosen transport` |
 
 M3.1 local verification:
@@ -278,4 +278,14 @@ xyona-core: cmake --build build --target test_param_value_codec test_parameter_s
 xyona-core: ctest --test-dir build -R "param_value_codec_tests|parameter_semantics_tests|parameter_tests" --output-on-failure passed, 3 tests, 0 failures
 xyona-core: git diff --check passed
 xyona-core: pushed parameter-automation-system with commit d5ade79
+```
+
+M3.4 local verification:
+
+```text
+xyona-core: cmake -S . -B build passed
+xyona-core: cmake --build build --target test_param_value_codec test_parameter_semantics test_parameter -- -j8 passed
+xyona-core: ctest --test-dir build -R "param_value_codec_tests|parameter_semantics_tests|parameter_tests" --output-on-failure passed, 3 tests, 0 failures
+xyona-core: git diff --check passed
+xyona-core: pushed parameter-automation-system with commit 985b71c
 ```
