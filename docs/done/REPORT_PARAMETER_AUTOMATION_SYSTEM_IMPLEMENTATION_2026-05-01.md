@@ -3,7 +3,7 @@
 Date: 2026-05-01
 Roadmap: `ROADMAP_PARAMETER_AUTOMATION_SYSTEM.md`
 Planning review: `REPORT_PARAMETER_AUTOMATION_SYSTEM_TECHNICAL_REVIEW_2026-05-01.md`
-Status: M1 started
+Status: M1 completed, M2 next
 Repositories: workspace root, `xyona-lab`
 
 ## Execution Rules
@@ -28,7 +28,7 @@ Repositories: workspace root, `xyona-lab`
 | Repository | Branch | Purpose |
 |---|---|---|
 | workspace root | `parameter-automation-system` | Implementation tracking report |
-| `xyona-lab` | `parameter-automation-system` | M1 target identity and resolver foundation |
+| `xyona-lab` | `parameter-automation-system` | Parameter automation implementation |
 
 ## M0 - Baseline Characterization
 
@@ -91,7 +91,7 @@ Planned commits:
 | M1.2 | `xyona-lab` | completed | `65dfaaf1` | `lab(timeline): inject target resolver into automation recorder and playback` |
 | M1.3 | `xyona-lab` | completed | `0c776a21` | `lab(timeline): persist full ParamAddress for automation lanes` |
 | M1.4 | `xyona-lab` | completed | `19e12c4e` | `lab(modulation): migrate route target storage to full ParamAddress` |
-| M1.5 | `xyona-lab` | pending | pending | `lab(midi): migrate MIDI mappings to full ParamAddress` |
+| M1.5 | `xyona-lab` | completed | `b7e2e643` | `lab(midi): migrate MIDI mappings to full ParamAddress` |
 
 M1.1 local verification:
 
@@ -140,4 +140,16 @@ xyona-lab: ./build/tests/xyona_lab_tests --test="AudioGraphProcessor Modulation 
 xyona-lab: ./build/tests/xyona_lab_tests --test="ProjectState Timeline Automation" --xyona-only --summary-only passed, 16 tests, 226 passes, 0 failures
 xyona-lab: git diff --check passed
 xyona-lab: pushed parameter-automation-system with commit 19e12c4e
+```
+
+M1.5 local verification:
+
+```text
+xyona-lab: cmake --build build --target xyona_lab_tests -- -j8 passed
+xyona-lab: ./build/tests/xyona_lab_tests --test="MidiMapping" --xyona-only --summary-only passed, 6 tests, 39 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --test="MidiUMP" --xyona-only --summary-only passed, 4 tests, 19 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --test="ModulationRoutingTable" --xyona-only --summary-only passed, 7 tests, 51 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --test="ParamTargetResolver" --xyona-only --summary-only passed, 4 tests, 22 passes, 0 failures
+xyona-lab: git diff --check passed
+xyona-lab: pushed parameter-automation-system with commit b7e2e643
 ```
