@@ -3,7 +3,7 @@
 Date: 2026-05-01
 Roadmap: `ROADMAP_PARAMETER_AUTOMATION_SYSTEM.md`
 Planning review: `REPORT_PARAMETER_AUTOMATION_SYSTEM_TECHNICAL_REVIEW_2026-05-01.md`
-Status: M8 completed; M9 pending
+Status: M9.1 completed; M9 active
 Repositories: workspace root, `xyona-lab`, `xyona-core`, `xyona-cdp-pack`
 
 ## Execution Rules
@@ -931,4 +931,41 @@ xyona-lab: ./build/tests/xyona_lab_tests --match "AudioGraphProcessor Modulation
 xyona-lab: ./build/tests/xyona_lab_tests --match "AudioGraphProcessor Parameter Automation Runtime" --summary-only passed, 6 tests, 28 passes, 0 failures
 xyona-lab: git diff --check passed for M8.6 files
 xyona-lab: pushed parameter-automation-system with commit 3a67f8fc
+```
+
+## M9 - Persistence Migration UX And Diagnostics
+
+Planned commits:
+
+| Roadmap | Repository | Status | Commit | Subject |
+|---|---|---|---|---|
+| M9.1 | `xyona-lab` | completed | `13e6e6fc` | `lab(project): version parameter automation schema` |
+| M9.2 | `xyona-lab` | pending | | `lab(project): add parameter target migration records` |
+| M9.3 | `xyona-lab` | pending | | `lab(ui): add parameter source breakdown` |
+| M9.4 | `xyona-lab` | pending | | `lab(ui): add target-aware automation diagnostics` |
+
+M9.1 scope update:
+
+```text
+ProjectState now writes an explicit parameter automation schema marker and
+persists per-lane target diagnostics: targetStatus and semanticRevision. The
+lane model stores target resolution state separately from valueDomain and
+migrationStatus, so unresolved targets and descriptor revision changes can be
+inspected without changing automation values.
+
+Timeline automation reconciliation updates targetStatus and semanticRevision
+from the explicit ParamTargetEligibility result. The new targetStatus parser
+accepts only canonical storage keys; no new backward-compatibility alias or
+silent repair path was added.
+```
+
+M9.1 local verification:
+
+```text
+xyona-lab: cmake --build build --target xyona_lab_tests -- -j8 passed
+xyona-lab: ./build/tests/xyona_lab_tests --match "ProjectState Timeline Automation" --summary-only passed, 18 tests, 258 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --match "Timeline Automation Reconciliation" --summary-only passed, 6 tests, 47 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --match "TimelineLaneStackController" --summary-only passed, 14 tests, 119 passes, 0 failures
+xyona-lab: git diff --check passed for M9.1 files
+xyona-lab: pushed parameter-automation-system with commit 13e6e6fc
 ```

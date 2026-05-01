@@ -1,6 +1,6 @@
 # Roadmap: Parameter Automation System
 
-**Status:** Implementation active; M0-M8 completed; M9 pending
+**Status:** Implementation active; M0-M8 completed; M9.1 completed; M9 active
 **Started:** 2026-05-01
 **Planning branch:** `parameter-automation-review`
 **Implementation branch:** `parameter-automation-system`
@@ -907,6 +907,8 @@ Goal: make the system inspectable and patch-compatible.
 ### Commit M9.1
 
 `lab(project): version parameter automation schema`
+
+Status: completed in `xyona-lab` commit `13e6e6fc`.
 
 Persist:
 
