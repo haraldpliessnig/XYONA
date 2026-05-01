@@ -285,6 +285,8 @@ Commits:
 |---|---|---|---|
 | 18 | `xyona-lab` | `fdeddfc6` | Harden slot gain reference adapter |
 | hardening | `xyona-lab` | `cd164bb5` | Keep MainBusOut separate from slot topology |
+| CI hardening | `xyona-core` | `7fb5aaf` | Emit UTF-8 byte escapes from core codegen |
+| CI hardening | `xyona-lab` | `be316cb8` | Install WebView2 SDK in Lab CI |
 | 19 | workspace root `XYONA` | `cc35624` | Add operator slot system check |
 | 20 | workspace root/Core/CDP docs | this update | Final documentation cleanup and report |
 
@@ -308,6 +310,12 @@ Implemented facts:
   generated `in_N` / `out_N` descriptor ports.
 - CDP port docs explicitly state current non-slottable defaults and future
   slot metadata validation rules.
+- Core codegen now emits non-ASCII descriptor strings as explicit UTF-8 byte
+  escapes, avoiding MSVC source-codepage drift in generated descriptors.
+- Lab Windows CI installs the official `Microsoft.Web.WebView2` NuGet package
+  and passes `JUCE_WEBVIEW2_PACKAGE_LOCATION` to CMake. JUCE provides the
+  WebView2 integration, but the static WebView2 SDK package is an external
+  Windows CI dependency.
 
 Local verification:
 
@@ -328,10 +336,33 @@ Result:
   - `Canvas Param Persistence`: 16 tests, 116 passes, 0 failures.
   - `MainBusOutOperator`: 6 tests, 75 passes, 0 failures.
   - `AudioEngineManager`: 46 tests, 2666 passes, 0 failures.
+- After the Core UTF-8 codegen hardening, Core was rebuilt locally with
+  `cmake --build --preset macos-clang-debug` and retested with
+  `ctest --preset macos-clang-debug --output-on-failure`: 11/11 passed.
+
+## Final GitHub Actions Verification
+
+Actions were available and were run after implementation on the shared
+`operator-slot-system` branch.
+
+| Repository | Workflow run | Head | Result | Platforms |
+|---|---|---|---|---|
+| `xyona-core` | `25214627411` | `7fb5aaf` | success | Windows MSVC Debug, macOS Clang Debug |
+| `xyona-cdp-pack` | `25214627420` | `31696c2` | success | Windows MSVC Debug, macOS Clang Debug |
+| `xyona-lab` | `25214928983` | `be316cb8` | success | Windows MSVC Debug, macOS Clang Debug |
+
+Resolved CI findings:
+
+- Core Windows initially failed `operator_module_runtime_tests` because the
+  generated descriptor helper emitted `"\u00d7"` into C++ source and MSVC
+  decoded it differently from the YAML expectation. Fixed by byte-stable UTF-8
+  C++ string generation.
+- Lab Windows initially failed `Configure Lab` because JUCE's WebView2 CMake
+  module could not find the external WebView2 SDK package. Fixed by installing
+  `Microsoft.Web.WebView2` in the Windows workflow and passing the package root
+  to JUCE.
 
 ## Current Decision State
 
-The implementation roadmap is complete locally and pushed in the affected
-repositories. Local end-to-end verification is green. Final remaining action:
-rerun GitHub Actions on `operator-slot-system` for `xyona-core`, `xyona-lab`,
-and `xyona-cdp-pack` from the current heads.
+The implementation roadmap is complete, committed, pushed, locally verified,
+and CI-verified in all affected repositories. No merge was performed.
