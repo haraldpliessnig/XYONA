@@ -3,8 +3,8 @@
 Date: 2026-05-01
 Roadmap: `ROADMAP_PARAMETER_AUTOMATION_SYSTEM.md`
 Planning review: `REPORT_PARAMETER_AUTOMATION_SYSTEM_TECHNICAL_REVIEW_2026-05-01.md`
-Status: M2 complete; M3 next
-Repositories: workspace root, `xyona-lab`
+Status: M3 started
+Repositories: workspace root, `xyona-lab`, `xyona-core`
 
 ## Execution Rules
 
@@ -29,6 +29,7 @@ Repositories: workspace root, `xyona-lab`
 |---|---|---|
 | workspace root | `parameter-automation-system` | Implementation tracking report |
 | `xyona-lab` | `parameter-automation-system` | Parameter automation implementation |
+| `xyona-core` | `parameter-automation-system` | Core parameter semantics and pack transport |
 
 ## M0 - Baseline Characterization
 
@@ -238,4 +239,23 @@ xyona-lab: ./build/tests/xyona_lab_tests --test="ProjectState Timeline Automatio
 xyona-lab: ./build/tests/xyona_lab_tests --test="AutomationParamCodec" --xyona-only --summary-only passed, 5 tests, 36 passes, 0 failures
 xyona-lab: git diff --check passed
 xyona-lab: pushed parameter-automation-system with commit ff2b5560
+```
+
+## M3 - Core Semantics Contract And Pack Transport
+
+Planned commits:
+
+| Roadmap | Repository | Status | Commit | Subject |
+|---|---|---|---|---|
+| M3.1 | `xyona-core` | completed | `72d85fc` | `core(parameters): decide parameter semantic transport contract` |
+| M3.2 | `xyona-core` | pending | pending | `core(parameters): introduce ParamValueDomain and ParamScale` |
+| M3.3 | `xyona-core` | pending | pending | `core(parameters): add ParamSemantics and ParamValueCodec` |
+| M3.4 | `xyona-core` | pending | pending | `core(parameters): add step, nonlinear scale, and control policy` |
+| M3.5 | `xyona-core` | pending | pending | `core(packs): expose parameter semantics through chosen transport` |
+
+M3.1 local verification:
+
+```text
+xyona-core: git diff --check passed
+xyona-core: pushed parameter-automation-system with commit 72d85fc
 ```
