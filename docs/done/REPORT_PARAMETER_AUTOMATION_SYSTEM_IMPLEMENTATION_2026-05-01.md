@@ -3,7 +3,7 @@
 Date: 2026-05-01
 Roadmap: `ROADMAP_PARAMETER_AUTOMATION_SYSTEM.md`
 Planning review: `REPORT_PARAMETER_AUTOMATION_SYSTEM_TECHNICAL_REVIEW_2026-05-01.md`
-Status: M0 started
+Status: M0 completed
 Repositories: workspace root, `xyona-lab`
 
 ## Execution Rules
@@ -38,7 +38,7 @@ Planned commits:
 |---|---|---|---|---|
 | M0 report | workspace root | completed | `1154ec4` | `docs(parameters): start automation implementation report` |
 | M0.2 | `xyona-lab` | completed | `4c6485ff` | `test(parameters): characterize automation value-domain mismatch` |
-| M0.3 | `xyona-lab` | pending | pending | `test(parameters): characterize target identity and topology gaps` |
+| M0.3 | `xyona-lab` | completed | `3c8f20c6` | `test(parameters): characterize target identity and topology gaps` |
 
 ## Verification Log
 
@@ -60,4 +60,14 @@ xyona-lab: ./build/tests/xyona_lab_tests --test="AutomationRecorder" --xyona-onl
 xyona-lab: ./build/tests/xyona_lab_tests --test="AutomationPlaybackEngine" --xyona-only --summary-only passed, 4 tests, 15 passes, 0 failures
 xyona-lab: git diff --check passed
 xyona-lab: pushed parameter-automation-m0-baseline with commit 4c6485ff
+```
+
+M0.3 local verification:
+
+```text
+xyona-lab: cmake --build build --target xyona_lab_tests -- -j8 passed
+xyona-lab: ./build/tests/xyona_lab_tests --test="MidiMapping" --xyona-only --summary-only passed, 6 tests, 31 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --test="ModulationRoutingTable" --xyona-only --summary-only passed, 7 tests, 49 passes, 0 failures
+xyona-lab: git diff --check passed
+xyona-lab: pushed parameter-automation-m0-baseline with commit 3c8f20c6
 ```
