@@ -317,7 +317,7 @@ Planned commits:
 | Roadmap | Repository | Status | Commit | Subject |
 |---|---|---|---|---|
 | M4.1 | `xyona-lab` | completed | `590831e7` | `lab(parameters): add resolved parameter semantics service` |
-| M4.2 | `xyona-lab` | pending | pending | `lab(parameters): route ParamFormatter through ParamValueCodec` |
+| M4.2 | `xyona-lab` | completed | `8fe695b7` | `lab(parameters): route formatter through core value codec` |
 | M4.3 | `xyona-lab` | pending | pending | `lab(parameters): migrate text field and numeric controls to codec` |
 | M4.4 | `xyona-lab` | pending | pending | `lab(canvas): migrate canvas parameter editing to semantics service` |
 | M4.5 | `xyona-lab` | pending | pending | `lab(timeline): make automation lane UI target-aware` |
@@ -331,4 +331,14 @@ xyona-lab: ./build/tests/xyona_lab_tests --test="ParamSemanticsResolver" --xyona
 xyona-lab: ./build/tests/xyona_lab_tests --test="ParamTargetResolver" --xyona-only --summary-only passed, 4 tests, 22 passes, 0 failures
 xyona-lab: git diff --cached --check passed
 xyona-lab: pushed parameter-automation-system with commit 590831e7
+```
+
+M4.2 local verification:
+
+```text
+xyona-lab: cmake --build build --target xyona_lab_tests -- -j8 passed
+xyona-lab: ./build/tests/xyona_lab_tests --test="AutomationParamCodec" --xyona-only --summary-only passed, 6 tests, 44 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --test="ParamFormatter" --xyona-only --summary-only passed, 8 tests, 81 passes, 0 failures
+xyona-lab: git diff --check passed
+xyona-lab: pushed parameter-automation-system with commit 8fe695b7
 ```
