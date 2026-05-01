@@ -3,7 +3,7 @@
 Date: 2026-05-01
 Roadmap: `ROADMAP_PARAMETER_AUTOMATION_SYSTEM.md`
 Planning review: `REPORT_PARAMETER_AUTOMATION_SYSTEM_TECHNICAL_REVIEW_2026-05-01.md`
-Status: M5 completed; M6 pending
+Status: M5 completed; M6.1 completed
 Repositories: workspace root, `xyona-lab`, `xyona-core`, `xyona-cdp-pack`
 
 ## Execution Rules
@@ -526,4 +526,34 @@ xyona-lab: ./build/tests/xyona_lab_tests --xyona-only --summary-only passed, 125
 xyona-lab: git diff --check passed for M5.4 files
 xyona-lab: git diff --cached --check passed
 xyona-lab: pushed parameter-automation-system with commit a4577568
+```
+
+## M6 - Authoritative Realtime/Offline Automation Runtime
+
+Planned commits:
+
+| Roadmap | Repository | Status | Commit | Subject |
+|---|---|---|---|---|
+| M6.1 | `xyona-lab` | completed | `86093161` | `lab(audio): inventory automation event runtime` |
+| M6.2 | `xyona-lab` | pending | | `lab(automation): add prepared parameter automation runtime` |
+| M6.3 | `xyona-lab` | pending | | `lab(audio): apply prepared automation in AudioGraphProcessor` |
+| M6.4 | `xyona-lab` | pending | | `lab(offline): use prepared automation runtime for offline render` |
+
+M6.1 scope update:
+
+```text
+Added an Automation Runtime Inventory in Lab documenting that
+AutomationEventBuffer has no active producer and only dormant publish/apply
+hooks, while the current active automation path is message-thread
+AutomationPlaybackEngine -> ParameterControlHub -> ParameterBus. The M6
+decision is to replace/remove AutomationEventBuffer with a prepared parameter
+automation runtime, not keep it as a compatibility adapter.
+```
+
+M6.1 local verification:
+
+```text
+xyona-lab: git diff --check passed for src/app/lab/audio/automation/AUTOMATION_RUNTIME_INVENTORY.md
+xyona-lab: git diff --cached --check passed
+xyona-lab: pushed parameter-automation-system with commit 86093161
 ```
