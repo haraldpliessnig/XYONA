@@ -259,8 +259,8 @@ authoritative:
 
 - Option A: add semantic fields to `ParamDesc`.
 - Option B: keep `ParamDesc` stable and add versioned semantic sidecar metadata.
-- Option C: extend the pack ABI with semantic fields and provide old-pack
-  fallback.
+- Option C: extend the pack ABI with semantic fields and require the new
+  semantics contract for parameterized runtime packs.
 
 The roadmap does not assume which option wins. M3 explicitly decides it.
 
@@ -523,9 +523,9 @@ Changes:
 - Choose and document one transport:
   - `ParamDesc` fields
   - versioned sidecar metadata
-  - pack ABI extension with fallback
-- Define old-pack behavior.
-- Define missing-metadata defaults.
+  - strict pack ABI extension
+- Define strict pack import behavior.
+- Define Core-native missing-metadata defaults.
 
 Acceptance:
 
@@ -568,12 +568,12 @@ Changes:
 Changes:
 
 - Implement the M3.1 transport decision.
-- Add ABI/version/fallback tests.
+- Add ABI/version/strict-rejection tests.
 
 Acceptance for M3:
 
 - Core owns deterministic value conversion.
-- Pack semantics have a defined compatibility path.
+- Pack semantics have a defined strict transport path.
 
 ## M4: Lab Resolver And Staged Conversion Migration
 

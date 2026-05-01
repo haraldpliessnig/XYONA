@@ -3,7 +3,7 @@
 Date: 2026-05-01
 Roadmap: `ROADMAP_PARAMETER_AUTOMATION_SYSTEM.md`
 Planning review: `REPORT_PARAMETER_AUTOMATION_SYSTEM_TECHNICAL_REVIEW_2026-05-01.md`
-Status: M3 started
+Status: M3 completed
 Repositories: workspace root, `xyona-lab`, `xyona-core`
 
 ## Execution Rules
@@ -251,7 +251,7 @@ Planned commits:
 | M3.2 | `xyona-core` | completed | `46321fb` | `core(parameters): introduce ParamValueDomain and ParamScale` |
 | M3.3 | `xyona-core` | completed | `d5ade79` | `core(parameters): add ParamSemantics and ParamValueCodec` |
 | M3.4 | `xyona-core` | completed | `985b71c` | `core(parameters): add step nonlinear scale and control policy` |
-| M3.5 | `xyona-core` | pending | pending | `core(packs): expose parameter semantics through chosen transport` |
+| M3.5 | `xyona-core` | completed | `05646b4` | `core(packs): require explicit parameter semantics transport` |
 
 M3.1 local verification:
 
@@ -288,4 +288,24 @@ xyona-core: cmake --build build --target test_param_value_codec test_parameter_s
 xyona-core: ctest --test-dir build -R "param_value_codec_tests|parameter_semantics_tests|parameter_tests" --output-on-failure passed, 3 tests, 0 failures
 xyona-core: git diff --check passed
 xyona-core: pushed parameter-automation-system with commit 985b71c
+```
+
+M3.5 scope update:
+
+```text
+User directive: no backward compatibility fallback for runtime-pack parameter
+semantics.
+Result: parameterized runtime-pack descriptors must use v2.2 semantic fields;
+v2.0/v2.1 parameter descriptors are rejected instead of defaulted.
+```
+
+M3.5 local verification:
+
+```text
+xyona-core: cmake -S . -B build passed
+xyona-core: cmake --build build --target test_param_value_codec test_parameter_semantics test_operator_packs -- -j8 passed
+xyona-core: cmake --build build --target xyona_legacy_param_pack test_operator_packs -- -j8 passed
+xyona-core: ctest --test-dir build -R "param_value_codec_tests|parameter_semantics_tests|operator_packs_tests" --output-on-failure passed, 3 tests, 0 failures
+xyona-core: git diff --check passed
+xyona-core: pushed parameter-automation-system with commit 05646b4
 ```
