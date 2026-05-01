@@ -1,6 +1,6 @@
 # Roadmap: Parameter Automation System
 
-**Status:** Implementation active; M0-M7 completed; M8.1-M8.5 completed; M8.6 pending
+**Status:** Implementation active; M0-M8 completed; M9 pending
 **Started:** 2026-05-01
 **Planning branch:** `parameter-automation-review`
 **Implementation branch:** `parameter-automation-system`
@@ -884,6 +884,8 @@ Requirements:
 ### Commit M8.6
 
 `lab(macros): define macro target binding contract`
+
+Status: completed in `xyona-lab` commit `3a67f8fc`.
 
 Changes:
 

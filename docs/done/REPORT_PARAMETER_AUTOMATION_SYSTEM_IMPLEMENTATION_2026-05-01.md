@@ -3,7 +3,7 @@
 Date: 2026-05-01
 Roadmap: `ROADMAP_PARAMETER_AUTOMATION_SYSTEM.md`
 Planning review: `REPORT_PARAMETER_AUTOMATION_SYSTEM_TECHNICAL_REVIEW_2026-05-01.md`
-Status: M7 completed; M8.1-M8.5 completed; M8.6 pending
+Status: M8 completed; M9 pending
 Repositories: workspace root, `xyona-lab`, `xyona-core`, `xyona-cdp-pack`
 
 ## Execution Rules
@@ -746,8 +746,8 @@ Planned commits:
 | M8.3 | `xyona-cdp-pack` | completed | `72cc621` | `cdp-pack: emit parameter smoothing metadata` |
 | M8.3 | `xyona-lab` | completed | `c7d7fdfd` | `lab(audio): apply host smoothing by parameter policy` |
 | M8.4 | `xyona-lab` | completed | `f0cb7682` | `lab(parameters): quarantine incomplete value sources` |
-| M8.5 | workspace root | closed | | `docs(parameters): close value-source evaluator scope` |
-| M8.6 | `xyona-lab` | pending | | `lab(macros): define macro target binding contract` |
+| M8.5 | workspace root | closed | `eeac62d` | `docs(parameters): close value-source evaluator scope` |
+| M8.6 | `xyona-lab` | completed | `3a67f8fc` | `lab(macros): define macro target binding contract` |
 
 M8.1 scope update:
 
@@ -897,4 +897,38 @@ M8.5 local verification:
 
 ```text
 workspace root: git diff --check passed for roadmap/report files
+```
+
+M8.6 scope update:
+
+```text
+Lab now persists an explicit modulation-route binding contract for macro target
+bindings. Macro-lane sources carry ParamValueDomain::Normalized01, node-output
+and modulation-lane sources carry ParamValueDomain::NormalizedDelta, and all
+currently supported target mappings use ParamModulationMode::NormalizedBipolarOffset.
+
+ModulationRoutingTable and ProjectState canonicalize newly written routes to
+that contract. ProjectState loading requires the new sourceValueDomain and
+contributionMode fields; routes without them are not silently repaired. Prepared
+modulation runtime exposes skipped-route diagnostics for invalid routes,
+unsupported binding contracts, and target-resolution/eligibility rejection.
+The audio graph and control-rate modulation engine now map signal values from
+the persisted source domain instead of deriving macro behavior only from the
+source kind.
+```
+
+M8.6 local verification:
+
+```text
+xyona-lab: cmake --build build --target xyona_lab_tests -- -j8 passed
+xyona-lab: ./build/tests/xyona_lab_tests --match "ModulationMath" --summary-only passed, 5 tests, 12 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --match "ModulationRoutingTable" --summary-only passed, 7 tests, 57 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --match "ModulationController" --summary-only passed, 5 tests, 36 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --match "PreparedModulationRuntime" --summary-only passed, 2 tests, 44 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --match "ProjectState Timeline Automation" --summary-only passed, 18 tests, 251 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --match "ModulationEngine" --summary-only passed, 8 tests, 62 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --match "AudioGraphProcessor Modulation Runtime" --summary-only passed, 4 tests, 9 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --match "AudioGraphProcessor Parameter Automation Runtime" --summary-only passed, 6 tests, 28 passes, 0 failures
+xyona-lab: git diff --check passed for M8.6 files
+xyona-lab: pushed parameter-automation-system with commit 3a67f8fc
 ```
