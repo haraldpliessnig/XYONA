@@ -1,6 +1,6 @@
 # Roadmap: Parameter Automation System
 
-**Status:** Implementation active; M0-M7 completed; M8.1-M8.3 completed; M8.4 pending
+**Status:** Implementation active; M0-M7 completed; M8.1-M8.4 completed; M8.5 pending
 **Started:** 2026-05-01
 **Planning branch:** `parameter-automation-review`
 **Implementation branch:** `parameter-automation-system`
@@ -857,6 +857,8 @@ Changes:
 ### Commit M8.4
 
 `lab(parameters): quarantine incomplete Expr and Bind sources`
+
+Status: completed in `xyona-lab` commit `f0cb7682`.
 
 Changes:
 

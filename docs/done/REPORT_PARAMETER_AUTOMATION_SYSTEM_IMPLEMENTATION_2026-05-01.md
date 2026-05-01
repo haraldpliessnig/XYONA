@@ -3,7 +3,7 @@
 Date: 2026-05-01
 Roadmap: `ROADMAP_PARAMETER_AUTOMATION_SYSTEM.md`
 Planning review: `REPORT_PARAMETER_AUTOMATION_SYSTEM_TECHNICAL_REVIEW_2026-05-01.md`
-Status: M7 completed; M8.1-M8.3 completed; M8.4 pending
+Status: M7 completed; M8.1-M8.4 completed; M8.5 pending
 Repositories: workspace root, `xyona-lab`, `xyona-core`, `xyona-cdp-pack`
 
 ## Execution Rules
@@ -745,7 +745,7 @@ Planned commits:
 | M8.3 | `xyona-core` | completed | `aa66e4d` | `core(parameters): expose smoothing ownership semantics` |
 | M8.3 | `xyona-cdp-pack` | completed | `72cc621` | `cdp-pack: emit parameter smoothing metadata` |
 | M8.3 | `xyona-lab` | completed | `c7d7fdfd` | `lab(audio): apply host smoothing by parameter policy` |
-| M8.4 | `xyona-lab` | pending | | `lab(parameters): quarantine incomplete Expr and Bind sources` |
+| M8.4 | `xyona-lab` | completed | `f0cb7682` | `lab(parameters): quarantine incomplete value sources` |
 | M8.5 | `xyona-lab` | pending | | `lab(parameters): implement deterministic value-source evaluation` |
 | M8.6 | `xyona-lab` | pending | | `lab(macros): define macro target binding contract` |
 
@@ -851,4 +851,32 @@ xyona-lab: ./build/tests/xyona_lab_tests --match "AudioEngineManager Minimal Pla
 xyona-lab: XYONA_OPERATOR_PACK_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-cdp-pack/build/macos-clang-debug ./build/tests/xyona_lab_tests --match "CDP Pack Canvas Smoke" --summary-only passed, 14 tests, 480 passes, 0 failures
 xyona-lab: git diff --check passed for M8.3 files
 xyona-lab: pushed parameter-automation-system with commit c7d7fdfd
+```
+
+M8.4 scope update:
+
+```text
+Lab now has an explicit runtime-availability/quarantine predicate for
+ParamValueSource modes. Off, Const, and Param remain product-writable runtime
+sources. Expr and Bind stay structurally valid for descriptor/persistence
+inspection, but are not runtime-available until a deterministic evaluator exists.
+
+ParameterBar, SingleParamWindow, and SingleParameterValueSourceEditor no longer
+expose Expr/Bind as product input modes. Canvas product writes reject quarantined
+Expr/Bind sources with operation_not_supported; NodeBinder restore can still
+surface quarantined persisted state for diagnostics without silently activating
+it. No legacy compatibility fallback was added.
+```
+
+M8.4 local verification:
+
+```text
+xyona-lab: cmake --build build --target xyona_lab_tests -- -j8 passed
+xyona-lab: ./build/tests/xyona_lab_tests --match "ParamValueSource" --summary-only passed, 4 tests, 16 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --match "Single Parameter Field" --summary-only passed, 9 tests, 71 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --match "Canvas Param Persistence" --summary-only passed, 16 tests, 123 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --match "ParamUpdateBridge" --summary-only passed, 5 tests, 20 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --match "Param producer single-event contract" --summary-only passed, 11 tests, 86 passes, 0 failures
+xyona-lab: git diff --check passed for M8.4 files
+xyona-lab: pushed parameter-automation-system with commit f0cb7682
 ```
