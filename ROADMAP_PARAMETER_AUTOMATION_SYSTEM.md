@@ -1,6 +1,6 @@
 # Roadmap: Parameter Automation System
 
-**Status:** Implementation active; M0-M6 completed; M7 pending
+**Status:** Implementation active; M0-M6 completed; M7.1 completed; M7.2 pending
 **Started:** 2026-05-01
 **Planning branch:** `parameter-automation-review`
 **Implementation branch:** `parameter-automation-system`
@@ -764,6 +764,8 @@ settled.
 ### Commit M7.1
 
 `lab(audio): build parameter index maps in graph runtime cache`
+
+Status: completed in `xyona-lab` commit `f6152bd8`.
 
 Changes:
 

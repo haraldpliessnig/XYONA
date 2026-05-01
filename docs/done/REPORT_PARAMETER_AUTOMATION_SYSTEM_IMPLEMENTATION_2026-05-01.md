@@ -3,7 +3,7 @@
 Date: 2026-05-01
 Roadmap: `ROADMAP_PARAMETER_AUTOMATION_SYSTEM.md`
 Planning review: `REPORT_PARAMETER_AUTOMATION_SYSTEM_TECHNICAL_REVIEW_2026-05-01.md`
-Status: M6 completed; M7 pending
+Status: M6 completed; M7.1 completed; M7.2 pending
 Repositories: workspace root, `xyona-lab`, `xyona-core`, `xyona-cdp-pack`
 
 ## Execution Rules
@@ -633,4 +633,37 @@ xyona-lab: XYONA_OPERATOR_PACK_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-cd
 xyona-lab: git diff --check passed
 xyona-lab: git diff --cached --check passed
 xyona-lab: pushed parameter-automation-system with commit 0a1794f0
+```
+
+## M7 - Compiled Runtime Parameter Targets
+
+Planned commits:
+
+| Roadmap | Repository | Status | Commit | Subject |
+|---|---|---|---|---|
+| M7.1 | `xyona-lab` | completed | `f6152bd8` | `lab(audio): build parameter index maps in graph runtime cache` |
+| M7.2 | `xyona-lab` | pending | | `lab(parameters): introduce CompiledParamTarget` |
+| M7.3 | `xyona-lab` | pending | | `lab(audio): apply queued updates through compiled targets` |
+| M7.4 | `xyona-lab` | pending | | `lab(audio): update host adapter parameter bindings to prepared indices` |
+
+M7.1 scope update:
+
+```text
+GraphRtCache now carries node-index-aligned parameter index maps built on the
+message thread from GraphPlan snapshot backing. Each map resolves a runtime
+ParamKey to the stable ParameterSnapshot value index and marks duplicate hashes
+as ambiguous. The existing descriptor-time collision diagnostics remain, and
+the runtime cache builder adds debug diagnostics for duplicate hashes while the
+audio thread still uses the existing hash path until M7.3.
+```
+
+M7.1 local verification:
+
+```text
+xyona-lab: cmake --build build --target xyona_lab_tests -- -j8 passed
+xyona-lab: ./build/tests/xyona_lab_tests --match "AudioGraphProcessor Parameter Automation Runtime" --summary-only passed, 3 tests, 15 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --match "ParameterUpdateQueue" --summary-only passed, 5 tests, 1581 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --match "AudioEngineManager Minimal Plan" --summary-only passed, 39 tests, 575 passes, 0 failures
+xyona-lab: git diff --check passed for M7.1 files
+xyona-lab: pushed parameter-automation-system with commit f6152bd8
 ```
