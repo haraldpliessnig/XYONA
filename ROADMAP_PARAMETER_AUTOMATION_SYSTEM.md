@@ -1,155 +1,207 @@
 # Roadmap: Parameter Automation System
 
-**Status:** Active planning
+**Status:** Active planning, implementation blocked until M0-M1 pass
 **Started:** 2026-05-01
-**Branch:** `operator-slot-system`
+**Planning branch:** `parameter-automation-review`
+**Implementation branches:** per milestone; see "Branch Strategy"
 **Applies to:** `xyona-core`, `xyona-lab`, `xyona-cdp-pack`, future runtime packs
+**Primary review:** `docs/done/REPORT_PARAMETER_AUTOMATION_SYSTEM_TECHNICAL_REVIEW_2026-05-01.md`
 **Reference:** `IDEA_XYONA_PLUGIN_RUNTIME.md`
 
 Scope: Standalone XYONA only: `xyona-lab`, `xyona-core`, and runtime packs such
 as `xyona-cdp-pack`. This roadmap deliberately does not design the future DAW
-plugin runtime. It uses the plugin-runtime idea only as an architectural stress
+plugin runtime. The plugin-runtime idea is used only as an architectural stress
 test.
 
 Document convention:
 
 - Active root work is tracked as `ROADMAP_...`.
-- Completed or superseded root roadmaps/reports move to `docs/done/`.
-- `REPORT_...` files are reserved for implementation tracking and completed
-  implementation evidence. This file must not be used as a completion report.
-- When implementation work for a milestone completes, create or update a
-  separate `REPORT_PARAMETER_AUTOMATION_SYSTEM_YYYY-MM-DD.md` and archive it
-  under `docs/done/` only when the work is closed or superseded.
+- `REPORT_...` files are implementation or review evidence.
+- Completed or superseded root roadmaps and reports can be archived under
+  `docs/done/`.
+- This file is not a completion report.
 
 ## Executive Decision
 
-The current parameter system is structurally good enough to harden. It should
-not be rewritten. The correct path is a staged contract hardening:
+The current parameter system has the right broad architecture, but the previous
+roadmap was not directly implementable. The implementation order must change.
 
-1. Fix parameter automation value domains.
-2. Introduce one canonical parameter semantics and value codec.
-3. Migrate Lab surfaces onto that codec.
-4. Make automation playback/offline execution authoritative and deterministic.
-5. Finish slot-aware addressing, topology policy, smoothing, and diagnostics.
+The correct sequence is:
 
-The first blocking bug is value-domain correctness. Parameter automation
-currently mixes plain/native parameter values with normalized `0..1` values.
-This explains the observed symptom that automated parameters can collapse to
-`0..1` behavior, and in some cases look like only `0` and `1` are available.
+1. Characterize the current automation/domain bugs.
+2. Add target identity and resolver interfaces before value migration.
+3. Fix new automation record/playback for resolved targets.
+4. Reconcile legacy automation in a descriptor-aware Lab pass, not in
+   `ProjectState`.
+5. Define the Core semantics contract and pack ABI/metadata transport.
+6. Migrate Lab surfaces in narrow stages with an explicit temporary bypass list.
+7. Replace or formalize the existing audio automation event path.
+8. Optimize runtime targets and finish modulation, smoothing, macros, value
+   sources, and UI diagnostics.
 
-## Verified Critical Facts
+The first product bug remains the same: parameter automation mixes plain/native
+parameter values with normalized `0..1` values. But that bug cannot be fixed
+reliably until automation code can resolve target semantics and preserve full
+target identity.
 
-These facts were verified against the current source tree.
+## Verified Baseline
 
 ### F0: Automation value-domain mismatch
 
-Evidence:
+Verified facts:
 
 - `TimelineParameterAutomationLane` initializes its edit range with
   `setValueRange(0.0, 1.0)`.
 - `TimelineAutomationPoint.value` is an untyped `double`.
 - `AutomationRecorder` writes `event.baseValue` directly into point values.
-  `event.baseValue` comes from `ParameterControlHub` and is plain/native.
+  That value comes from `ParameterControlHub` and is plain/native.
 - `TimelineLaneSignalSource` exposes parameter automation as
   `SignalDomain::Unipolar01` and can normalize/clamp to `0..1`.
 - `AutomationPlaybackEngine` sends evaluated values to
-  `ParameterControlHub::setAutomationBase`, whose API names the value
-  `rawValue`.
+  `ParameterControlHub::setAutomationBase`, whose API expects raw/plain values.
 
-Conclusion:
+Conclusion: stored automation point values are not self-describing. Some paths
+treat them as normalized `0..1`; other paths treat them as plain/native values.
 
-Automation points have no explicit domain. Some paths treat them as normalized
-`0..1`; some paths treat them as plain/native parameter values. This is the
-first issue to fix.
+### F1: `ParamDesc` is not a complete parameter semantics contract
 
-### F1: `ParamDesc` is not a full semantics contract
+`ParamDesc` currently carries basic metadata: id, label, type, min/max/default,
+enum values, unit, display, precision, availability, topology, and scope.
 
-`ParamDesc` has id, label, type, min/max/default, enum values, unit, display,
-precision, availability, topology flag, and scope support. It does not define:
+It does not carry first-class:
 
 - scale/mapping: linear, log, dB, frequency, exponential
 - step/quantization
 - parse/format policy
 - automation policy
 - modulation policy
-- smoothing/dezipper ownership
 - MIDI-learn policy
+- smoothing/dezipper ownership
 
-### F2: Lab has multiple conversion truths
+### F2: Lab has multiple conversion paths
 
-Conversion or interpretation currently exists in multiple places:
+Conversion currently exists outside a single codec, including:
 
 - `ParamFormatter`
 - text field views
 - canvas interaction/model code
 - timeline automation lane drawing/editing
 - MIDI mapping
-- modulation mapping
+- modulation math
 - hub bounds/clamping
+- legacy parameter model helpers
 
-This must collapse to one codec.
+### F3: CDP metadata is richer than Lab consumption
 
-### F3: CDP pack parameter metadata is richer than Lab consumption
+`xyona-cdp-pack` YAML/generated metadata contains `ui.step` and `ui.scale`,
+including `linear_db`. Lab does not currently consume these as first-class
+parameter semantics.
 
-`xyona-cdp-pack` operator YAML/generated metadata contains `ui.step` and
-`ui.scale`, including `linear_db`. Lab does not currently consume this as
-first-class parameter semantics.
+### F4: Full target identity is incomplete
 
-### F4: Topology policy is not enforced early enough
+`ParamAddress` supports optional `slotIndex`, and `storageKey()` supports
+`param@slot=N`. However, some routes/mappings persist target node + parameter
+name only, so slot identity can be lost before runtime.
 
-Topology parameters exist and are marked, but Timeline/MIDI/Modulation target
-paths do not consistently filter them before they become ordinary control
-targets.
+### F5: Topology policy is not enforced early enough
 
-### F5: Slot addressing is not end-to-end
+Topology parameters are marked, but Timeline/MIDI/Modulation target paths do
+not consistently reject them before they become ordinary control targets.
 
-`ParamAddress` can store `slotIndex`, and `storageKey()` supports
-`param@slot=N`. But `ModulationRoute` currently stores target node + param name
-only, so slot-specific target identity is lost in that path.
+### F6: `ProjectState` cannot do descriptor-aware migration
 
-### F6: Runtime parameter targeting is still lookup-heavy
+The project state layer can read and write persisted lane data, but it does not
+have reliable descriptor, pack discovery, operator revision, or slot-topology
+context. Any migration that needs target semantics must run in a Lab
+post-load/reconciliation layer above raw state reading.
 
-The realtime path has stable hashes and block snapshots, but direct compiled
-target indices do not exist yet. Some hot paths still scan by hash/binding
-vector.
+### F7: Recorder/playback do not have a semantic resolver
 
-### F7: Value sources are partly modeled but not complete
-
-`Const` and `Param` can be evaluated. `Expr` and `Bind` currently resolve to no
-runtime value. They should not be treated as finished product features until
-they have deterministic evaluation, dependency handling, and migration rules.
+`AutomationRecorder` currently receives a lane resolver and point appender.
+`AutomationPlaybackEngine` receives lanes and a `ParameterControlHub`. Neither
+has a descriptor/semantic resolver dependency. Value-domain fixes must add this
+explicit dependency before converting stored values.
 
 ## Target Architecture
 
 ### Value domains
 
-Every boundary-crossing value must declare its domain.
+Every subsystem boundary must say which value domain it carries.
 
 ```cpp
 enum class ParamValueDomain
 {
-    Plain,          // native parameter units, e.g. dB, Hz, enum index
-    Normalized01,   // canonical automation/control position
-    DisplayText,    // text representation parsed/formatted through codec
+    Plain,          // native units: dB, Hz, enum index, bool 0/1
+    Normalized01,   // canonical 0..1 automation/control position
+    DisplayText,    // text parsed/formatted by the codec
     PlainDelta,     // native-unit modulation delta
     NormalizedDelta // normalized modulation delta
 };
 ```
 
-Target rule:
+Rules:
 
 - `ParameterControlHub` stores and emits final plain values.
-- Timeline parameter automation stores normalized `0..1` point values.
-- Recorder converts plain -> normalized before writing points.
-- Playback converts normalized -> plain before writing automation base into the
-  hub.
-- UI can display native values, but persisted automation points remain
-  normalized.
+- New parameter automation points store normalized `0..1` values.
+- Recorder converts plain -> normalized.
+- Playback converts normalized -> plain.
+- UI may display native values, but persisted point values remain normalized.
+- Legacy lanes carry explicit migration status until reconciled.
 
-### Parameter semantics
+### Target identity
 
-Add a JUCE-free semantic contract, preferably in `xyona-core` if it remains
-host-free.
+All persisted parameter targets must converge on full `ParamAddress`:
+
+```text
+nodeId + paramId + optional slotIndex
+```
+
+Compatibility rule:
+
+- Old node+param fields remain migration input only.
+- New schema must preserve optional `slotIndex`.
+- Runtime hashes derive from `ParamAddress::storageKey()` after address
+  resolution.
+
+### Resolver interface
+
+Automation cannot own descriptor discovery. It needs an injected resolver.
+
+```cpp
+enum class ParamResolveStatus
+{
+    Resolved,
+    MissingNode,
+    MissingParameter,
+    MissingDescriptor,
+    PackUnavailable,
+    TopologyNotControllable,
+    UnsupportedScope
+};
+
+struct ResolvedParamTarget
+{
+    ParamAddress address;
+    xyona::ParamDesc desc;
+    ParamResolveStatus status { ParamResolveStatus::MissingDescriptor };
+    std::uint64_t descriptorRevision { 0 };
+};
+
+class IParamTargetResolver
+{
+public:
+    virtual ~IParamTargetResolver() = default;
+    virtual ResolvedParamTarget resolve(const ParamAddress& address) const = 0;
+};
+```
+
+Initial resolver can use current `ParamDesc` min/max/type. Later milestones
+replace that with full `ParamSemantics`.
+
+### Core semantics and codec
+
+The final codec should be host-free and deterministic. It belongs in
+`xyona-core` or a host-free shared layer, not in Lab UI code.
 
 ```cpp
 enum class ParamScale
@@ -202,517 +254,522 @@ struct ParamSemantics
 };
 ```
 
-### Parameter codec
+Pack transport must be decided before Lab treats pack semantics as
+authoritative:
 
-All conversions go through one codec.
+- Option A: add semantic fields to `ParamDesc`.
+- Option B: keep `ParamDesc` stable and add versioned semantic sidecar metadata.
+- Option C: extend the pack ABI with semantic fields and provide old-pack
+  fallback.
 
-```cpp
-class ParamValueCodec
-{
-public:
-    double plainToNormalized(double plain) const noexcept;
-    double normalizedToPlain(double normalized) const noexcept;
-    double sanitizePlain(double plain) const noexcept;
-    double sanitizeNormalized(double normalized) const noexcept;
-    std::string formatPlain(double plain) const;
-    ParseResult parseDisplayText(std::string_view text) const;
-};
-```
-
-Codec requirements:
-
-- Deterministic and JUCE-free.
-- Bool and enum values quantize.
-- Integer and stepped floats snap according to policy.
-- Nonlinear mapping is explicit.
-- Parse/format is stable for project persistence.
-- UI localization is layered above persistence formatting.
-
-### Lab semantic resolver
-
-Lab should resolve all parameter metadata once and provide it to consumers.
-
-Inputs:
-
-- Core `ParamDesc`
-- pack param meta JSON
-- Lab defaults
-- topology policy
-- slot scope
-
-Output:
-
-```cpp
-struct ResolvedParamSemantics
-{
-    ParamAddress address;
-    xyona::ParamDesc desc;
-    ParamSemantics semantics;
-    ParamValueCodec codec;
-    std::uint64_t semanticRevision { 0 };
-};
-```
-
-Consumers:
-
-- `ParamFormatter`
-- parameter views
-- canvas parameter model
-- timeline automation lanes
-- automation recorder/playback
-- MIDI learn/mapping
-- modulation runtime
-- `ParameterControlHub`
-- project persistence/migration
-
-### Runtime compiled targets
-
-Parameter runtime should move from hash lookup as primary addressing to compiled
-targets.
-
-```cpp
-struct CompiledParamTarget
-{
-    NodeId nodeId;
-    ParamAddress address;
-    audio::ParamKey storageKeyHash;
-    std::uint32_t nodeIndex;
-    std::uint32_t snapshotValueIndex;
-    ParamSemantics semantics;
-};
-```
-
-Hashes remain useful for persistence, fallback, diagnostics, and compatibility.
-Hot application paths should prefer compiled indices.
+The roadmap does not assume which option wins. M3 explicitly decides it.
 
 ## Roadmap Overview
 
-The roadmap is ordered by dependency and product risk.
+Implementation order:
 
-1. **M0: Characterize and protect current behavior**
-2. **M1: Fix automation value-domain correctness**
-3. **M2: Add canonical semantics and codec**
-4. **M3: Migrate Lab surfaces to the codec**
-5. **M4: Consume pack semantics and harden policies**
-6. **M5: Make playback/offline automation authoritative**
-7. **M6: Compile runtime parameter targets**
-8. **M7: Finish slot-aware modulation/MIDI/automation**
-9. **M8: Add smoothing, value-source, and macro contracts**
-10. **M9: Add persistence migration and highend UI diagnostics**
+1. **M0: Baseline characterization and roadmap correction**
+2. **M1: Target identity and resolver foundation**
+3. **M2: Automation value-domain fix for resolved targets**
+4. **M3: Core semantics contract and pack transport decision**
+5. **M4: Lab semantic resolver and staged conversion migration**
+6. **M5: Pack semantics and target policy enforcement**
+7. **M6: Authoritative realtime/offline automation runtime**
+8. **M7: Compiled runtime parameter targets**
+9. **M8: Modulation, smoothing, value sources, and macros**
+10. **M9: Persistence migration UX and highend diagnostics**
 
-M0-M1 are the urgent correctness block. M2-M4 make the system clean. M5-M9 make
-it highend and expandable.
+M0-M2 fix correctness. M3-M5 make the contract clean. M6-M9 make the system
+highend and scalable.
 
-## M0: Baseline and Characterization
+## M0: Baseline Characterization And Roadmap Correction
 
-Goal: prove current behavior and create safety tests before changing semantics.
+Goal: make the roadmap implementable and lock down the current bug behavior.
 
 ### Commit M0.1
 
-`docs(parameters): add parameter automation roadmap`
+`docs(parameters): make automation roadmap implementable`
 
 Changes:
 
-- Keep this document as the implementation guide.
-- No production code changes.
+- Correct branch metadata.
+- Incorporate the technical review blockers.
+- Define resolver and migration boundaries.
 
 Acceptance:
 
-- The plan is clear enough to drive follow-up implementation batches.
+- Roadmap no longer requires descriptor-aware migration inside `ProjectState`.
+- Roadmap no longer claims a global "no conversion bypass" gate before all
+  conversion paths are scheduled.
 
 ### Commit M0.2
 
-`test(parameters): characterize automation value domains`
+`test(parameters): characterize automation value-domain mismatch`
 
 Tests:
 
 - Record/playback for a `0..1` float parameter.
 - Record/playback for a non-`0..1` float parameter, e.g. `-96..24 dB`.
-- Manual automation point editing for the same non-`0..1` parameter.
+- Manual point editing for the non-`0..1` target.
 - Playback path into `ParameterControlHub`.
 
 Acceptance:
 
-- Tests demonstrate the existing domain ambiguity.
-- The failing/characterization behavior is explicitly documented.
+- Tests prove current point values are domain-ambiguous.
 
 ### Commit M0.3
 
-`test(parameters): characterize topology and slot target gaps`
+`test(parameters): characterize target identity and topology gaps`
 
 Tests:
 
-- Topology parameter can currently be selected or routed where it should not.
-- Slot target identity is lost in modulation route path.
+- Topology target selection/routing where it currently leaks.
+- Slot target identity loss in modulation/MIDI route data.
 
 Acceptance:
 
-- Current gaps are covered before policy changes.
+- Gaps are covered before schema/policy changes.
 
-## M1: Critical Automation Value-Domain Fix
+## M1: Target Identity And Resolver Foundation
 
-Goal: make parameter automation correct before broader refactoring.
-
-Design decision:
-
-- New parameter automation lanes store normalized `0..1` values.
-- `ParameterControlHub` continues to receive plain/native values.
-- Recorder and playback perform conversion at the edge.
+Goal: add the prerequisites needed by the value-domain fix.
 
 ### Commit M1.1
 
-`lab(timeline): add automation point value-domain metadata`
+`lab(parameters): introduce parameter target resolver interface`
 
 Changes:
 
-- Add value-domain metadata to parameter automation lanes.
-- Supported values initially:
-  - `LegacyUnknown`
-  - `Normalized01`
-  - `LegacyPlain`
-- Persist the field in project state.
-- Default newly created lanes to `Normalized01`.
+- Add `IParamTargetResolver` or equivalent Lab-local interface.
+- Return status for missing descriptor, missing param, pack unavailable,
+  topology-ineligible, and unsupported scope.
+- Provide an initial adapter backed by current Canvas/operator descriptors.
 
 Acceptance:
 
-- Existing projects load without data loss.
-- New lanes write explicit domain metadata.
+- Resolver can answer for current global `ParamAddress` targets.
+- Resolver failure paths are testable.
 
 ### Commit M1.2
 
-`lab(parameters): add minimal linear ParamValueCodec adapter`
+`lab(timeline): inject target resolver into automation recorder and playback`
 
 Changes:
 
-- Add a minimal codec adapter using current `ParamDesc` min/max/type.
-- Support float, int, bool, and enum.
-- Do not solve CDP nonlinear scales yet.
+- `AutomationRecorder` can resolve the focused lane target before writing.
+- `AutomationPlaybackEngine` can resolve each lane target before emitting.
+- Missing/unresolved targets are skipped non-destructively.
 
 Acceptance:
 
-- Plain <-> normalized roundtrips for current descriptor data.
-- Bool/enum/int values sanitize deterministically.
+- Recorder/playback no longer need to guess descriptor context.
+- No stored values are converted yet.
 
 ### Commit M1.3
 
-`lab(timeline): record automation points as normalized values`
+`lab(timeline): persist full ParamAddress for automation lanes`
 
 Changes:
 
-- Recorder resolves the lane target descriptor.
-- Recorder converts hub plain base values to normalized point values.
-- Last-value dedupe compares normalized values or compares plain values through
-  codec consistently.
+- Persist optional `slotIndex` for parameter automation lane targets.
+- Keep old node+param fields as compatibility input.
+- Do not require descriptor lookup in raw `ProjectState` read methods.
 
 Acceptance:
 
-- Recording a `-96..24 dB` parameter does not store raw dB into a `0..1` point.
-- Recording a `0..1` parameter remains unchanged.
+- Existing lanes load.
+- New lanes preserve full target address.
 
 ### Commit M1.4
 
-`lab(timeline): decode parameter automation playback to plain values`
+`lab(modulation): migrate route target storage to full ParamAddress`
 
 Changes:
 
-- Playback evaluates normalized lane values.
-- Playback converts normalized -> plain before calling
-  `ParameterControlHub::setAutomationBase`.
-- Parameter automation playback no longer relies on generic unipolar signal
-  source normalization as the semantic conversion step.
+- Store full target address in `ModulationRoute`.
+- Old node+param fields migrate to global address.
+- Prepared route/runtime paths use full address.
 
 Acceptance:
 
-- A point at normalized `0.5` maps to the target parameter's plain midpoint.
-- Hub receives plain/native values.
+- Slot identity is not lost in modulation route data.
 
 ### Commit M1.5
 
-`lab(timeline): migrate legacy automation lane value domains`
+`lab(midi): migrate MIDI mappings to full ParamAddress`
 
-Migration:
+Changes:
 
-- If lane has explicit domain, use it.
-- If missing and target is unresolved, preserve raw points and mark unresolved.
-- If missing and any value is outside `0..1`, treat as `LegacyPlain` and convert
-  plain -> normalized.
-- If missing and all values are inside `0..1`, treat as
-  `LegacyAssumedNormalized`; preserve values but record a migration diagnostic
-  because old data is inherently ambiguous.
+- Store full target address in `MidiMapping`.
+- Old target node+param fields migrate to global address.
 
 Acceptance:
 
-- Migration is deterministic.
-- Ambiguous old lanes are not silently reinterpreted without a marker.
+- Slot identity is not lost in MIDI mapping data.
 
-### Commit M1.6
+## M2: Automation Value-Domain Fix For Resolved Targets
 
-`test(timeline): verify automation record playback parity`
+Goal: fix new recording/playback without unsafe legacy conversion.
+
+### Commit M2.1
+
+`lab(timeline): add automation value-domain schema`
+
+Changes:
+
+- Add lane value-domain metadata:
+  - `LegacyUnknown`
+  - `Normalized01`
+  - `LegacyPlain`
+  - `Unresolved`
+- New lanes default to `Normalized01`.
+- Raw state load preserves existing values and marks missing metadata as
+  `LegacyUnknown`.
+
+Acceptance:
+
+- `ProjectState` only reads/writes markers. It does not perform descriptor-aware
+  conversion.
+
+### Commit M2.2
+
+`lab(parameters): add descriptor-backed linear automation codec adapter`
+
+Changes:
+
+- Add minimal plain <-> normalized conversion from current `ParamDesc`.
+- Support float, int, bool, enum.
+- This is a temporary Lab adapter until Core codec lands.
+
+Acceptance:
+
+- Resolved targets can convert plain/native to normalized `0..1`.
+- Edge behavior is tested.
+
+### Commit M2.3
+
+`lab(timeline): record resolved automation as normalized values`
+
+Changes:
+
+- Recorder resolves lane target.
+- If resolved and controllable, convert plain hub base value -> normalized point.
+- If unresolved, skip recording or record disabled according to explicit status.
+
+Acceptance:
+
+- Recording a non-`0..1` target no longer stores native values into point data.
+
+### Commit M2.4
+
+`lab(timeline): play normalized automation as plain values`
+
+Changes:
+
+- Playback resolves lane target.
+- `Normalized01` lanes decode normalized -> plain before hub emission.
+- Legacy/unresolved lanes do not silently emit guessed values.
+
+Acceptance:
+
+- `ParameterControlHub` receives plain/native values.
+- Existing unresolved legacy lanes are preserved but not guessed.
+
+### Commit M2.5
+
+`lab(timeline): add descriptor-aware post-load automation reconciliation`
+
+Changes:
+
+- Run after Canvas/operator descriptors are available.
+- For `LegacyUnknown` lanes:
+  - target unresolved: preserve raw values, mark unresolved
+  - any value outside `0..1`: treat as `LegacyPlain`, convert plain -> normalized
+  - all values inside `0..1`: preserve as assumed normalized and mark ambiguous
+- Store migration status separately from raw state read.
+
+Acceptance:
+
+- Legacy conversion never happens in low-level `ProjectState`.
+- Ambiguous legacy lanes are visible and deterministic.
+
+### Commit M2.6
+
+`test(timeline): verify automation domain reconciliation`
 
 Tests:
 
-- Manual plain value -> recorded normalized point -> playback plain value.
-- Float range not equal to `0..1`.
-- Bool/int/enum target.
-- Legacy outside-`0..1` migration.
-- Legacy inside-`0..1` assumed-normalized migration.
+- New record/playback for non-`0..1` float.
+- Bool/int/enum resolved target.
+- Unresolved target preservation.
+- `LegacyPlain` conversion.
+- `LegacyUnknown` assumed-normalized diagnostic.
 
 Acceptance:
 
-- F0 is fixed.
+- F0 is fixed for resolved targets.
+- Legacy behavior is deterministic and non-destructive.
 
-## M2: Canonical Core Parameter Semantics
+## M3: Core Semantics Contract And Pack Transport
 
-Goal: create the host-free contract used by Core, packs, and Lab.
+Goal: define the long-term host-free semantics and how packs transport them.
 
-### Commit M2.1
+### Commit M3.1
+
+`core(parameters): decide parameter semantic transport contract`
+
+Changes:
+
+- Choose and document one transport:
+  - `ParamDesc` fields
+  - versioned sidecar metadata
+  - pack ABI extension with fallback
+- Define old-pack behavior.
+- Define missing-metadata defaults.
+
+Acceptance:
+
+- Lab can consume pack semantics without parsing ad hoc metadata in multiple
+  places.
+
+### Commit M3.2
 
 `core(parameters): introduce ParamValueDomain and ParamScale`
 
 Changes:
 
-- Add JUCE-free enums and data structs.
-- Do not break existing `ParamDesc` users.
+- Add host-free enums/structs.
+- Preserve existing `ParamDesc` compatibility.
 
-### Commit M2.2
+### Commit M3.3
 
 `core(parameters): add ParamSemantics and ParamValueCodec`
 
 Changes:
 
-- Add codec implementation for current linear descriptor behavior.
-- Include bool, enum, int, float.
-- Add tests in `xyona-core`.
+- Implement linear float/int/bool/enum conversion.
+- Add roundtrip and edge tests.
 
-### Commit M2.3
+### Commit M3.4
 
-`core(parameters): add step and quantization policy`
-
-Changes:
-
-- Add step snapping.
-- Define enum/bool/int quantization.
-- Add edge-case tests.
-
-### Commit M2.4
-
-`core(parameters): add nonlinear scale support`
+`core(parameters): add step, nonlinear scale, and control policy`
 
 Changes:
 
-- Add dB, log, frequency, exponential mappings.
-- Define invalid range fallback.
-- Add roundtrip tests.
+- Add step/quantization.
+- Add dB/log/frequency/exponential mappings.
+- Add automatable/recordable/modulatable/MIDI policy.
+- Add topology-derived defaults.
 
-### Commit M2.5
+### Commit M3.5
 
-`core(parameters): add control and smoothing policies`
-
-Changes:
-
-- Add `automatable`, `recordable`, `modulatable`, `midiLearnable`.
-- Add smoothing ownership policy.
-- `isTopology` resolves to ordinary control policies disabled by default.
-
-Acceptance for M2:
-
-- A host-free codec exists and is tested.
-- Existing simple parameter behavior remains compatible.
-
-## M3: Lab Resolver and Surface Migration
-
-Goal: remove duplicate interpretation from Lab.
-
-### Commit M3.1
-
-`lab(parameters): add ResolvedParamSemantics service`
+`core(packs): expose parameter semantics through chosen transport`
 
 Changes:
 
-- Resolve `ParamDesc` into `ParamSemantics`.
+- Implement the M3.1 transport decision.
+- Add ABI/version/fallback tests.
+
+Acceptance for M3:
+
+- Core owns deterministic value conversion.
+- Pack semantics have a defined compatibility path.
+
+## M4: Lab Resolver And Staged Conversion Migration
+
+Goal: migrate Lab consumers without claiming every path is done too early.
+
+### Transitional bypass list
+
+Until the listed milestones land, these paths may still contain compatibility
+conversion logic:
+
+- MIDI range override behavior until M5/M8.
+- Modulation contribution math until M8.
+- Existing audio runtime hash/update path until M6/M7.
+- Legacy parameter model helpers until all UI surfaces are migrated.
+
+No new conversion path may be added outside the codec/resolver unless it is on
+this list and has a removal milestone.
+
+### Commit M4.1
+
+`lab(parameters): add resolved parameter semantics service`
+
+Changes:
+
+- Resolve Core semantics plus Lab target address.
 - Include descriptor revision/cache invalidation.
-- Expose lookup by full `ParamAddress`.
+- Preserve resolver failure status.
 
-### Commit M3.2
+### Commit M4.2
 
 `lab(parameters): route ParamFormatter through ParamValueCodec`
 
 Changes:
 
 - `rawToNormalized`, `normalizedToRaw`, `rawToText`, and `textToRaw` delegate to
-  codec.
-- Keep existing call sites compiling.
+  the codec.
+- Existing call sites keep compiling.
 
-### Commit M3.3
+### Commit M4.3
 
-`lab(parameters): remove duplicate text-field conversions`
-
-Changes:
-
-- Text field views use formatter/codec.
-- Units and steps roundtrip through the same logic.
-
-### Commit M3.4
-
-`lab(canvas): use resolved semantics for canvas parameter editing`
+`lab(parameters): migrate text field and numeric controls to codec`
 
 Changes:
 
-- Canvas interaction/model code stops doing ad hoc min/max conversion.
-- Canvas default/readout text uses the codec.
+- Text field views stop doing their own conversion.
+- Step/enum/bool formatting uses the codec.
 
-### Commit M3.5
+### Commit M4.4
 
-`lab(midi): map MIDI through target semantics`
+`lab(canvas): migrate canvas parameter editing to semantics service`
 
 Changes:
 
-- MIDI normalized input maps through codec.
-- Mapping min/max becomes explicit override policy, not the default semantics.
+- Canvas mini parameter gestures and readouts use resolved semantics.
+- Canvas code stops inventing scale behavior for migrated paths.
 
-### Commit M3.6
+### Commit M4.5
 
 `lab(timeline): make automation lane UI target-aware`
 
 Changes:
 
-- Persisted point values remain normalized.
-- Lane display and editing can show plain/display values through codec.
-- Step/bool/enum targets quantize correctly.
-
-Acceptance for M3:
-
-- There is no user-facing parameter conversion path that bypasses the codec.
-- Existing linear behavior remains stable.
-
-## M4: Pack Semantics and Policy Enforcement
-
-Goal: make packs first-class semantic providers and block invalid targets early.
-
-### Commit M4.1
-
-`cdp-pack(parameters): ensure ui scale and step metadata is generated`
-
-Changes:
-
-- Verify `ui.scale` and `ui.step` in generated param metadata.
-- Add generation tests where possible.
-
-### Commit M4.2
-
-`core(packs): expose resolved param meta for pack descriptors`
-
-Changes:
-
-- Provide a stable helper for param meta access.
-- Avoid scattered JSON parsing in Lab.
-
-### Commit M4.3
-
-`lab(parameters): consume pack ui scale and step semantics`
-
-Changes:
-
-- Map `linear_db` to dB semantics.
-- Map `step` to step policy.
-- Preserve safe defaults when metadata is missing.
-
-### Commit M4.4
-
-`lab(parameters): enforce topology control policy`
-
-Changes:
-
-- Topology params are not automatable/modulatable/MIDI-learnable by default.
-- Hub/target resolver rejects invalid ordinary control writes with diagnostics.
-
-### Commit M4.5
-
-`lab(timeline): filter automation targets by semantics policy`
-
-Changes:
-
-- Timeline target selectors hide/reject non-automatable params.
-- Existing invalid lanes load as unresolved/disabled, not silently active.
-
-### Commit M4.6
-
-`lab(midi modulation): filter targets by semantics policy`
-
-Changes:
-
-- MIDI learn rejects non-MIDI-learnable targets.
-- Modulation assignment rejects non-modulatable targets.
+- Stored point values remain normalized.
+- Lane display/edit overlays show target-native values through codec.
+- Step/bool/enum targets quantize through codec.
 
 Acceptance for M4:
 
-- CDP dB/step parameters behave semantically in Lab.
-- Topology parameters cannot become ordinary automation/modulation/MIDI targets.
+- Formatter, text controls, Canvas editing, and timeline automation UI use the
+  same semantics.
+- Transitional bypass list is still explicit and shrinking.
 
-## M5: Authoritative Automation Runtime
+## M5: Pack Semantics And Target Policy Enforcement
 
-Goal: realtime playback and offline render use the same automation truth.
+Goal: consume pack semantics and reject invalid targets at selection/compile
+time, not by teaching the hub to be a descriptor registry.
 
 ### Commit M5.1
 
-`lab(automation): introduce prepared parameter automation runtime`
+`cdp-pack(parameters): verify generated ui scale and step metadata`
 
 Changes:
 
-- Compile lanes into target address + prepared scalar evaluation + codec.
-- Keep ordinary parameter automation block-stable.
+- Ensure `ui.scale` and `ui.step` are generated consistently.
+- Add generator/golden tests where practical.
 
 ### Commit M5.2
 
-`lab(audio): apply prepared automation in AudioGraphProcessor`
+`lab(parameters): consume pack scale and step semantics`
 
 Changes:
 
-- Apply automation at block boundary through prepared targets.
-- Preserve ordering:
-  1. restore manual/base snapshot
-  2. drain live parameter queue
-  3. apply prepared automation
-  4. apply modulation
-  5. process nodes
+- Map `linear_db` and other known scales to Core semantics.
+- Map step to step policy.
+- Preserve safe defaults for missing metadata.
 
 ### Commit M5.3
+
+`lab(parameters): add target eligibility service`
+
+Changes:
+
+- Check automatable/recordable/modulatable/MIDI-learnable/topology policy.
+- Use resolver status and semantics.
+- Keep `ParameterControlHub` focused on value arbitration.
+
+### Commit M5.4
+
+`lab(timeline midi modulation): reject ineligible targets`
+
+Changes:
+
+- Timeline target selectors reject non-automatable targets.
+- MIDI learn rejects non-MIDI-learnable targets.
+- Modulation assignment rejects non-modulatable targets.
+- Existing invalid persisted targets load disabled/unresolved with diagnostics.
+
+Acceptance for M5:
+
+- Topology parameters cannot become ordinary automation/MIDI/modulation targets.
+- CDP dB/step params are semantically visible to Lab.
+
+## M6: Authoritative Realtime/Offline Automation Runtime
+
+Goal: define one render-truth automation path.
+
+### Commit M6.1
+
+`lab(audio): inventory automation event producers`
+
+Changes:
+
+- Document current producers of `AutomationEventBuffer`.
+- Decide whether existing event path is:
+  - replaced
+  - kept as compatibility adapter
+  - removed
+
+Acceptance:
+
+- The roadmap no longer introduces a second active render-truth path.
+
+### Commit M6.2
+
+`lab(automation): add prepared parameter automation runtime`
+
+Changes:
+
+- Compile lanes into resolved target + prepared scalar evaluation + codec.
+- Ordinary parameter automation remains block-stable.
+
+### Commit M6.3
+
+`lab(audio): apply prepared automation in AudioGraphProcessor`
+
+Ordering:
+
+1. restore base snapshot
+2. drain live parameter queue
+3. apply prepared automation
+4. apply modulation
+5. process nodes
+
+Acceptance:
+
+- Ordering is expressed in terms of existing processor APIs.
+
+### Commit M6.4
 
 `lab(offline): use prepared automation runtime for offline render`
 
 Changes:
 
-- Offline render consumes the same prepared automation data.
-- Message-thread playback is not render truth.
+- Offline render uses the same prepared automation data.
+- Message-thread playback is preview/control only.
 
-### Commit M5.4
-
-`lab(timeline): demote message-thread automation playback to preview`
-
-Changes:
-
-- UI tick path can update visual state.
-- Audio/offline runtime owns audible/rendered automation.
-
-Acceptance for M5:
+Acceptance for M6:
 
 - Realtime and offline parameter traces match.
 - Automation does not depend on message-thread cadence.
 
-## M6: Compiled Runtime Parameter Targets
+## M7: Compiled Runtime Parameter Targets
 
-Goal: reduce hot-path lookup work and make runtime application explicit.
+Goal: reduce hot-path lookup work after semantics and runtime ownership are
+settled.
 
-### Commit M6.1
+### Commit M7.1
 
 `lab(audio): build parameter index maps in graph runtime cache`
 
 Changes:
 
-- Per-node hash -> snapshot index map.
+- Per-node hash -> snapshot index maps.
 - Collision diagnostics remain.
 
-### Commit M6.2
+### Commit M7.2
 
 `lab(parameters): introduce CompiledParamTarget`
 
@@ -721,76 +778,32 @@ Changes:
 - Resolve full `ParamAddress` to node index, snapshot index, storage hash, and
   semantics.
 
-### Commit M6.3
+### Commit M7.3
 
-`lab(audio): apply parameter queue updates through compiled targets`
+`lab(audio): apply queued updates through compiled targets`
 
 Changes:
 
 - Prefer direct index application.
 - Keep hash fallback during transition.
 
-### Commit M6.4
+### Commit M7.4
 
 `lab(audio): update host adapter parameter bindings to prepared indices`
 
 Changes:
 
-- Reduce repeated binding scans in adapter application.
-
-Acceptance for M6:
-
-- Existing realtime parameter updates still work.
-- Large graph parameter stress tests show no regression and lower lookup cost.
-
-## M7: Slot-Aware End-to-End Targeting
-
-Goal: full `ParamAddress` identity everywhere.
-
-### Commit M7.1
-
-`lab(timeline): persist and resolve slot-scoped automation targets`
-
-Changes:
-
-- Automation lanes can carry optional `slotIndex`.
-- Selectors expose slot targets where semantically valid.
-
-### Commit M7.2
-
-`lab(modulation): store full ParamAddress in ModulationRoute`
-
-Changes:
-
-- Replace target node + param-only representation with full address.
-- Add migration from old route schema.
-
-### Commit M7.3
-
-`lab(modulation): prepare slot-scoped modulation targets`
-
-Changes:
-
-- Prepared runtime hashes `ParamAddress::storageKey()`.
-- Slot modulation applies only to the intended slot.
-
-### Commit M7.4
-
-`lab(midi): store full ParamAddress in MIDI mappings`
-
-Changes:
-
-- MIDI mappings preserve slot index.
-- Mapping migration preserves old global targets.
+- Reduce repeated binding scans where practical.
 
 Acceptance for M7:
 
-- Slot automation, modulation, and MIDI target only the intended slot.
-- Global and slot override inheritance is documented and tested.
+- Existing realtime updates still work.
+- Large graph parameter stress tests show no regression and lower lookup cost.
 
-## M8: Smoothing, Modulation Semantics, Value Sources, Macros
+## M8: Modulation, Smoothing, Value Sources, Macros
 
-Goal: finish higher-level parameter behavior after the core contract is stable.
+Goal: finish advanced parameter behavior once value domains and target identity
+are stable.
 
 ### Commit M8.1
 
@@ -810,6 +823,7 @@ Modes:
 Changes:
 
 - Replace min/max-only modulation math with codec-aware mapping.
+- Remove modulation from the transitional bypass list.
 
 ### Commit M8.3
 
@@ -818,7 +832,7 @@ Changes:
 Changes:
 
 - Host ramp only when policy says host-owned.
-- Operator-owned smoothing remains inside operators/packs.
+- Operator-owned smoothing remains in Core/pack operators.
 
 ### Commit M8.4
 
@@ -832,7 +846,7 @@ Changes:
 
 `lab(parameters): implement deterministic value-source evaluation`
 
-Only do this if product scope requires `Expr`/`Bind` now.
+Only if product scope requires `Expr`/`Bind` now.
 
 Requirements:
 
@@ -855,11 +869,11 @@ Changes:
 
 Acceptance for M8:
 
-- Modulation is semantically correct for non-linear parameters.
+- Modulation is semantically correct for nonlinear parameters.
 - Smoothing ownership is explicit.
 - Incomplete value sources are not silently product-visible.
 
-## M9: Persistence, Migration, and Highend UI
+## M9: Persistence Migration UX And Diagnostics
 
 Goal: make the system inspectable and patch-compatible.
 
@@ -870,7 +884,7 @@ Goal: make the system inspectable and patch-compatible.
 Persist:
 
 - value domain
-- target address
+- full target address
 - semantic revision
 - migration status
 - unresolved target status
@@ -904,7 +918,7 @@ Show:
 
 ### Commit M9.4
 
-`lab(ui): add target-aware automation lane labels`
+`lab(ui): add target-aware automation diagnostics`
 
 Show:
 
@@ -912,6 +926,7 @@ Show:
 - dB/Hz/native labels
 - step/grid hints
 - unresolved target status
+- ambiguous legacy migration status
 
 Acceptance for M9:
 
@@ -919,60 +934,76 @@ Acceptance for M9:
 - Users can inspect why a parameter has its final value.
 - Missing/migrated targets are visible and non-destructive.
 
-## Suggested Branch and Review Strategy
+## Branch Strategy
 
-Use one branch per milestone until M4:
+Planning/review branch:
 
-- `parameter-domain-m0-baseline`
-- `parameter-domain-m1-automation-domain`
-- `parameter-semantics-m2-core-codec`
-- `parameter-semantics-m3-lab-migration`
-- `parameter-semantics-m4-pack-policy`
+- `parameter-automation-review`
 
-After M4, runtime work can split:
+Implementation branches:
 
-- `parameter-runtime-m5-automation`
-- `parameter-runtime-m6-targets`
-- `parameter-slots-m7`
-- `parameter-sources-m8`
-- `parameter-ui-m9`
+- `parameter-automation-m0-baseline`
+- `parameter-automation-m1-target-resolver`
+- `parameter-automation-m2-value-domain`
+- `parameter-automation-m3-core-semantics`
+- `parameter-automation-m4-lab-migration`
+- `parameter-automation-m5-policy`
+- `parameter-automation-m6-runtime`
+- `parameter-automation-m7-compiled-targets`
+- `parameter-automation-m8-sources`
+- `parameter-automation-m9-ui-migration`
 
-Review rule:
+Cross-repo rule:
 
-- No milestone is complete without tests.
-- No new conversion helper may bypass `ParamValueCodec`.
-- No new target path may store node + param without full `ParamAddress`, unless
-  it is explicitly a compatibility adapter.
-- No topology parameter may be added to ordinary automation, MIDI, or modulation
-  paths.
+- Use the same branch name in each repository only when that milestone actually
+  touches that repository.
+- Do not create implementation branches for untouched repositories.
 
-## Minimal First Slice
+## Minimal First Implementation Slice
 
-If implementation needs to start immediately, do this exact slice:
+Start here, not with Core codec or UI polish:
 
 1. M0.2 characterization tests.
-2. M1.1 domain metadata.
-3. M1.2 minimal linear codec adapter.
-4. M1.3 recorder conversion.
-5. M1.4 playback conversion.
-6. M1.6 parity tests.
+2. M1.1 target resolver interface.
+3. M1.2 inject resolver into recorder/playback.
+4. M1.3 full automation target address persistence.
+5. M2.1 value-domain metadata.
+6. M2.2 temporary descriptor-backed linear codec adapter.
+7. M2.3 recorder conversion for resolved targets.
+8. M2.4 playback conversion for resolved targets.
+9. M2.6 parity tests.
 
-This fixes the current 0..1/native automation bug without waiting for the full
-semantic contract.
+This fixes new automation correctness while preserving unresolved legacy data.
 
-## Final Definition of Done
+## Review Gates
 
-The parameter system is considered highend-ready when:
+No milestone is complete unless:
+
+- It has tests or a documented reason tests are not possible yet.
+- It does not require descriptor-aware logic inside `ProjectState`.
+- It preserves unresolved targets non-destructively.
+- It does not add new node+param-only target storage except as a migration
+  adapter.
+- It does not teach `ParameterControlHub` to become a descriptor registry.
+- It updates the transitional bypass list when conversion paths move to the
+  codec.
+
+## Final Definition Of Done
+
+The parameter system is highend-ready when:
 
 - Automation point storage has explicit value domains.
-- Timeline automation records and plays back non-`0..1` parameters correctly.
-- All Lab parameter conversion flows through one codec.
-- CDP `ui.scale` and `ui.step` affect Lab controls, automation, MIDI, and
-  modulation.
+- New automation records and plays back non-`0..1` parameters correctly.
+- Legacy lanes reconcile through a descriptor-aware post-load pass.
+- Full `ParamAddress` identity is preserved across automation, modulation, and
+  MIDI.
+- Core owns deterministic parameter conversion.
+- Pack semantic transport is versioned and tested.
+- Lab conversion paths flow through the semantics service, with no remaining
+  unplanned bypasses.
 - Realtime and offline automation produce matching parameter traces.
 - Topology parameters are rejected by ordinary automation, MIDI, and modulation.
-- Slot-scoped targets work end-to-end.
 - Runtime parameter application uses compiled targets where practical.
 - Smoothing ownership is explicit.
-- Incomplete value sources are either complete or product-hidden.
+- Incomplete value sources are complete or product-hidden.
 - Patch migration is deterministic and visible.
