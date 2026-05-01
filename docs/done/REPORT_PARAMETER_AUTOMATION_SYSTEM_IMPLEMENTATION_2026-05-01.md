@@ -3,7 +3,7 @@
 Date: 2026-05-01
 Roadmap: `ROADMAP_PARAMETER_AUTOMATION_SYSTEM.md`
 Planning review: `REPORT_PARAMETER_AUTOMATION_SYSTEM_TECHNICAL_REVIEW_2026-05-01.md`
-Status: M5 active; M5.2 completed
+Status: M5 active; M5.3 completed
 Repositories: workspace root, `xyona-lab`, `xyona-core`, `xyona-cdp-pack`
 
 ## Execution Rules
@@ -421,7 +421,7 @@ Planned commits:
 |---|---|---|---|---|
 | M5.1 | `xyona-cdp-pack` | completed | `ae5f2da` | `cdp-pack(parameters): verify generated ui scale and step metadata` |
 | M5.2 | `xyona-lab` | completed | `f16b31e7` | `lab(parameters): consume pack scale and step semantics` |
-| M5.3 | `xyona-lab` | pending | | `lab(parameters): add target eligibility service` |
+| M5.3 | `xyona-lab` | completed | `752c2ed1` | `lab(parameters): add target eligibility service` |
 | M5.4 | `xyona-lab` | pending | | `lab(timeline midi modulation): reject ineligible targets` |
 
 M5.1 scope update:
@@ -471,4 +471,28 @@ xyona-lab: ./build/tests/xyona_lab_tests --test="AutomationParamCodec" --xyona-o
 xyona-lab: git diff --check passed for tests/CdpPackCanvasSmokeTests.cpp
 xyona-lab: git diff --cached --check passed
 xyona-lab: pushed parameter-automation-system with commit f16b31e7
+```
+
+M5.3 scope update:
+
+```text
+Added ParamTargetEligibilityService as a resolver/semantics/policy layer for
+automation, recording, modulation, and MIDI mapping target decisions. It maps
+CanvasParamTargetResolver failures, Core semantic failures, topology rejection,
+scope rejection, and explicit control-policy bits to stable eligibility status
+codes with status names for later diagnostics. ParameterControlHub remains
+unchanged and focused on value arbitration/emission.
+```
+
+M5.3 local verification:
+
+```text
+xyona-lab: cmake --build build --target xyona_lab_tests -- -j8 passed
+xyona-lab: ./build/tests/xyona_lab_tests --test="ParamTargetEligibility" --xyona-only --summary-only passed, 5 tests, 56 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --test="ParamTargetResolver" --xyona-only --summary-only passed, 4 tests, 22 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --test="ParamSemanticsResolver" --xyona-only --summary-only passed, 3 tests, 20 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --test="ParameterControlHub" --xyona-only --summary-only passed, 14 tests, 63 passes, 0 failures
+xyona-lab: git diff --check passed for ParamTargetEligibility/CMake files
+xyona-lab: git diff --cached --check passed
+xyona-lab: pushed parameter-automation-system with commit 752c2ed1
 ```
