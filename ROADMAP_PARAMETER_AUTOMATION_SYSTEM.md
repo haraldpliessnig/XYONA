@@ -1,6 +1,6 @@
 # Roadmap: Parameter Automation System
 
-**Status:** Implementation active; M0-M8 completed; M9.1-M9.3 completed; M9 active
+**Status:** Implementation completed; M0-M9 completed
 **Started:** 2026-05-01
 **Planning branch:** `parameter-automation-review`
 **Implementation branch:** `parameter-automation-system`
@@ -952,6 +952,8 @@ Show:
 ### Commit M9.4
 
 `lab(ui): add target-aware automation diagnostics`
+
+Status: completed in `xyona-lab` commit `ff4ce441`.
 
 Show:
 

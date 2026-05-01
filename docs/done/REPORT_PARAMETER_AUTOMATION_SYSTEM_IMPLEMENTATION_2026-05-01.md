@@ -3,7 +3,7 @@
 Date: 2026-05-01
 Roadmap: `ROADMAP_PARAMETER_AUTOMATION_SYSTEM.md`
 Planning review: `REPORT_PARAMETER_AUTOMATION_SYSTEM_TECHNICAL_REVIEW_2026-05-01.md`
-Status: M9.3 completed; M9 active
+Status: M0-M9 completed; final local and GitHub Actions verification pending
 Repositories: workspace root, `xyona-lab`, `xyona-core`, `xyona-cdp-pack`
 
 ## Execution Rules
@@ -942,7 +942,7 @@ Planned commits:
 | M9.1 | `xyona-lab` | completed | `13e6e6fc` | `lab(project): version parameter automation schema` |
 | M9.2 | `xyona-lab` | completed | `e07d8dc6` | `lab(project): add parameter target migration records` |
 | M9.3 | `xyona-lab` | completed | `a785f395` | `lab(ui): add parameter source breakdown` |
-| M9.4 | `xyona-lab` | pending | | `lab(ui): add target-aware automation diagnostics` |
+| M9.4 | `xyona-lab` | completed | `ff4ce441` | `lab(ui): add target-aware automation diagnostics` |
 
 M9.1 scope update:
 
@@ -1024,4 +1024,35 @@ xyona-lab: ./build/tests/xyona_lab_tests --match "MidiMapping" --summary-only pa
 xyona-lab: ./build/tests/xyona_lab_tests --match "Single Parameter Field" --summary-only passed, 9 tests, 71 passes, 0 failures
 xyona-lab: git diff --check passed for M9.3 files
 xyona-lab: pushed parameter-automation-system with commit a785f395
+```
+
+M9.4 scope update:
+
+```text
+Automation stack rows now carry structured target-aware diagnostics beside the
+value presentation. Diagnostics include value domain, migration status, current
+target status from ParamTargetEligibility, unit labels, scale labels, step/grid
+hints, descriptor revision, and severity. The lane UI renders concise inline
+labels for units, unresolved targets, and ambiguous legacy assumptions; the
+automation sidebar exposes the same facts in an expanded status row and tooltip.
+
+The implementation is read-only diagnostic surfacing. It does not add a
+backward-compatibility parser, alias, silent target repair, or automatic value
+migration path.
+```
+
+M9.4 local verification:
+
+```text
+xyona-lab: cmake --build build --target xyona_lab_tests -- -j8 passed
+xyona-lab: ./build/tests/xyona_lab_tests --match "TimelineLaneStackController" --summary-only passed, 17 tests, 149 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --match "TimelineScalarLaneSnapshot" --summary-only passed, 3 tests, 43 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --match "Timeline Automation Reconciliation" --summary-only passed, 7 tests, 62 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --match "ProjectState Timeline Automation" --summary-only passed, 19 tests, 290 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --match "ParamTargetEligibility" --summary-only passed, 5 tests, 56 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --match "ParamSemanticsResolver" --summary-only passed, 3 tests, 20 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --match "ParamFormatter" --summary-only passed, 8 tests, 81 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --match "AutomationPlaybackEngine" --summary-only passed, 5 tests, 16 passes, 0 failures
+xyona-lab: git diff --check passed for M9.4 files
+xyona-lab: pushed parameter-automation-system with commit ff4ce441
 ```
