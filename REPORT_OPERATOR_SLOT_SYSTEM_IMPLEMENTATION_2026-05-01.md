@@ -284,6 +284,7 @@ Commits:
 | Roadmap | Repository | Commit | Summary |
 |---|---|---|---|
 | 18 | `xyona-lab` | `fdeddfc6` | Harden slot gain reference adapter |
+| hardening | `xyona-lab` | `cd164bb5` | Keep MainBusOut separate from slot topology |
 | 19 | workspace root `XYONA` | `cc35624` | Add operator slot system check |
 | 20 | workspace root/Core/CDP docs | this update | Final documentation cleanup and report |
 
@@ -292,8 +293,15 @@ Implemented facts:
 - `slot_gain` remains the product reference operator. Lab now verifies a
   six-slot reference case through one `CoreOperatorHostAdapter`, with global
   gain fallback plus sparse overrides for individual slots.
+- `lab.mainbus_out` no longer encodes bus channel layout as `slotCount` or
+  `slotGroups`. It remains a normal multi-input sink (`in_0..in_N`) and is
+  explicitly tested as non-slottable, so bus layouts cannot trip slot-mapping
+  compatibility.
 - The workspace has a reproducible E2E script:
   `scripts/check_operator_slot_system.sh`.
+- The E2E script configures CDP against the Core build it just verified and
+  clean-builds the CDP test tree, avoiding stale local RPATHs to older Core
+  build directories.
 - Core slot docs now describe canonical `slots.*`, `slotMapping`, and helper
   APIs instead of the old `routingPolicy` helper model.
 - Core variable-port docs no longer describe `slot_gain` as publishing
@@ -318,9 +326,12 @@ Result:
   - `Multichannel Slot Cable Graph`: 1 test, 9 passes, 0 failures.
   - `Param producer single-event contract`: 10 tests, 82 passes, 0 failures.
   - `Canvas Param Persistence`: 16 tests, 116 passes, 0 failures.
+  - `MainBusOutOperator`: 6 tests, 75 passes, 0 failures.
+  - `AudioEngineManager`: 46 tests, 2666 passes, 0 failures.
 
 ## Current Decision State
 
 The implementation roadmap is complete locally and pushed in the affected
-repositories. Final remaining action: run GitHub Actions on
-`operator-slot-system` for `xyona-core`, `xyona-lab`, and `xyona-cdp-pack`.
+repositories. Local end-to-end verification is green. Final remaining action:
+rerun GitHub Actions on `operator-slot-system` for `xyona-core`, `xyona-lab`,
+and `xyona-cdp-pack` from the current heads.
