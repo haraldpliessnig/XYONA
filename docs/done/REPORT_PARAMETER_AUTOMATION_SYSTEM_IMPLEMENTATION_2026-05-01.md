@@ -3,7 +3,7 @@
 Date: 2026-05-01
 Roadmap: `ROADMAP_PARAMETER_AUTOMATION_SYSTEM.md`
 Planning review: `REPORT_PARAMETER_AUTOMATION_SYSTEM_TECHNICAL_REVIEW_2026-05-01.md`
-Status: M6 completed; M7.2 completed; M7.3 pending
+Status: M6 completed; M7.3 completed; M7.4 pending
 Repositories: workspace root, `xyona-lab`, `xyona-core`, `xyona-cdp-pack`
 
 ## Execution Rules
@@ -643,7 +643,7 @@ Planned commits:
 |---|---|---|---|---|
 | M7.1 | `xyona-lab` | completed | `f6152bd8` | `lab(audio): build parameter index maps in graph runtime cache` |
 | M7.2 | `xyona-lab` | completed | `2bdd3883` | `lab(parameters): introduce CompiledParamTarget` |
-| M7.3 | `xyona-lab` | pending | | `lab(audio): apply queued updates through compiled targets` |
+| M7.3 | `xyona-lab` | completed | `d8adbac4` | `lab(audio): apply queued updates through compiled targets` |
 | M7.4 | `xyona-lab` | pending | | `lab(audio): update host adapter parameter bindings to prepared indices` |
 
 M7.1 scope update:
@@ -688,4 +688,26 @@ xyona-lab: ./build/tests/xyona_lab_tests --match "ParamTargetResolver" --summary
 xyona-lab: ./build/tests/xyona_lab_tests --match "ParamTargetEligibility" --summary-only passed, 5 tests, 56 passes, 0 failures
 xyona-lab: git diff --check passed for M7.2 files
 xyona-lab: pushed parameter-automation-system with commit 2bdd3883
+```
+
+M7.3 scope update:
+
+```text
+AudioGraphProcessor now applies queued ParameterUpdate values through the
+prepared GraphRtCache parameter index maps when a unique map entry exists.
+Successful direct application writes the working snapshot and the manual base
+snapshot by node/snapshot index. The linear hash scan remains only for
+transition caches that do not yet carry an index map; ambiguous or stale index
+data is rejected instead of guessed.
+```
+
+M7.3 local verification:
+
+```text
+xyona-lab: cmake --build build --target xyona_lab_tests -- -j8 passed
+xyona-lab: ./build/tests/xyona_lab_tests --match "AudioGraphProcessor Parameter Automation Runtime" --summary-only passed, 6 tests, 28 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --match "ParameterUpdateQueue" --summary-only passed, 5 tests, 1581 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --match "AudioEngineManager Minimal Plan" --summary-only passed, 39 tests, 575 passes, 0 failures
+xyona-lab: git diff --check passed for M7.3 files
+xyona-lab: pushed parameter-automation-system with commit d8adbac4
 ```
