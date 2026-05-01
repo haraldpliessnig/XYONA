@@ -3,8 +3,8 @@
 Date: 2026-05-01
 Roadmap: `ROADMAP_PARAMETER_AUTOMATION_SYSTEM.md`
 Planning review: `REPORT_PARAMETER_AUTOMATION_SYSTEM_TECHNICAL_REVIEW_2026-05-01.md`
-Status: M4 completed; M5 pending
-Repositories: workspace root, `xyona-lab`, `xyona-core`
+Status: M5 active; M5.1 completed
+Repositories: workspace root, `xyona-lab`, `xyona-core`, `xyona-cdp-pack`
 
 ## Execution Rules
 
@@ -30,6 +30,7 @@ Repositories: workspace root, `xyona-lab`, `xyona-core`
 | workspace root | `parameter-automation-system` | Implementation tracking report |
 | `xyona-lab` | `parameter-automation-system` | Parameter automation implementation |
 | `xyona-core` | `parameter-automation-system` | Core parameter semantics and pack transport |
+| `xyona-cdp-pack` | `parameter-automation-system` | CDP pack parameter semantics transport |
 
 ## M0 - Baseline Characterization
 
@@ -410,4 +411,39 @@ xyona-lab: ./build/tests/xyona_lab_tests --test="ParamFormatter" --xyona-only --
 xyona-lab: git diff --check passed
 xyona-lab: git diff --cached --check passed
 xyona-lab: pushed parameter-automation-system with commit 8fc807fa
+```
+
+## M5 - Pack Semantics And Target Policy Enforcement
+
+Planned commits:
+
+| Roadmap | Repository | Status | Commit | Subject |
+|---|---|---|---|---|
+| M5.1 | `xyona-cdp-pack` | completed | `ae5f2da` | `cdp-pack(parameters): verify generated ui scale and step metadata` |
+| M5.2 | `xyona-lab` | pending | | `lab(parameters): consume pack scale and step semantics` |
+| M5.3 | `xyona-lab` | pending | | `lab(parameters): add target eligibility service` |
+| M5.4 | `xyona-lab` | pending | | `lab(timeline midi modulation): reject ineligible targets` |
+
+M5.1 scope update:
+
+```text
+CDP generated parameter descriptors now use the strict v2.2 pack ABI semantic
+fields. The generator requires non-string parameters to declare ui.scale and
+ui.step, maps linear_db to Core decibel scale, and emits explicit
+Plain/Normalized01 domains plus control-policy bits instead of relying on
+legacy v2.1 descriptors. The descriptor metadata test now validates both the
+generated JSON ui scale/step and the semantics imported by Core.
+```
+
+M5.1 local verification:
+
+```text
+xyona-cdp-pack: /Users/haraldpliessnig/Github/XYONA/xyona-core/.venv/bin/python3 scripts/generate_operator_metadata.py --check passed
+xyona-cdp-pack: /Users/haraldpliessnig/Github/XYONA/xyona-core/.venv/bin/python3 scripts/validate_operator_modules.py passed, 16 op.yaml records
+xyona-cdp-pack: cmake --build build/macos-clang-debug --target test_cdp_descriptor_metadata -- -j8 passed
+xyona-cdp-pack: ctest --test-dir build/macos-clang-debug -R "cdp_descriptor_metadata_tests|cdp_generated_operator_metadata_tests|cdp_operator_module_metadata_tests" --output-on-failure passed, 3 tests, 0 failures
+xyona-cdp-pack: ./build/macos-clang-debug/test_cdp_descriptor_metadata ./build/macos-clang-debug . passed
+xyona-cdp-pack: git diff --check passed
+xyona-cdp-pack: git diff --cached --check passed
+xyona-cdp-pack: pushed parameter-automation-system with commit ae5f2da
 ```
