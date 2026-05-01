@@ -1,6 +1,6 @@
 # Roadmap: Operator Slot System
 
-Status: Implementation roadmap
+Status: Implemented roadmap; see `REPORT_OPERATOR_SLOT_SYSTEM_IMPLEMENTATION_2026-05-01.md`
 Date: 2026-05-01
 Contract: `OPERATOR_CONTRACT.md`
 Scope: `xyona-core`, `xyona-lab`, `xyona-cdp-pack`, future operator packs
@@ -91,9 +91,13 @@ availability. Slot UI is topology and addressability.
   channel count, or header stripe color.
 - Do not make CDP or Lab depend on pack-private slot conventions.
 
-## Current State
+## Baseline State Before Implementation
 
-Implemented or partially implemented:
+The following inventory was the verified implementation baseline before this
+roadmap was executed. It is retained to explain the migration sequence and the
+legacy terms still mentioned below.
+
+Implemented or partially implemented at baseline:
 
 - Core has legacy slot transport fields:
   `OpDesc::routingPolicy`, `slotCount`, `slotMap`, `slotGroups`.

@@ -271,17 +271,56 @@ Result:
 
 ## Hardening
 
-Status: pending.
+Status: implemented, tested, committed, and pushed where applicable.
 
-Planned roadmap scope:
+Scope:
 
 - Commit 18: product reference operator.
 - Commit 19: end-to-end tests.
 - Commit 20: documentation and cleanup.
 
+Commits:
+
+| Roadmap | Repository | Commit | Summary |
+|---|---|---|---|
+| 18 | `xyona-lab` | `fdeddfc6` | Harden slot gain reference adapter |
+| 19 | workspace root `XYONA` | `cc35624` | Add operator slot system check |
+| 20 | workspace root/Core/CDP docs | this update | Final documentation cleanup and report |
+
+Implemented facts:
+
+- `slot_gain` remains the product reference operator. Lab now verifies a
+  six-slot reference case through one `CoreOperatorHostAdapter`, with global
+  gain fallback plus sparse overrides for individual slots.
+- The workspace has a reproducible E2E script:
+  `scripts/check_operator_slot_system.sh`.
+- Core slot docs now describe canonical `slots.*`, `slotMapping`, and helper
+  APIs instead of the old `routingPolicy` helper model.
+- Core variable-port docs no longer describe `slot_gain` as publishing
+  generated `in_N` / `out_N` descriptor ports.
+- CDP port docs explicitly state current non-slottable defaults and future
+  slot metadata validation rules.
+
+Local verification:
+
+```text
+./scripts/check_operator_slot_system.sh
+```
+
+Result:
+
+- Core CTest passed: 11/11.
+- CDP CTest passed: 21/21.
+- Lab slot gates passed:
+  - `Connection System`: 35 tests, 155 passes, 0 failures.
+  - `CoreOperatorHostAdapter`: 5 tests, 210 passes, 0 failures.
+  - `Runtime Slot Snapshot`: 1 test, 10 passes, 0 failures.
+  - `Multichannel Slot Cable Graph`: 1 test, 9 passes, 0 failures.
+  - `Param producer single-event contract`: 10 tests, 82 passes, 0 failures.
+  - `Canvas Param Persistence`: 16 tests, 116 passes, 0 failures.
+
 ## Current Decision State
 
-Batch 1, Batch 2, and Batch 3 are implemented, tested locally for their
-relevant scope, committed, and pushed in the affected code repositories. The
-remaining work is hardening: product/reference coverage, end-to-end stop
-conditions, documentation cleanup, and final CI execution.
+The implementation roadmap is complete locally and pushed in the affected
+repositories. Final remaining action: run GitHub Actions on
+`operator-slot-system` for `xyona-core`, `xyona-lab`, and `xyona-cdp-pack`.
