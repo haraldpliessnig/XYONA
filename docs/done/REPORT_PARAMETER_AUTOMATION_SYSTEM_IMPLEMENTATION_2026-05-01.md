@@ -3,7 +3,7 @@
 Date: 2026-05-01
 Roadmap: `ROADMAP_PARAMETER_AUTOMATION_SYSTEM.md`
 Planning review: `REPORT_PARAMETER_AUTOMATION_SYSTEM_TECHNICAL_REVIEW_2026-05-01.md`
-Status: M5 active; M5.3 completed
+Status: M5 completed; M6 pending
 Repositories: workspace root, `xyona-lab`, `xyona-core`, `xyona-cdp-pack`
 
 ## Execution Rules
@@ -422,7 +422,7 @@ Planned commits:
 | M5.1 | `xyona-cdp-pack` | completed | `ae5f2da` | `cdp-pack(parameters): verify generated ui scale and step metadata` |
 | M5.2 | `xyona-lab` | completed | `f16b31e7` | `lab(parameters): consume pack scale and step semantics` |
 | M5.3 | `xyona-lab` | completed | `752c2ed1` | `lab(parameters): add target eligibility service` |
-| M5.4 | `xyona-lab` | pending | | `lab(timeline midi modulation): reject ineligible targets` |
+| M5.4 | `xyona-lab` | completed | `a4577568` | `lab(parameters): reject ineligible automation targets` |
 
 M5.1 scope update:
 
@@ -495,4 +495,35 @@ xyona-lab: ./build/tests/xyona_lab_tests --test="ParameterControlHub" --xyona-on
 xyona-lab: git diff --check passed for ParamTargetEligibility/CMake files
 xyona-lab: git diff --cached --check passed
 xyona-lab: pushed parameter-automation-system with commit 752c2ed1
+```
+
+M5.4 scope update:
+
+```text
+Timeline header/sidebar target selection, pending automation lane materializing,
+MIDI learn, and timeline modulation route assignment now require
+ParamTargetEligibilityService approval. Topology and policy-disabled targets are
+rejected without fallback paths. Post-load automation reconciliation evaluates
+all loaded lanes, not just legacy-domain lanes, and marks ineligible persisted
+targets disabled/unresolved with migration diagnostics.
+```
+
+M5.4 local verification:
+
+```text
+xyona-lab: cmake --build build --target xyona_lab_tests -- -j8 passed
+xyona-lab: ./build/tests/xyona_lab_tests --test="MidiMapping" --xyona-only --summary-only passed, 6 tests, 39 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --test="ModulationController" --xyona-only --summary-only passed, 5 tests, 36 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --test="Timeline Automation Reconciliation" --xyona-only --summary-only passed, 6 tests, 43 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --test="Timeline Sidebar Bindings" --xyona-only --summary-only passed, 4 tests, 12 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --test="ParamTargetEligibility" --xyona-only --summary-only passed, 5 tests, 56 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --test="ParamSemanticsResolver" --xyona-only --summary-only passed, 3 tests, 20 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --test="ParameterControlHub" --xyona-only --summary-only passed, 14 tests, 63 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --test="ParamTargetResolver" --xyona-only --summary-only passed, 4 tests, 22 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --test="Timeline Automation Lane Resolver" --xyona-only --summary-only passed, 4 tests, 32 passes, 0 failures
+xyona-lab: XYONA_OPERATOR_PACK_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-cdp-pack/build/macos-clang-debug ./build/tests/xyona_lab_tests --test="CDP Pack Canvas Smoke" --xyona-only --summary-only passed, 14 tests, 480 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --xyona-only --summary-only passed, 1250 tests, 944785 passes, 0 failures
+xyona-lab: git diff --check passed for M5.4 files
+xyona-lab: git diff --cached --check passed
+xyona-lab: pushed parameter-automation-system with commit a4577568
 ```
