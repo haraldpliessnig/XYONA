@@ -1,7 +1,11 @@
 # XYONA Workspace - Development Context
 
-**Last Updated:** 2025-11-12  
+**Last Updated:** 2026-05-01  
 **Current Focus:** Multi-Repository Setup Complete
+
+**Workspace contract:** `OPERATOR_CONTRACT.md` is the normative reference for
+operator identity, ports, mono/multichannel audio, slots, patch compatibility,
+and UI-facing metadata across `xyona-core`, `xyona-lab`, and `xyona-cdp-pack`.
 
 ---
 
