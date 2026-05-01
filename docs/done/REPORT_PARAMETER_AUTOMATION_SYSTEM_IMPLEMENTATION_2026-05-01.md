@@ -3,7 +3,7 @@
 Date: 2026-05-01
 Roadmap: `ROADMAP_PARAMETER_AUTOMATION_SYSTEM.md`
 Planning review: `REPORT_PARAMETER_AUTOMATION_SYSTEM_TECHNICAL_REVIEW_2026-05-01.md`
-Status: M7 completed; M8 pending
+Status: M7 completed; M8.1 completed; M8.2 pending
 Repositories: workspace root, `xyona-lab`, `xyona-core`, `xyona-cdp-pack`
 
 ## Execution Rules
@@ -732,4 +732,37 @@ xyona-lab: ./build/tests/xyona_lab_tests --match "AudioGraphProcessor Parameter 
 xyona-lab: ./build/tests/xyona_lab_tests --match "AudioEngineManager Minimal Plan" --summary-only passed, 39 tests, 575 passes, 0 failures
 xyona-lab: git diff --check passed for M7.4 files
 xyona-lab: pushed parameter-automation-system with commit 566dcd07
+```
+
+## M8 - Modulation, Smoothing, Value Sources, Macros
+
+Planned commits:
+
+| Roadmap | Repository | Status | Commit | Subject |
+|---|---|---|---|---|
+| M8.1 | `xyona-core` | completed | `e37bbd2` | `core(parameters): add modulation contribution modes` |
+| M8.2 | `xyona-lab` | pending | | `lab(modulation): map modulation through target semantics` |
+| M8.3 | `xyona-lab` | pending | | `lab(audio): apply host smoothing where policy allows` |
+| M8.4 | `xyona-lab` | pending | | `lab(parameters): quarantine incomplete Expr and Bind sources` |
+| M8.5 | `xyona-lab` | pending | | `lab(parameters): implement deterministic value-source evaluation` |
+| M8.6 | `xyona-lab` | pending | | `lab(macros): define macro target binding contract` |
+
+M8.1 scope update:
+
+```text
+Core now exposes ParamModulationMode with Disabled, PlainAdditiveDelta,
+NormalizedBipolarOffset, and Multiplicative modes plus
+applyParamModulationContribution(). The helper applies contributions through
+the existing descriptor/semantics codec, preserving clamping and quantization
+for discrete targets and giving Lab one host-neutral mapping contract for M8.2.
+```
+
+M8.1 local verification:
+
+```text
+xyona-core: cmake --build build --target test_param_value_codec test_parameter_semantics -- -j8 passed
+xyona-core: ./build/tests/test_param_value_codec passed
+xyona-core: ./build/tests/test_parameter_semantics passed
+xyona-core: git diff --check passed
+xyona-core: pushed parameter-automation-system with commit e37bbd2
 ```

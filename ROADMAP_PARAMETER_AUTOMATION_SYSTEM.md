@@ -1,6 +1,6 @@
 # Roadmap: Parameter Automation System
 
-**Status:** Implementation active; M0-M7 completed; M8 pending
+**Status:** Implementation active; M0-M7 completed; M8.1 completed; M8.2 pending
 **Started:** 2026-05-01
 **Planning branch:** `parameter-automation-review`
 **Implementation branch:** `parameter-automation-system`
@@ -817,6 +817,8 @@ are stable.
 ### Commit M8.1
 
 `core(parameters): add modulation contribution modes`
+
+Status: completed in `xyona-core` commit `e37bbd2`.
 
 Modes:
 
