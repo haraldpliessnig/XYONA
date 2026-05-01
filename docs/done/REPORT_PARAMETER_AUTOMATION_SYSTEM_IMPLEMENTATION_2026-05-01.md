@@ -3,7 +3,7 @@
 Date: 2026-05-01
 Roadmap: `ROADMAP_PARAMETER_AUTOMATION_SYSTEM.md`
 Planning review: `REPORT_PARAMETER_AUTOMATION_SYSTEM_TECHNICAL_REVIEW_2026-05-01.md`
-Status: M5 active; M5.1 completed
+Status: M5 active; M5.2 completed
 Repositories: workspace root, `xyona-lab`, `xyona-core`, `xyona-cdp-pack`
 
 ## Execution Rules
@@ -420,7 +420,7 @@ Planned commits:
 | Roadmap | Repository | Status | Commit | Subject |
 |---|---|---|---|---|
 | M5.1 | `xyona-cdp-pack` | completed | `ae5f2da` | `cdp-pack(parameters): verify generated ui scale and step metadata` |
-| M5.2 | `xyona-lab` | pending | | `lab(parameters): consume pack scale and step semantics` |
+| M5.2 | `xyona-lab` | completed | `f16b31e7` | `lab(parameters): consume pack scale and step semantics` |
 | M5.3 | `xyona-lab` | pending | | `lab(parameters): add target eligibility service` |
 | M5.4 | `xyona-lab` | pending | | `lab(timeline midi modulation): reject ineligible targets` |
 
@@ -446,4 +446,29 @@ xyona-cdp-pack: ./build/macos-clang-debug/test_cdp_descriptor_metadata ./build/m
 xyona-cdp-pack: git diff --check passed
 xyona-cdp-pack: git diff --cached --check passed
 xyona-cdp-pack: pushed parameter-automation-system with commit ae5f2da
+```
+
+M5.2 scope update:
+
+```text
+Lab continues to consume Core ParamDesc semantics directly through
+ParamSemanticsResolver and the Core parameter codec. The CDP pack smoke test now
+asserts that pack ui.scale/ui.step transport reaches DiscoveryService,
+CorePayload descriptors, CanvasParamTargetResolver, and ParamSemanticsResolver
+as explicit non-defaulted Core semantics. This covers linear_db -> Decibel,
+linear -> Linear, and the generated step policy without adding a Lab metadata
+fallback path.
+```
+
+M5.2 local verification:
+
+```text
+xyona-lab: cmake --build build --target xyona_lab_tests -- -j8 passed
+xyona-lab: XYONA_OPERATOR_PACK_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-cdp-pack/build/macos-clang-debug ./build/tests/xyona_lab_tests --test="CDP Pack Canvas Smoke" --xyona-only --summary-only passed, 14 tests, 480 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --test="ParamSemanticsResolver" --xyona-only --summary-only passed, 3 tests, 20 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --test="ParamFormatter" --xyona-only --summary-only passed, 8 tests, 81 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --test="AutomationParamCodec" --xyona-only --summary-only passed, 6 tests, 44 passes, 0 failures
+xyona-lab: git diff --check passed for tests/CdpPackCanvasSmokeTests.cpp
+xyona-lab: git diff --cached --check passed
+xyona-lab: pushed parameter-automation-system with commit f16b31e7
 ```
