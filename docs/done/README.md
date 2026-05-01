@@ -15,3 +15,11 @@ historical follow-ups and should become new current roadmaps when work resumes.
 - `REPORT_OPERATOR_SLOT_SYSTEM_IMPLEMENTATION_2026-05-01.md`
 - `CDP8_OFFLINE_SPECTRAL_ROADMAP.md`
 - `CDP8_OFFLINE_SPECTRAL_IMPLEMENTATION_REPORT.md`
+
+## Active Implementation Evidence
+
+These reports live here because they are dated review/implementation evidence,
+but their roadmap remains active at the workspace root:
+
+- `REPORT_PARAMETER_AUTOMATION_SYSTEM_TECHNICAL_REVIEW_2026-05-01.md`
+- `REPORT_PARAMETER_AUTOMATION_SYSTEM_IMPLEMENTATION_2026-05-01.md`

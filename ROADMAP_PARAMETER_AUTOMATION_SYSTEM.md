@@ -1,11 +1,12 @@
 # Roadmap: Parameter Automation System
 
-**Status:** Active planning, implementation blocked until M0-M1 pass
+**Status:** Implementation active; M0-M3 completed; M4 Lab resolver migration in progress
 **Started:** 2026-05-01
 **Planning branch:** `parameter-automation-review`
 **Implementation branch:** `parameter-automation-system`
 **Applies to:** `xyona-core`, `xyona-lab`, `xyona-cdp-pack`, future runtime packs
 **Primary review:** `docs/done/REPORT_PARAMETER_AUTOMATION_SYSTEM_TECHNICAL_REVIEW_2026-05-01.md`
+**Implementation report:** `docs/done/REPORT_PARAMETER_AUTOMATION_SYSTEM_IMPLEMENTATION_2026-05-01.md`
 **Reference:** `IDEA_XYONA_PLUGIN_RUNTIME.md`
 
 Scope: Standalone XYONA only: `xyona-lab`, `xyona-core`, and runtime packs such
