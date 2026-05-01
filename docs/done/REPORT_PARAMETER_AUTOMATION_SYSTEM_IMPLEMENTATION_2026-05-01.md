@@ -3,7 +3,7 @@
 Date: 2026-05-01
 Roadmap: `ROADMAP_PARAMETER_AUTOMATION_SYSTEM.md`
 Planning review: `REPORT_PARAMETER_AUTOMATION_SYSTEM_TECHNICAL_REVIEW_2026-05-01.md`
-Status: M2 started
+Status: M2 complete; M3 next
 Repositories: workspace root, `xyona-lab`
 
 ## Execution Rules
@@ -165,7 +165,7 @@ Planned commits:
 | M2.3 | `xyona-lab` | completed | `7c3dcfcb` | `lab(timeline): record resolved automation as normalized values` |
 | M2.4 | `xyona-lab` | completed | `2fa59460` | `lab(timeline): play normalized automation as plain values` |
 | M2.5 | `xyona-lab` | completed | `5ad8ae04` | `lab(timeline): add descriptor-aware post-load automation reconciliation` |
-| M2.6 | `xyona-lab` | pending | pending | `test(timeline): verify automation domain reconciliation` |
+| M2.6 | `xyona-lab` | completed | `ff2b5560` | `test(timeline): verify automation domain reconciliation` |
 
 M2.1 local verification:
 
@@ -225,4 +225,17 @@ xyona-lab: ./build/tests/xyona_lab_tests --test="AutomationParamCodec" --xyona-o
 xyona-lab: ./build/tests/xyona_lab_tests --test="ParamTargetResolver" --xyona-only --summary-only passed, 4 tests, 22 passes, 0 failures
 xyona-lab: git diff --check passed
 xyona-lab: pushed parameter-automation-system with commit 5ad8ae04
+```
+
+M2.6 local verification:
+
+```text
+xyona-lab: cmake --build build --target xyona_lab_tests -- -j8 passed
+xyona-lab: ./build/tests/xyona_lab_tests --test="Timeline Automation Reconciliation" --xyona-only --summary-only passed, 5 tests, 33 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --test="AutomationRecorder" --xyona-only --summary-only passed, 6 tests, 19 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --test="AutomationPlaybackEngine" --xyona-only --summary-only passed, 5 tests, 16 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --test="ProjectState Timeline Automation" --xyona-only --summary-only passed, 17 tests, 244 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --test="AutomationParamCodec" --xyona-only --summary-only passed, 5 tests, 36 passes, 0 failures
+xyona-lab: git diff --check passed
+xyona-lab: pushed parameter-automation-system with commit ff2b5560
 ```
