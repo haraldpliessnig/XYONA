@@ -3,7 +3,7 @@
 Date: 2026-05-01
 Roadmap: `ROADMAP_PARAMETER_AUTOMATION_SYSTEM.md`
 Planning review: `REPORT_PARAMETER_AUTOMATION_SYSTEM_TECHNICAL_REVIEW_2026-05-01.md`
-Status: M7 completed; M8.1-M8.2 completed; M8.3 pending
+Status: M7 completed; M8.1-M8.3 completed; M8.4 pending
 Repositories: workspace root, `xyona-lab`, `xyona-core`, `xyona-cdp-pack`
 
 ## Execution Rules
@@ -742,7 +742,9 @@ Planned commits:
 |---|---|---|---|---|
 | M8.1 | `xyona-core` | completed | `e37bbd2` | `core(parameters): add modulation contribution modes` |
 | M8.2 | `xyona-lab` | completed | `1073dc6a` | `lab(modulation): map modulation through target semantics` |
-| M8.3 | `xyona-lab` | pending | | `lab(audio): apply host smoothing where policy allows` |
+| M8.3 | `xyona-core` | completed | `aa66e4d` | `core(parameters): expose smoothing ownership semantics` |
+| M8.3 | `xyona-cdp-pack` | completed | `72cc621` | `cdp-pack: emit parameter smoothing metadata` |
+| M8.3 | `xyona-lab` | completed | `c7d7fdfd` | `lab(audio): apply host smoothing by parameter policy` |
 | M8.4 | `xyona-lab` | pending | | `lab(parameters): quarantine incomplete Expr and Bind sources` |
 | M8.5 | `xyona-lab` | pending | | `lab(parameters): implement deterministic value-source evaluation` |
 | M8.6 | `xyona-lab` | pending | | `lab(macros): define macro target binding contract` |
@@ -798,4 +800,55 @@ xyona-lab: ./build/tests/xyona_lab_tests --match "ModulationController" --summar
 xyona-lab: ./build/tests/xyona_lab_tests --match "AudioEngineManager Minimal Plan" --summary-only passed, 39 tests, 575 passes, 0 failures
 xyona-lab: git diff --check passed
 xyona-lab: pushed parameter-automation-system with commit 1073dc6a
+```
+
+M8.3 scope update:
+
+```text
+Core now carries explicit ParamSmoothingKind through ParamDesc,
+ParamSemantics, the public api type forwarding surface, and pack ABI v2.3.
+Pack parameter descriptors must advertise XYONA_PACK_V2_PARAM_DESC_SIZE_V2_3;
+descriptors below v2.3 are rejected instead of being interpreted through a
+compatibility fallback.
+
+xyona-cdp-pack generated descriptors now emit explicit smoothing ownership for
+every parameter. Numeric CDP parameters default to BlockStable unless a spec opts
+into another policy, and generated metadata tests assert the loaded descriptor
+policy.
+
+Lab prepares HostRamp eligibility from resolved Core parameter semantics in
+CoreOperatorHostAdapter. The audio callback uses only prepared binding state,
+ramps float parameters and per-slot overrides when policy is HostRamp, and leaves
+BlockStable/None/OperatorOwned targets immediate so operator-owned smoothing stays
+below the host boundary.
+```
+
+M8.3 local verification:
+
+```text
+xyona-core: cmake --build build --target test_parameter_semantics test_param_value_codec test_operator_packs -- -j8 passed
+xyona-core: ./build/tests/test_parameter_semantics passed
+xyona-core: ./build/tests/test_param_value_codec passed
+xyona-core: ./build/tests/test_operator_packs passed; legacy v2.1/v2.2 fixture rejected with missing v2.3 semantics
+xyona-core: git diff --check passed
+xyona-core: pushed parameter-automation-system with commit aa66e4d
+
+xyona-cdp-pack: ../xyona-core/.venv/bin/python3 scripts/generate_operator_metadata.py --check passed
+xyona-cdp-pack: cmake --build build/macos-clang-debug --target xyona_pack_cdp_ops -- -j8 passed
+xyona-cdp-pack: cmake --build build/macos-clang-debug --target test_cdp_descriptor_metadata -- -j8 passed
+xyona-cdp-pack: ctest --test-dir build/macos-clang-debug -R "cdp_(operator_module_metadata|generated_operator_metadata|descriptor_metadata|pack_loader|pack_env_discovery)_tests" --output-on-failure passed, 5 tests, 0 failures
+xyona-cdp-pack: git diff --check passed
+xyona-cdp-pack: pushed parameter-automation-system with commit 72cc621
+
+xyona-lab: cmake --build build --target xyona_lab_tests -- -j8 passed
+xyona-lab: ./build/tests/xyona_lab_tests --match "CoreOperatorHostAdapter" --summary-only passed, 7 tests, 226 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --match "AudioGraphProcessor Parameter Automation Runtime" --summary-only passed, 6 tests, 28 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --match "AudioGraphProcessor Modulation Runtime" --summary-only passed, 4 tests, 9 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --match "ParameterControlHub" --summary-only passed, 15 tests, 68 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --match "ModulationEngine" --summary-only passed, 8 tests, 62 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --match "PreparedModulationRuntime" --summary-only passed, 1 test, 32 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --match "AudioEngineManager Minimal Plan" --summary-only passed, 39 tests, 575 passes, 0 failures
+xyona-lab: XYONA_OPERATOR_PACK_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-cdp-pack/build/macos-clang-debug ./build/tests/xyona_lab_tests --match "CDP Pack Canvas Smoke" --summary-only passed, 14 tests, 480 passes, 0 failures
+xyona-lab: git diff --check passed for M8.3 files
+xyona-lab: pushed parameter-automation-system with commit c7d7fdfd
 ```

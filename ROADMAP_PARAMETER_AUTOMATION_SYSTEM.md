@@ -1,6 +1,6 @@
 # Roadmap: Parameter Automation System
 
-**Status:** Implementation active; M0-M7 completed; M8.1-M8.2 completed; M8.3 pending
+**Status:** Implementation active; M0-M7 completed; M8.1-M8.3 completed; M8.4 pending
 **Started:** 2026-05-01
 **Planning branch:** `parameter-automation-review`
 **Implementation branch:** `parameter-automation-system`
@@ -841,8 +841,16 @@ Changes:
 
 `lab(audio): apply host smoothing where policy allows`
 
+Status: completed across `xyona-core` commit `aa66e4d`,
+`xyona-cdp-pack` commit `72cc621`, and `xyona-lab` commit `c7d7fdfd`.
+
 Changes:
 
+- Core exposes `ParamSmoothingKind` through descriptors, semantics, and pack
+  ABI v2.3.
+- Pack parameter descriptors below v2.3 are rejected; no v2.2 fallback is
+  accepted.
+- CDP pack generated metadata emits explicit smoothing ownership.
 - Host ramp only when policy says host-owned.
 - Operator-owned smoothing remains in Core/pack operators.
 
