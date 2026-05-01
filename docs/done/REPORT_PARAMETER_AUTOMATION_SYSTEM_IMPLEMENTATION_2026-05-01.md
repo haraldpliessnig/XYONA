@@ -3,7 +3,7 @@
 Date: 2026-05-01
 Roadmap: `ROADMAP_PARAMETER_AUTOMATION_SYSTEM.md`
 Planning review: `REPORT_PARAMETER_AUTOMATION_SYSTEM_TECHNICAL_REVIEW_2026-05-01.md`
-Status: M5 completed; M6.3 completed
+Status: M6 completed; M7 pending
 Repositories: workspace root, `xyona-lab`, `xyona-core`, `xyona-cdp-pack`
 
 ## Execution Rules
@@ -537,7 +537,7 @@ Planned commits:
 | M6.1 | `xyona-lab` | completed | `86093161` | `lab(audio): inventory automation event runtime` |
 | M6.2 | `xyona-lab` | completed | `53c8c0d7` | `lab(automation): add prepared parameter automation runtime` |
 | M6.3 | `xyona-lab` | completed | `20cfe1cc` | `lab(audio): apply prepared parameter automation runtime` |
-| M6.4 | `xyona-lab` | pending | | `lab(offline): use prepared automation runtime for offline render` |
+| M6.4 | `xyona-lab` | completed | `0a1794f0` | `lab(offline): use prepared automation runtime for renders` |
 
 M6.1 scope update:
 
@@ -608,4 +608,29 @@ xyona-lab: XYONA_OPERATOR_PACK_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-cd
 xyona-lab: git diff --check passed
 xyona-lab: git diff --cached --check passed
 xyona-lab: pushed parameter-automation-system with commit 20cfe1cc
+```
+
+M6.4 scope update:
+
+```text
+Offline render and render-to-file now publish the prepared parameter
+automation runtime to the dedicated offline AudioGraphProcessor using the
+render job sample rate. The old event-buffer path remains removed. A new
+AudioEngineManager offline render test verifies that a normalized automation
+lane controls a signal_constant parameter through the offline processor and
+that cv_out captures the decoded plain value across the render range.
+```
+
+M6.4 local verification:
+
+```text
+xyona-lab: cmake --build build --target xyona_lab_tests -- -j8 passed
+xyona-lab: ./build/tests/xyona_lab_tests --match "AudioEngineManager Minimal Plan" --summary-only passed, 39 tests, 575 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --match "AudioGraphProcessor Parameter Automation Runtime" --summary-only passed, 1 test, 5 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --xyona-only --summary-only passed, 1255 tests, 944817 passes, 0 failures
+xyona-lab: XYONA_OPERATOR_PACK_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-cdp-pack/build/macos-clang-debug ./build/tests/xyona_lab_tests --match "CDP Pack Canvas Smoke" --summary-only passed, 14 tests, 480 passes, 0 failures
+xyona-lab: XYONA_OPERATOR_PACK_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-cdp-pack/build/macos-clang-debug ./build/tests/xyona_lab_tests --match "Offline Pack Processor Client" --summary-only passed, 10 tests, 1054 passes, 0 failures
+xyona-lab: git diff --check passed
+xyona-lab: git diff --cached --check passed
+xyona-lab: pushed parameter-automation-system with commit 0a1794f0
 ```
