@@ -199,9 +199,9 @@ Result:
 
 ## Batch 3 - Lab Behavior And Runtime
 
-Status: pending.
+Status: implemented, tested, committed, and pushed.
 
-Planned roadmap scope:
+Scope:
 
 - Commit 12: slot UI model.
 - Commit 13: slot count editing.
@@ -209,6 +209,65 @@ Planned roadmap scope:
 - Commit 15: GraphBuilder slot expansion.
 - Commit 16: runtime parameter snapshot slot resolution.
 - Commit 17: multichannel slot cables.
+
+### `xyona-lab`
+
+Commits:
+
+| Roadmap | Commit | Summary |
+|---|---|---|
+| 12 | `a747bc9e` | Model lab slot UI facts |
+| 13 | `23e9b872` | Handle slot count topology edits |
+| 14 | `4db86e56` | Validate per-slot parameter addresses |
+| 15 | `93172ab4` | Expand graph slots into runtime ports |
+| 16 | `672e1fa8` | Resolve runtime slot parameter snapshots |
+| 17 | `8a121969` | Cover multichannel slot cables |
+
+Implemented facts:
+
+- `CorePayload` derives a `NodeSlotUiModel` from canonical descriptor facts:
+  slot support, default/min/max/count-param facts, slot groups, slot labels,
+  per-slot parameter IDs, and input/output slot mapping.
+- Slot count topology edits are detected through `slots.countParamId` even when
+  the parameter descriptor was not manually flagged as topology.
+- Slot count shrink/restore updates visible ports, removes out-of-range slot
+  wires, and keeps surviving slot-zero connections normalized.
+- Per-slot parameter writes, clears, and value-source writes are rejected unless
+  the operator is slottable, the parameter supports `ParamScope::PerSlot`, and
+  `slotIndex` is within the effective slot count.
+- Core operator host adapters expose Lab-visible slot endpoint names such as
+  `in@slot=3` and `out_1@slot=2` while preserving Core runtime port IDs.
+- GraphBuilder constructs Core host adapters with the active slot count derived
+  from descriptor defaults plus `CorePayload::paramValues`.
+- Runtime parameter snapshots include valid sparse keys such as
+  `gain@slot=3` and filter malformed or out-of-range slot keys before they can
+  enter the realtime parameter hash surface.
+- Connection lanes and slot coordinates are orthogonal:
+  mono/non-slottable, multichannel/non-slottable, mono/slottable, and
+  multichannel/slottable cables are covered explicitly.
+- A slotted multichannel cable with two channels and two slots expands to four
+  GraphBuilder wires and preserves both axes in wire port names.
+
+Local verification:
+
+```text
+cmake --build build/macos-dev --target xyona_lab_tests
+./build/macos-dev/tests/xyona_lab_tests --test="Connection System" --xyona-only --summary-only
+./build/macos-dev/tests/xyona_lab_tests --test="CoreOperatorHostAdapter" --xyona-only --summary-only
+./build/macos-dev/tests/xyona_lab_tests --test="Runtime Slot Snapshot" --xyona-only --summary-only
+./build/macos-dev/tests/xyona_lab_tests --test="Multichannel Slot Cable Graph" --xyona-only --summary-only
+./build/macos-dev/tests/xyona_lab_tests --test="Param producer single-event contract" --xyona-only --summary-only
+./build/macos-dev/tests/xyona_lab_tests --test="Canvas Param Persistence" --xyona-only --summary-only
+```
+
+Result:
+
+- `Connection System`: 35 tests, 155 passes, 0 failures.
+- `CoreOperatorHostAdapter`: 4 tests, 140 passes, 0 failures.
+- `Runtime Slot Snapshot`: 1 test, 10 passes, 0 failures.
+- `Multichannel Slot Cable Graph`: 1 test, 9 passes, 0 failures.
+- `Param producer single-event contract`: 10 tests, 82 passes, 0 failures.
+- `Canvas Param Persistence`: 16 tests, 116 passes, 0 failures.
 
 ## Hardening
 
@@ -222,7 +281,7 @@ Planned roadmap scope:
 
 ## Current Decision State
 
-Batch 1 and Batch 2 are implemented, tested locally for their relevant scope,
-committed, and pushed in the affected code repositories. Batch 3 can now build
-on canonical Lab endpoint facts instead of generic `in_N` / `out_N` text
-semantics.
+Batch 1, Batch 2, and Batch 3 are implemented, tested locally for their
+relevant scope, committed, and pushed in the affected code repositories. The
+remaining work is hardening: product/reference coverage, end-to-end stop
+conditions, documentation cleanup, and final CI execution.
