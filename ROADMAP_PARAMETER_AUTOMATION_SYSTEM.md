@@ -1,6 +1,6 @@
 # Roadmap: Parameter Automation System
 
-**Status:** Implementation active; M0-M7 completed; M8.1-M8.4 completed; M8.5 pending
+**Status:** Implementation active; M0-M7 completed; M8.1-M8.5 completed; M8.6 pending
 **Started:** 2026-05-01
 **Planning branch:** `parameter-automation-review`
 **Implementation branch:** `parameter-automation-system`
@@ -869,6 +869,9 @@ Changes:
 `lab(parameters): implement deterministic value-source evaluation`
 
 Only if product scope requires `Expr`/`Bind` now.
+
+Status: closed as not required by current product scope. `Expr` and `Bind` are
+quarantined by M8.4 and must not be exposed through fallback behavior.
 
 Requirements:
 

@@ -3,7 +3,7 @@
 Date: 2026-05-01
 Roadmap: `ROADMAP_PARAMETER_AUTOMATION_SYSTEM.md`
 Planning review: `REPORT_PARAMETER_AUTOMATION_SYSTEM_TECHNICAL_REVIEW_2026-05-01.md`
-Status: M7 completed; M8.1-M8.4 completed; M8.5 pending
+Status: M7 completed; M8.1-M8.5 completed; M8.6 pending
 Repositories: workspace root, `xyona-lab`, `xyona-core`, `xyona-cdp-pack`
 
 ## Execution Rules
@@ -746,7 +746,7 @@ Planned commits:
 | M8.3 | `xyona-cdp-pack` | completed | `72cc621` | `cdp-pack: emit parameter smoothing metadata` |
 | M8.3 | `xyona-lab` | completed | `c7d7fdfd` | `lab(audio): apply host smoothing by parameter policy` |
 | M8.4 | `xyona-lab` | completed | `f0cb7682` | `lab(parameters): quarantine incomplete value sources` |
-| M8.5 | `xyona-lab` | pending | | `lab(parameters): implement deterministic value-source evaluation` |
+| M8.5 | workspace root | closed | | `docs(parameters): close value-source evaluator scope` |
 | M8.6 | `xyona-lab` | pending | | `lab(macros): define macro target binding contract` |
 
 M8.1 scope update:
@@ -879,4 +879,22 @@ xyona-lab: ./build/tests/xyona_lab_tests --match "ParamUpdateBridge" --summary-o
 xyona-lab: ./build/tests/xyona_lab_tests --match "Param producer single-event contract" --summary-only passed, 11 tests, 86 passes, 0 failures
 xyona-lab: git diff --check passed for M8.4 files
 xyona-lab: pushed parameter-automation-system with commit f0cb7682
+```
+
+M8.5 scope decision:
+
+```text
+The deterministic Expr/Bind value-source evaluator is not required by the
+current product scope. M8.4 quarantines Expr and Bind from all product-writable
+parameter surfaces and rejects product writes with operation_not_supported, so
+there is no active runtime path that requires expression dependency graphs,
+cycle detection, missing-target evaluation policy, or realtime/offline parity.
+
+No evaluator, fallback interpreter, or compatibility shim was added.
+```
+
+M8.5 local verification:
+
+```text
+workspace root: git diff --check passed for roadmap/report files
 ```
