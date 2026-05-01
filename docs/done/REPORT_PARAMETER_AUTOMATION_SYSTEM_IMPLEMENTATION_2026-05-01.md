@@ -3,7 +3,7 @@
 Date: 2026-05-01
 Roadmap: `ROADMAP_PARAMETER_AUTOMATION_SYSTEM.md`
 Planning review: `REPORT_PARAMETER_AUTOMATION_SYSTEM_TECHNICAL_REVIEW_2026-05-01.md`
-Status: M5 completed; M6.1 completed
+Status: M5 completed; M6.2 completed
 Repositories: workspace root, `xyona-lab`, `xyona-core`, `xyona-cdp-pack`
 
 ## Execution Rules
@@ -535,7 +535,7 @@ Planned commits:
 | Roadmap | Repository | Status | Commit | Subject |
 |---|---|---|---|---|
 | M6.1 | `xyona-lab` | completed | `86093161` | `lab(audio): inventory automation event runtime` |
-| M6.2 | `xyona-lab` | pending | | `lab(automation): add prepared parameter automation runtime` |
+| M6.2 | `xyona-lab` | completed | `53c8c0d7` | `lab(automation): add prepared parameter automation runtime` |
 | M6.3 | `xyona-lab` | pending | | `lab(audio): apply prepared automation in AudioGraphProcessor` |
 | M6.4 | `xyona-lab` | pending | | `lab(offline): use prepared automation runtime for offline render` |
 
@@ -556,4 +556,28 @@ M6.1 local verification:
 xyona-lab: git diff --check passed for src/app/lab/audio/automation/AUTOMATION_RUNTIME_INVENTORY.md
 xyona-lab: git diff --cached --check passed
 xyona-lab: pushed parameter-automation-system with commit 86093161
+```
+
+M6.2 scope update:
+
+```text
+Added PreparedParameterAutomationRuntime as a standalone timeline automation
+runtime module. It compiles only enabled, valid, eligible, normalized
+automation lanes into immutable prepared targets carrying resolved ParamAddress,
+param hash, Core descriptor semantics, and prepared scalar segment evaluation.
+It also exposes normalized evaluation and Core codec decoding helpers. It is not
+yet published to AudioGraphProcessor; that remains M6.3 scope.
+```
+
+M6.2 local verification:
+
+```text
+xyona-lab: cmake --build build --target xyona_lab_tests -- -j8 passed
+xyona-lab: ./build/tests/xyona_lab_tests --test="PreparedParameterAutomationRuntime" --xyona-only --summary-only passed, 3 tests, 18 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --test="AutomationPlaybackEngine" --xyona-only --summary-only passed, 5 tests, 16 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --test="Timeline Automation Reconciliation" --xyona-only --summary-only passed, 6 tests, 43 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --test="ParamTargetEligibility" --xyona-only --summary-only passed, 5 tests, 56 passes, 0 failures
+xyona-lab: git diff --check passed for PreparedParameterAutomationRuntime/CMake files
+xyona-lab: git diff --cached --check passed
+xyona-lab: pushed parameter-automation-system with commit 53c8c0d7
 ```
