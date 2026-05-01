@@ -36,8 +36,8 @@ Planned commits:
 
 | Roadmap | Repository | Status | Commit | Subject |
 |---|---|---|---|---|
-| M0 report | workspace root | in progress | pending | `docs(parameters): start automation implementation report` |
-| M0.2 | `xyona-lab` | pending | pending | `test(parameters): characterize automation value-domain mismatch` |
+| M0 report | workspace root | completed | `1154ec4` | `docs(parameters): start automation implementation report` |
+| M0.2 | `xyona-lab` | completed | `4c6485ff` | `test(parameters): characterize automation value-domain mismatch` |
 | M0.3 | `xyona-lab` | pending | pending | `test(parameters): characterize target identity and topology gaps` |
 
 ## Verification Log
@@ -50,4 +50,14 @@ xyona-core: clean on main
 xyona-lab: clean on main before M0 branch
 xyona-cdp-pack: clean on main
 CDP8: clean on main
+```
+
+M0.2 local verification:
+
+```text
+xyona-lab: cmake --build build --target xyona_lab_tests -- -j8 passed
+xyona-lab: ./build/tests/xyona_lab_tests --test="AutomationRecorder" --xyona-only --summary-only passed, 5 tests, 15 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --test="AutomationPlaybackEngine" --xyona-only --summary-only passed, 4 tests, 15 passes, 0 failures
+xyona-lab: git diff --check passed
+xyona-lab: pushed parameter-automation-m0-baseline with commit 4c6485ff
 ```
