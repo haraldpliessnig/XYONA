@@ -126,15 +126,76 @@ Result:
 
 ## Batch 2 - Lab Model And Persistence
 
-Status: pending.
+Status: implemented, tested, committed, and pushed.
 
-Planned roadmap scope:
+Scope:
 
 - Commit 08: Lab structured endpoint address.
 - Commit 09: Lab persistence migration and legacy fixtures.
 - Commit 10: connection model split between channel lanes and slot endpoint
   coordinates.
 - Commit 11: central port resolver service.
+
+### `xyona-lab`
+
+Commits:
+
+| Roadmap | Commit | Summary |
+|---|---|---|
+| 08 | `86c90e09` | Add lab structured endpoint model |
+| 09 | `e186a412` | Persist structured connection endpoints |
+| 10 | `aaf0e94a` | Split connection endpoint pairs from lanes |
+| 11 | `fef9cf8f` | Centralize lab endpoint compatibility |
+
+Implemented facts:
+
+- Lab has an explicit `EndpointAddress` value object carrying
+  `nodeId`, `descriptorPortId`, optional `channelIndex`, and optional
+  `slotIndex`.
+- Descriptor-backed visible IDs resolve through descriptor facts, including
+  channel expansion and per-slot expansion.
+- Legacy slottable mono aliases such as `in_2` / `out_2` are recognized only
+  when descriptor facts prove a mono `per_slot` port.
+- Project persistence writes structured `srcEndpoint` / `dstEndpoint` facts
+  while retaining legacy string fields for compatibility.
+- Connection lanes remain as multichannel bundle transport, while slot
+  coordinates are represented as endpoint facts.
+- Duplicate detection and `single_source` input checks compare canonical
+  endpoint addresses, so text aliases cannot bypass slot identity.
+- Mouse hover/visual facts, connection creation, project import, and
+  GraphBuilder descriptor classification use the shared endpoint resolver path.
+- Slot-mapping compatibility rejects invalid slot coordinates on `shared`
+  ports and requires explicit coordinates for `per_slot` ports when the
+  effective slot count is greater than one.
+
+Local verification:
+
+```text
+cmake --build build/macos-dev --target xyona_lab_tests -- -j8
+./build/macos-dev/tests/xyona_lab_tests --test="Connection System" --xyona-only --summary-only
+```
+
+Result:
+
+- Targeted Lab slot/connection scope passed: 32 tests, 121 passes, 0 failures.
+
+Additional broad check:
+
+```text
+ctest --test-dir build/macos-dev --output-on-failure
+```
+
+Result:
+
+- Not used as a passing gate for this batch in the current local buildtree.
+- Failing/not-run cases were unrelated setup or pre-existing broad-suite
+  failures:
+  - Core-local CTest entries could not run because
+    `build/macos-dev/xyona-core-local/tests/*` executables were absent.
+  - `xyona_lab_cdp_offline_smoke` failed because
+    `XYONA_OPERATOR_PACK_PATH` was not set.
+  - Full `xyona_lab_tests` reported existing `CommitRouter.cpp` JUCE assertion
+    failures outside the operator-slot connection scope.
 
 ## Batch 3 - Lab Behavior And Runtime
 
@@ -161,6 +222,7 @@ Planned roadmap scope:
 
 ## Current Decision State
 
-Batch 1 is implemented, tested locally, committed, and pushed in the affected
-code repositories. Lab implementation must start from the descriptor facts now
-available through Core and pack metadata, not from the old routing policy model.
+Batch 1 and Batch 2 are implemented, tested locally for their relevant scope,
+committed, and pushed in the affected code repositories. Batch 3 can now build
+on canonical Lab endpoint facts instead of generic `in_N` / `out_N` text
+semantics.
