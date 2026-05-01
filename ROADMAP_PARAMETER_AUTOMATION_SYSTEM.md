@@ -1,6 +1,6 @@
 # Roadmap: Parameter Automation System
 
-**Status:** Implementation active; M0-M6 completed; M7.1 completed; M7.2 pending
+**Status:** Implementation active; M0-M6 completed; M7.2 completed; M7.3 pending
 **Started:** 2026-05-01
 **Planning branch:** `parameter-automation-review`
 **Implementation branch:** `parameter-automation-system`
@@ -775,6 +775,8 @@ Changes:
 ### Commit M7.2
 
 `lab(parameters): introduce CompiledParamTarget`
+
+Status: completed in `xyona-lab` commit `2bdd3883`.
 
 Changes:
 
