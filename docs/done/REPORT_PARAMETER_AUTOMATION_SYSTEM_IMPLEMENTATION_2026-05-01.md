@@ -3,7 +3,7 @@
 Date: 2026-05-01
 Roadmap: `ROADMAP_PARAMETER_AUTOMATION_SYSTEM.md`
 Planning review: `REPORT_PARAMETER_AUTOMATION_SYSTEM_TECHNICAL_REVIEW_2026-05-01.md`
-Status: M5 completed; M6.2 completed
+Status: M5 completed; M6.3 completed
 Repositories: workspace root, `xyona-lab`, `xyona-core`, `xyona-cdp-pack`
 
 ## Execution Rules
@@ -536,7 +536,7 @@ Planned commits:
 |---|---|---|---|---|
 | M6.1 | `xyona-lab` | completed | `86093161` | `lab(audio): inventory automation event runtime` |
 | M6.2 | `xyona-lab` | completed | `53c8c0d7` | `lab(automation): add prepared parameter automation runtime` |
-| M6.3 | `xyona-lab` | pending | | `lab(audio): apply prepared automation in AudioGraphProcessor` |
+| M6.3 | `xyona-lab` | completed | `20cfe1cc` | `lab(audio): apply prepared parameter automation runtime` |
 | M6.4 | `xyona-lab` | pending | | `lab(offline): use prepared automation runtime for offline render` |
 
 M6.1 scope update:
@@ -580,4 +580,32 @@ xyona-lab: ./build/tests/xyona_lab_tests --test="ParamTargetEligibility" --xyona
 xyona-lab: git diff --check passed for PreparedParameterAutomationRuntime/CMake files
 xyona-lab: git diff --cached --check passed
 xyona-lab: pushed parameter-automation-system with commit 53c8c0d7
+```
+
+M6.3 scope update:
+
+```text
+Removed the dormant AutomationEventBuffer code path rather than preserving it
+as a compatibility adapter. AudioGraphProcessor now publishes and applies the
+prepared parameter automation runtime via PublishedPtr. processBlock ordering
+is now: restore base snapshots, drain live parameter queue, apply prepared
+parameter automation, apply prepared modulation, process nodes. AudioEngineManager
+builds the realtime prepared parameter automation runtime from normalized,
+eligible lanes using CanvasParamTargetResolver and refreshes it when timeline
+lane state or graph/sample-rate state changes.
+```
+
+M6.3 local verification:
+
+```text
+xyona-lab: cmake --build build --target xyona_lab_tests -- -j8 passed
+xyona-lab: ./build/tests/xyona_lab_tests --match "AudioGraphProcessor Parameter Automation Runtime" --summary-only passed, 1 test, 5 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --match "PreparedParameterAutomationRuntime" --summary-only passed, 3 tests, 18 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --match "AudioGraphProcessor Modulation Runtime" --summary-only passed, 3 tests, 5 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --xyona-only --summary-only passed, 1254 tests, 944808 passes, 0 failures
+xyona-lab: XYONA_OPERATOR_PACK_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-cdp-pack/build/macos-clang-debug ./build/tests/xyona_lab_tests --match "CDP Pack Canvas Smoke" --summary-only passed, 14 tests, 480 passes, 0 failures
+xyona-lab: XYONA_OPERATOR_PACK_PATH=/Users/haraldpliessnig/Github/XYONA/xyona-cdp-pack/build/macos-clang-debug ./build/tests/xyona_lab_tests --match "Offline Pack Processor Client" --summary-only passed, 10 tests, 1054 passes, 0 failures
+xyona-lab: git diff --check passed
+xyona-lab: git diff --cached --check passed
+xyona-lab: pushed parameter-automation-system with commit 20cfe1cc
 ```
