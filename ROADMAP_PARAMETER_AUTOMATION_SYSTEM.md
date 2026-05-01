@@ -3,7 +3,7 @@
 **Status:** Active planning, implementation blocked until M0-M1 pass
 **Started:** 2026-05-01
 **Planning branch:** `parameter-automation-review`
-**Implementation branches:** per milestone; see "Branch Strategy"
+**Implementation branch:** `parameter-automation-system`
 **Applies to:** `xyona-core`, `xyona-lab`, `xyona-cdp-pack`, future runtime packs
 **Primary review:** `docs/done/REPORT_PARAMETER_AUTOMATION_SYSTEM_TECHNICAL_REVIEW_2026-05-01.md`
 **Reference:** `IDEA_XYONA_PLUGIN_RUNTIME.md`
@@ -940,24 +940,21 @@ Planning/review branch:
 
 - `parameter-automation-review`
 
-Implementation branches:
+Implementation branch:
+
+- `parameter-automation-system`
+
+Historical baseline branch:
 
 - `parameter-automation-m0-baseline`
-- `parameter-automation-m1-target-resolver`
-- `parameter-automation-m2-value-domain`
-- `parameter-automation-m3-core-semantics`
-- `parameter-automation-m4-lab-migration`
-- `parameter-automation-m5-policy`
-- `parameter-automation-m6-runtime`
-- `parameter-automation-m7-compiled-targets`
-- `parameter-automation-m8-sources`
-- `parameter-automation-m9-ui-migration`
 
 Cross-repo rule:
 
-- Use the same branch name in each repository only when that milestone actually
-  touches that repository.
-- Do not create implementation branches for untouched repositories.
+- Use `parameter-automation-system` in each repository touched by the roadmap.
+- Do not create branches for untouched repositories until their milestone
+  actually edits that repository.
+- Keep milestone boundaries as clean commit groups and track every commit in the
+  implementation report.
 
 ## Minimal First Implementation Slice
 

@@ -3,7 +3,7 @@
 Date: 2026-05-01
 Roadmap: `ROADMAP_PARAMETER_AUTOMATION_SYSTEM.md`
 Planning review: `REPORT_PARAMETER_AUTOMATION_SYSTEM_TECHNICAL_REVIEW_2026-05-01.md`
-Status: M0 completed
+Status: M1 started
 Repositories: workspace root, `xyona-lab`
 
 ## Execution Rules
@@ -27,8 +27,8 @@ Repositories: workspace root, `xyona-lab`
 
 | Repository | Branch | Purpose |
 |---|---|---|
-| workspace root | `parameter-automation-m0-baseline` | Implementation tracking report |
-| `xyona-lab` | `parameter-automation-m0-baseline` | M0 characterization tests |
+| workspace root | `parameter-automation-system` | Implementation tracking report |
+| `xyona-lab` | `parameter-automation-system` | M1 target identity and resolver foundation |
 
 ## M0 - Baseline Characterization
 
@@ -71,3 +71,24 @@ xyona-lab: ./build/tests/xyona_lab_tests --test="ModulationRoutingTable" --xyona
 xyona-lab: git diff --check passed
 xyona-lab: pushed parameter-automation-m0-baseline with commit 3c8f20c6
 ```
+
+## M1 - Target Identity And Resolver Foundation
+
+Branch policy update:
+
+- Continue implementation on `parameter-automation-system` instead of creating a
+  new branch per milestone.
+- Preserve milestone boundaries through commit subjects and this report.
+- `parameter-automation-m0-baseline` remains the pushed baseline evidence
+  branch.
+
+Planned commits:
+
+| Roadmap | Repository | Status | Commit | Subject |
+|---|---|---|---|---|
+| Branch policy | workspace root | in progress | pending | `docs(parameters): use single automation implementation branch` |
+| M1.1 | `xyona-lab` | pending | pending | `lab(parameters): introduce parameter target resolver interface` |
+| M1.2 | `xyona-lab` | pending | pending | `lab(timeline): inject target resolver into automation recorder and playback` |
+| M1.3 | `xyona-lab` | pending | pending | `lab(timeline): persist full ParamAddress for automation lanes` |
+| M1.4 | `xyona-lab` | pending | pending | `lab(modulation): migrate route target storage to full ParamAddress` |
+| M1.5 | `xyona-lab` | pending | pending | `lab(midi): migrate MIDI mappings to full ParamAddress` |
