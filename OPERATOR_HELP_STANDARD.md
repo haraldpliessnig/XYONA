@@ -11,7 +11,7 @@ applies_to:
   - xyona-lab (host & lab-only operators)
 ---
 
-# XYONA Operator Help Standard
+## XYONA Operator Help Standard
 
 A single help/documentation contract for **every** XYONA operator, regardless of
 pack (CDP, Faust, Maximilian, Core, Lab, future). One template. One section
