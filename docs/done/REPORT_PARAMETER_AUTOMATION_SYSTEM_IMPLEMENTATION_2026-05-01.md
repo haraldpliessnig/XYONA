@@ -3,7 +3,7 @@
 Date: 2026-05-01
 Roadmap: `ROADMAP_PARAMETER_AUTOMATION_SYSTEM.md`
 Planning review: `REPORT_PARAMETER_AUTOMATION_SYSTEM_TECHNICAL_REVIEW_2026-05-01.md`
-Status: M4 in progress
+Status: M4 completed; M5 pending
 Repositories: workspace root, `xyona-lab`, `xyona-core`
 
 ## Execution Rules
@@ -320,7 +320,7 @@ Planned commits:
 | M4.2 | `xyona-lab` | completed | `8fe695b7` | `lab(parameters): route formatter through core value codec` |
 | M4.3 | `xyona-lab` | completed | `e257ef6b` | `lab(parameters): migrate text field controls to codec` |
 | M4.4 | `xyona-lab` | completed | `536efd37` | `lab(canvas): migrate parameter editing to semantics service` |
-| M4.5 | `xyona-lab` | pending | pending | `lab(timeline): make automation lane UI target-aware` |
+| M4.5 | `xyona-lab` | completed | `8fc807fa` | `lab(timeline): make automation lane UI target-aware` |
 
 M4.1 local verification:
 
@@ -385,4 +385,29 @@ xyona-lab: ./build/tests/xyona_lab_tests --test="CDP Pack Canvas Smoke" --xyona-
 xyona-lab: git diff --check passed
 xyona-lab: git diff --cached --check passed
 xyona-lab: pushed parameter-automation-system with commit 536efd37
+```
+
+M4.5 scope update:
+
+```text
+Timeline automation stack rows now receive resolved target value presentation
+through the injected IParamTargetResolver. Lane value labels and selected/drag
+readouts decode normalized points to target-native text through the codec.
+Editable point values are canonicalized by decode+encode roundtrip, so
+step/bool/enum targets snap through Core semantics while stored points remain
+normalized. Non-normalized lanes do not receive target presentation.
+```
+
+M4.5 local verification:
+
+```text
+xyona-lab: cmake --build build --target xyona_lab_tests -- -j8 passed
+xyona-lab: ./build/tests/xyona_lab_tests --test="TimelineLaneStackController" --xyona-only --summary-only passed, 14 tests, 119 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --test="TimelineScalarLaneSnapshot" --xyona-only --summary-only passed, 3 tests, 43 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --test="AutomationParamCodec" --xyona-only --summary-only passed, 6 tests, 44 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --test="ParamSemanticsResolver" --xyona-only --summary-only passed, 3 tests, 20 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --test="ParamFormatter" --xyona-only --summary-only passed, 8 tests, 81 passes, 0 failures
+xyona-lab: git diff --check passed
+xyona-lab: git diff --cached --check passed
+xyona-lab: pushed parameter-automation-system with commit 8fc807fa
 ```

@@ -1,6 +1,6 @@
 # Roadmap: Parameter Automation System
 
-**Status:** Implementation active; M0-M3 completed; M4 Lab resolver migration in progress
+**Status:** Implementation active; M0-M4 completed; M5 target policy pending
 **Started:** 2026-05-01
 **Planning branch:** `parameter-automation-review`
 **Implementation branch:** `parameter-automation-system`
