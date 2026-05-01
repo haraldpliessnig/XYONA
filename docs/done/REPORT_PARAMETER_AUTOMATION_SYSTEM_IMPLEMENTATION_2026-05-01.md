@@ -319,7 +319,7 @@ Planned commits:
 | M4.1 | `xyona-lab` | completed | `590831e7` | `lab(parameters): add resolved parameter semantics service` |
 | M4.2 | `xyona-lab` | completed | `8fe695b7` | `lab(parameters): route formatter through core value codec` |
 | M4.3 | `xyona-lab` | completed | `e257ef6b` | `lab(parameters): migrate text field controls to codec` |
-| M4.4 | `xyona-lab` | pending | pending | `lab(canvas): migrate canvas parameter editing to semantics service` |
+| M4.4 | `xyona-lab` | completed | `536efd37` | `lab(canvas): migrate parameter editing to semantics service` |
 | M4.5 | `xyona-lab` | pending | pending | `lab(timeline): make automation lane UI target-aware` |
 
 M4.1 local verification:
@@ -362,4 +362,27 @@ xyona-lab: ./build/tests/xyona_lab_tests --test="ParamFormatter" --xyona-only --
 xyona-lab: git diff --check passed
 xyona-lab: git diff --cached --check passed
 xyona-lab: pushed parameter-automation-system with commit e257ef6b
+```
+
+M4.4 scope update:
+
+```text
+CanvasParamModel, operator mini readouts, mini drag editing, mini text edit,
+reset-to-default, and dropdown selection now resolve targets through
+CanvasParamTargetResolver + ParamSemanticsResolver before conversion/editing.
+The old Canvas-only bipolar min/max scaling was removed instead of kept as
+compatibility behavior.
+```
+
+M4.4 local verification:
+
+```text
+xyona-lab: cmake --build build --target xyona_lab_tests -- -j8 passed
+xyona-lab: ./build/tests/xyona_lab_tests --test="Canvas Param Persistence" --xyona-only --summary-only passed, 16 tests, 119 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --test="Param producer single-event contract" --xyona-only --summary-only passed, 11 tests, 86 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --test="ParamTargetResolver" --xyona-only --summary-only passed, 4 tests, 22 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --test="CDP Pack Canvas Smoke" --xyona-only --summary-only passed/skipped because XYONA_OPERATOR_PACK_PATH is not set, 0 failures
+xyona-lab: git diff --check passed
+xyona-lab: git diff --cached --check passed
+xyona-lab: pushed parameter-automation-system with commit 536efd37
 ```
