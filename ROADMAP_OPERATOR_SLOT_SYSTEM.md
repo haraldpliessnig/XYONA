@@ -126,6 +126,9 @@ Missing or incompatible with the target:
   complete product surface.
 - CDP generator/validator does not yet transport slot metadata, even if all
   current operators remain non-slottable.
+- CDP still carries legacy `routingPolicy` values, including some locked
+  technical/PVOC operators. This is not slot support; it is legacy routing
+  transport until resolved through the new descriptor contract.
 
 ## Implementation Sequence
 
@@ -173,7 +176,8 @@ Extend Core `op.yaml` handling:
 
 Acceptance:
 
-- Validator rejects slottable ports without `slotMapping`.
+- Validator rejects ports without `slotMapping` only when
+  `slots.supported=true`.
 - Validator rejects slot minimum below 1.
 - Validator rejects non-slottable slot-addressable metadata.
 
@@ -186,10 +190,19 @@ Add pure helper APIs:
 - `resolveSlotMapping(port)`
 - `validateSlotDescriptor(desc)`
 
+Relationship to existing `OpDesc` helpers must be explicit. Current
+`OpDesc::isSlotAware()`, `OpDesc::getEffectiveSlotCount()`, and
+`OpDesc::isRoutingLocked()` are legacy-helper surfaces. This commit either
+replaces them, deprecates them with wrappers around the new helpers, or keeps
+them only as clearly named legacy migration helpers. Do not leave two
+independent slot semantics in Core.
+
 Acceptance:
 
 - Helpers have unit coverage independent of Lab.
 - Helpers do not use JUCE or project/canvas types.
+- Existing descriptor callers use one canonical helper path for slot support
+  and effective count decisions.
 
 ### Commit 05 - Migrate Core Slot Gain
 
@@ -206,11 +219,24 @@ slots:
 
 Generated inputs and outputs declare `slotMapping: per_slot`.
 
+This migration changes the public topology from the current generated
+`in_N/out_N` legacy shape to one descriptor input and one descriptor output
+with per-slot addresses. The commit that changes `slot_gain` must therefore
+either include Lab project migration for legacy `slot_gain` instances or mark
+the `slot_gain` fixture/project surface as intentionally breaking and clean the
+affected fixtures in the same change.
+
+`slotGroups` are UI/layout labels only. If `slot_gain` defaults to one slot,
+no default `stereo_pair` group may be emitted for that one-slot topology;
+stereo-pair grouping is valid only when the effective slot count is at least 2.
+
 Acceptance:
 
 - `slot_gain` still works as a multi-slot reference.
 - Default normal form is one slot unless the test intentionally sets more.
 - Old `routingPolicy: locked` is removed from its public spec.
+- Existing `slot_gain` tests and fixtures are migrated to the new port shape,
+  or the break is explicitly documented and accepted in that commit.
 
 ### Commit 06 - Pack ABI Slot Transport
 
@@ -234,6 +260,8 @@ Acceptance:
 
 - All current CDP operators validate as non-slottable.
 - A fixture slottable pack operator can transport `slotMapping`.
+- CDP rejects `slotMapping` on non-slottable operators and rejects slottable
+  operators whose public ports omit `slotMapping`.
 - CDP stereo processes remain fixed two-channel `xyona.audio`, not stereo
   ports.
 
@@ -267,6 +295,12 @@ Acceptance:
 - New projects save structured endpoint facts.
 - Import rejects missing ports, invalid channel indices, and invalid slot
   indices with diagnostics.
+- Migration fixtures cover:
+  - legacy string connection `in_0 -> out_0`
+  - legacy `lanes[]` multichannel bundle
+  - persisted `param@slot=N` value
+  - pre-migration `slot_gain` project/operator shape
+  - invalid slot-index reference rejected with diagnostics
 
 ### Commit 10 - Lab Connection Model Split
 
@@ -336,7 +370,8 @@ Complete per-slot override authoring:
 Acceptance:
 
 - `ParamAddress::slotIndex` is used end to end.
-- Validation checks `slotIndex < effectiveSlotCount`.
+- `Canvas::setCoreParamAddressValue()` rejects `slotIndex` values outside
+  `0 <= slotIndex < effectiveSlotCount` before writing `CorePayload` state.
 - Persistence round-trips sparse overrides.
 
 ### Commit 15 - GraphBuilder Slot Expansion
@@ -372,6 +407,10 @@ Acceptance:
 
 - A two-channel cable can be patched as one bundle and still address slot N.
 - A six-channel cable can feed six slots when the operator declares that shape.
+- Tests cover the full matrix:
+  `mono non-slottable`, `mono slottable`, `multichannel non-slottable`, and
+  `multichannel slottable`.
+- Tests include a connection that is both bundled multichannel and slotted.
 - Stereo remains a two-channel audio case.
 
 ### Commit 18 - Product Reference Operator
@@ -430,6 +469,7 @@ Acceptance:
 | Lab model | structured endpoint parsing, legacy project migration |
 | Lab UI | slottable vs non-slottable visuals, slot count editing, override clearing |
 | Lab GraphBuilder | per-slot ports, shared inputs, multichannel bundles, invalid endpoints |
+| Migration fixtures | legacy `in_N/out_N`, `lanes[]`, `param@slot=N`, pre-migration `slot_gain`, invalid slot index |
 
 ## Stop Conditions
 

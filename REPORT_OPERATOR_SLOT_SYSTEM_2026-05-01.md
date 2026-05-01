@@ -88,6 +88,9 @@ Observed current state:
 - Existing CDP audio operators use `xyona.audio` channel contracts.
 - Space operators require exactly two channels, but this is a fixed
   two-channel audio contract, not a stereo port type.
+- CDP `op.yaml` files still carry legacy `routingPolicy` metadata. Most are
+  unlocked, and some technical/PVOC operators are locked; none of those fields
+  currently declare the new slot contract.
 - The CDP generator does not yet transport `slots.*` or per-port
   `slotMapping`.
 
@@ -137,6 +140,38 @@ Batch 1 should be contract transport only:
 Do not start Lab visual slot UX until Batch 1 is green. Lab UI without
 structured descriptor facts would recreate the ambiguity that the new contract
 was designed to remove.
+
+## Reviewer Hardening Applied
+
+A follow-up code inspection on 2026-05-01 confirmed that the roadmap sequence is
+technically viable, but it also identified implementation details that must be
+handled before the first code slice:
+
+- Core validation must require `slotMapping` only when `slots.supported=true`;
+  existing non-slottable operators must remain valid.
+- New Core slot helpers must not duplicate the existing legacy
+  `OpDesc::isSlotAware()`, `OpDesc::getEffectiveSlotCount()`, and
+  `OpDesc::isRoutingLocked()` semantics. The implementation must replace,
+  wrap, or clearly deprecate those helpers.
+- Migrating `slot_gain` is a public topology change from generated
+  `in_N/out_N` legacy endpoints to descriptor ports with per-slot addresses.
+  The same commit must either migrate affected fixtures/projects or document
+  the break explicitly.
+- `slot_gain` must not emit a default `stereo_pair` slot group for a one-slot
+  topology. Stereo-pair grouping is valid only when the effective slot count is
+  at least 2.
+- Lab per-slot parameter writes must validate `slotIndex` against the effective
+  slot count before persisting `param@slot=N`.
+- Lab project migration needs concrete fixtures for legacy `in_N/out_N`
+  strings, `lanes[]` bundles, `param@slot=N`, pre-migration `slot_gain`, and
+  invalid slot-index rejection.
+- Multichannel slot cable tests must cover mono/multichannel crossed with
+  slottable/non-slottable, including one bundled multichannel connection that
+  also addresses a slot.
+
+One correction to the review language: CDP does use some `routingPolicy:
+locked` metadata today. That metadata is legacy transport, not slot support,
+so it does not block the slot-system migration.
 
 ## Recommended Second Implementation Batch
 
