@@ -163,7 +163,7 @@ Planned commits:
 | M2.1 | `xyona-lab` | completed | `caa7bbc6` | `lab(timeline): add automation value-domain schema` |
 | M2.2 | `xyona-lab` | completed | `8f27cd47` | `lab(parameters): add descriptor-backed linear automation codec adapter` |
 | M2.3 | `xyona-lab` | completed | `7c3dcfcb` | `lab(timeline): record resolved automation as normalized values` |
-| M2.4 | `xyona-lab` | pending | pending | `lab(timeline): play normalized automation as plain values` |
+| M2.4 | `xyona-lab` | completed | `2fa59460` | `lab(timeline): play normalized automation as plain values` |
 | M2.5 | `xyona-lab` | pending | pending | `lab(timeline): add descriptor-aware post-load automation reconciliation` |
 | M2.6 | `xyona-lab` | pending | pending | `test(timeline): verify automation domain reconciliation` |
 
@@ -201,4 +201,16 @@ xyona-lab: ./build/tests/xyona_lab_tests --test="AutomationPlaybackEngine" --xyo
 xyona-lab: ./build/tests/xyona_lab_tests --test="Timeline Automation Recorder Bindings" --xyona-only --summary-only passed, 3 tests, 12 passes, 0 failures
 xyona-lab: git diff --check passed
 xyona-lab: pushed parameter-automation-system with commit 7c3dcfcb
+```
+
+M2.4 local verification:
+
+```text
+xyona-lab: cmake --build build --target xyona_lab_tests -- -j8 passed
+xyona-lab: ./build/tests/xyona_lab_tests --test="AutomationPlaybackEngine" --xyona-only --summary-only passed, 5 tests, 16 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --test="AutomationParamCodec" --xyona-only --summary-only passed, 5 tests, 36 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --test="AutomationRecorder" --xyona-only --summary-only passed, 6 tests, 19 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --test="ProjectState Timeline Automation" --xyona-only --summary-only passed, 17 tests, 244 passes, 0 failures
+xyona-lab: git diff --check passed
+xyona-lab: pushed parameter-automation-system with commit 2fa59460
 ```
