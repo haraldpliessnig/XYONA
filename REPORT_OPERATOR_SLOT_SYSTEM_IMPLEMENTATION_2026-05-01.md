@@ -58,6 +58,7 @@ Commits:
 | 04 | `1233e5f` | Add core slot descriptor helpers |
 | 05 | `bb93859` | Migrate slot gain to canonical slots |
 | 06 | `81d3711` | Extend pack ABI with slot metadata |
+| 05 docs | `ffd5b51` | Clarify slot gain slot groups |
 
 Implemented facts:
 
@@ -99,6 +100,7 @@ Commits:
 | Roadmap | Commit | Summary |
 |---|---|---|
 | 07 | `14b2fad` | Teach CDP generator slot metadata |
+| 20 docs | `4181fa3` | Align CDP docs with operator contract wording |
 
 Implemented facts:
 
