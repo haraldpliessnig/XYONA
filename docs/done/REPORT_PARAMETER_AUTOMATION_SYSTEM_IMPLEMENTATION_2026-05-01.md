@@ -3,7 +3,7 @@
 Date: 2026-05-01
 Roadmap: `ROADMAP_PARAMETER_AUTOMATION_SYSTEM.md`
 Planning review: `REPORT_PARAMETER_AUTOMATION_SYSTEM_TECHNICAL_REVIEW_2026-05-01.md`
-Status: M3 completed
+Status: M4 started
 Repositories: workspace root, `xyona-lab`, `xyona-core`
 
 ## Execution Rules
@@ -308,4 +308,27 @@ xyona-core: cmake --build build --target xyona_legacy_param_pack test_operator_p
 xyona-core: ctest --test-dir build -R "param_value_codec_tests|parameter_semantics_tests|operator_packs_tests" --output-on-failure passed, 3 tests, 0 failures
 xyona-core: git diff --check passed
 xyona-core: pushed parameter-automation-system with commit 05646b4
+```
+
+## M4 - Lab Resolver And Staged Conversion Migration
+
+Planned commits:
+
+| Roadmap | Repository | Status | Commit | Subject |
+|---|---|---|---|---|
+| M4.1 | `xyona-lab` | completed | `590831e7` | `lab(parameters): add resolved parameter semantics service` |
+| M4.2 | `xyona-lab` | pending | pending | `lab(parameters): route ParamFormatter through ParamValueCodec` |
+| M4.3 | `xyona-lab` | pending | pending | `lab(parameters): migrate text field and numeric controls to codec` |
+| M4.4 | `xyona-lab` | pending | pending | `lab(canvas): migrate canvas parameter editing to semantics service` |
+| M4.5 | `xyona-lab` | pending | pending | `lab(timeline): make automation lane UI target-aware` |
+
+M4.1 local verification:
+
+```text
+xyona-lab: cmake -S . -B build passed
+xyona-lab: cmake --build build --target xyona_lab_tests -- -j8 passed
+xyona-lab: ./build/tests/xyona_lab_tests --test="ParamSemanticsResolver" --xyona-only --summary-only passed, 3 tests, 20 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --test="ParamTargetResolver" --xyona-only --summary-only passed, 4 tests, 22 passes, 0 failures
+xyona-lab: git diff --cached --check passed
+xyona-lab: pushed parameter-automation-system with commit 590831e7
 ```
