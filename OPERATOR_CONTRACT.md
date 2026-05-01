@@ -1429,10 +1429,11 @@ Use repo-local commands. The XYONA root is a workspace, not a monorepo build.
 ## Related Documents
 
 - `OPERATOR_MODULE_AUTHORING_GUIDE.md` - practical authoring instructions.
-- `ROADMAP_OPERATOR_MODULE_STRUCTURE.md` - operator-module migration roadmap.
-- `REPORT_OPERATOR_MODULE_NAMING_STRUCTURE.md` - operator-module implementation
-  report.
-- `ROADMAP_OPERATOR_PORT_TYPES_AND_PATCH_COMPATIBILITY.md` - port compatibility
-  rollout roadmap.
-- `REPORT_OPERATOR_PORT_TYPES_AND_PATCH_COMPATIBILITY_2026-04-30.md` - port
-  compatibility implementation report.
+- `docs/done/ROADMAP_OPERATOR_MODULE_STRUCTURE.md` - archived
+  operator-module migration roadmap.
+- `docs/done/REPORT_OPERATOR_MODULE_NAMING_STRUCTURE.md` - archived
+  operator-module implementation report.
+- `docs/done/ROADMAP_OPERATOR_PORT_TYPES_AND_PATCH_COMPATIBILITY.md` - archived
+  port compatibility rollout roadmap.
+- `docs/done/REPORT_OPERATOR_PORT_TYPES_AND_PATCH_COMPATIBILITY_2026-04-30.md` -
+  archived port compatibility implementation report.

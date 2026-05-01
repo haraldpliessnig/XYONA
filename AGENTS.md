@@ -26,10 +26,9 @@ the specific repo or repos you will touch.
 Before adding, moving, or wiring any public operator, read
 `OPERATOR_CONTRACT.md` and `OPERATOR_MODULE_AUTHORING_GUIDE.md`.
 
-For the active port typing and patch compatibility rollout, also read
-`ROADMAP_OPERATOR_PORT_TYPES_AND_PATCH_COMPATIBILITY.md` and update
-`REPORT_OPERATOR_PORT_TYPES_AND_PATCH_COMPATIBILITY_2026-04-30.md` after each
-completed phase.
+Port typing and patch compatibility are contract-level requirements. Use
+`OPERATOR_CONTRACT.md` plus the package-local port docs listed below; the
+historical rollout roadmap and report are archived under `docs/done/`.
 
 Do not create flat public operator files, provider-prefixed module folders such
 as `src/operators/cdp.modify`, provider-prefixed labels such as `CDP: ...`, or

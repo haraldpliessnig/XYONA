@@ -542,7 +542,7 @@ reference.
 - `xyona-cdp-pack/docs/HELP_STANDARDS.md` — CDP-pack-specific help rules.
 - `xyona-cdp-pack/docs/CDP_PORT_TYPES.md` — CDP port type contract (feeds
   §"Ports" content).
-- `ROADMAP_OPERATOR_PORT_TYPES_AND_PATCH_COMPATIBILITY.md` — port-type model
-  driving the Ports section.
-- `ROADMAP_OPERATOR_SLOT_SYSTEM.md` — slot system, surfaces in Tech Sheet
-  via slot-aware parameters.
+- `docs/done/ROADMAP_OPERATOR_PORT_TYPES_AND_PATCH_COMPATIBILITY.md` — archived
+  port-type rollout that established the Ports section model.
+- `docs/done/ROADMAP_OPERATOR_SLOT_SYSTEM.md` — archived slot-system rollout,
+  surfaces in Tech Sheet via slot-aware parameters.
