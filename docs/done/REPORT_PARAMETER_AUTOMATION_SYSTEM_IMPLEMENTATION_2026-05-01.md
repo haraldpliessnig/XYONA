@@ -3,7 +3,7 @@
 Date: 2026-05-01
 Roadmap: `ROADMAP_PARAMETER_AUTOMATION_SYSTEM.md`
 Planning review: `REPORT_PARAMETER_AUTOMATION_SYSTEM_TECHNICAL_REVIEW_2026-05-01.md`
-Status: M9.2 completed; M9 active
+Status: M9.3 completed; M9 active
 Repositories: workspace root, `xyona-lab`, `xyona-core`, `xyona-cdp-pack`
 
 ## Execution Rules
@@ -941,7 +941,7 @@ Planned commits:
 |---|---|---|---|---|
 | M9.1 | `xyona-lab` | completed | `13e6e6fc` | `lab(project): version parameter automation schema` |
 | M9.2 | `xyona-lab` | completed | `e07d8dc6` | `lab(project): add parameter target migration records` |
-| M9.3 | `xyona-lab` | pending | | `lab(ui): add parameter source breakdown` |
+| M9.3 | `xyona-lab` | completed | `a785f395` | `lab(ui): add parameter source breakdown` |
 | M9.4 | `xyona-lab` | pending | | `lab(ui): add target-aware automation diagnostics` |
 
 M9.1 scope update:
@@ -996,4 +996,32 @@ xyona-lab: ./build/tests/xyona_lab_tests --match "Timeline Automation Reconcilia
 xyona-lab: ./build/tests/xyona_lab_tests --match "TimelineLaneStackController" --summary-only passed, 14 tests, 119 passes, 0 failures
 xyona-lab: git diff --check passed for M9.2 files
 xyona-lab: pushed parameter-automation-system with commit e07d8dc6
+```
+
+M9.3 scope update:
+
+```text
+ParameterControlHub now exposes ParameterSourceBreakdown snapshots in addition
+to the existing source mask. The breakdown reports manual, MIDI, automation,
+macro/bind, modulation, clamp/quantize, smoothing policy, effective base,
+modulation sum, route count, and final value.
+
+Macro-lane modulation routes are tagged as MacroBind at the hub boundary and
+ordinary modulation routes must state Modulation explicitly. The new
+setModulationContribution API has no default source argument, so new callers
+cannot rely on a compatibility fallback. The UI forwards breakdown snapshots
+through ParameterCenter, ParameterBar, and ParameterPanel to parameter views,
+where the source label colour and tooltip expose the active contributors.
+```
+
+M9.3 local verification:
+
+```text
+xyona-lab: cmake --build build --target xyona_lab_tests -- -j8 passed
+xyona-lab: ./build/tests/xyona_lab_tests --match "ParameterControlHub" --summary-only passed, 16 tests, 88 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --match "ModulationEngine" --summary-only passed, 8 tests, 65 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --match "MidiMapping" --summary-only passed, 6 tests, 39 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --match "Single Parameter Field" --summary-only passed, 9 tests, 71 passes, 0 failures
+xyona-lab: git diff --check passed for M9.3 files
+xyona-lab: pushed parameter-automation-system with commit a785f395
 ```

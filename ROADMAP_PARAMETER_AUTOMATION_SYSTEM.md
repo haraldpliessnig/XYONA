@@ -1,6 +1,6 @@
 # Roadmap: Parameter Automation System
 
-**Status:** Implementation active; M0-M8 completed; M9.1-M9.2 completed; M9 active
+**Status:** Implementation active; M0-M8 completed; M9.1-M9.3 completed; M9 active
 **Started:** 2026-05-01
 **Planning branch:** `parameter-automation-review`
 **Implementation branch:** `parameter-automation-system`
@@ -936,6 +936,8 @@ Handle:
 ### Commit M9.3
 
 `lab(ui): add parameter source breakdown`
+
+Status: completed in `xyona-lab` commit `a785f395`.
 
 Show:
 
