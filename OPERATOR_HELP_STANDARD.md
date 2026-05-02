@@ -1,6 +1,6 @@
 # XYONA Operator Help Standard
 
-**Status:** Workspace standard v1
+**Status:** Workspace standard v1, strict
 **Date:** 2026-05-02
 **Applies to:** `xyona-core`, `xyona-cdp-pack`, `xyona-lab`, and future
 runtime packs that publish public operators
@@ -19,9 +19,14 @@ beside the operator module:
 ```
 
 Lab-authored public host operators currently live in
-`xyona-lab/specs/operators/lab-public.op.yaml`; until Lab introduces physical
-host-operator modules, Lab may keep host-operator help in a Lab-owned indexed
-location. Lab panel, topic, and workflow help is outside this operator standard.
+`xyona-lab/specs/operators/lab-public.op.yaml`. Until Lab introduces physical
+host-operator modules, Lab keeps host-operator help under:
+
+```text
+xyona-lab/docs/help/lab/<locale>/operators/<module>.md
+```
+
+Lab panel, topic, and workflow help is outside this operator standard.
 
 ## Render Tiers
 
@@ -72,10 +77,8 @@ Rules:
   `availability`, `process_shape`, `domain`, `related`, and `since`.
 - Translatable fields are `title`, `short`, and body content.
 
-Legacy help files without `standard: operator_help_v1` remain transitional.
-They must keep valid frontmatter and help IDs, but the v1 section and metadata
-requirements apply only when a file opts into the standard or when the linter is
-run in strict mode.
+Backward compatibility with legacy operator help structure is not required.
+Every public operator help file must use `standard: operator_help_v1`.
 
 ## Section Order
 
@@ -126,17 +129,12 @@ the same descriptor facts. A release-ready Markdown tech sheet uses these keys:
 
 ## Validation
 
-The workspace linter is `tools/help_lint/operator_help_lint.py`.
-
-Default mode is migration-safe: it validates existing frontmatter IDs, YAML,
-locale consistency for release-ready files, and all files that opt into
-`operator_help_v1`, while reporting missing legacy coverage as warnings.
-
-Strict mode is the release gate:
+The workspace linter is `tools/help_lint/operator_help_lint.py` and is strict
+by default:
 
 ```bash
-python tools/help_lint/operator_help_lint.py --workspace . --strict-all
+python tools/help_lint/operator_help_lint.py --workspace .
 ```
 
-Strict mode requires complete localized help coverage and the v1 structure for
-all public operator records in the selected workspace.
+It requires complete localized help coverage and the v1 structure for all
+public operator records in the selected workspace.
