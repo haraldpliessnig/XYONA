@@ -1258,6 +1258,13 @@ Core and pack operator help belongs with the owning package. Lab owns Lab-only
 panels, topics, workflows, and host-operator help. Lab must not author CDP or
 Core DSP help as a substitute for the owning package.
 
+The normative help content and validation contract lives in
+`OPERATOR_HELP_STANDARD.md`. During active migration,
+`ROADMAP_OPERATOR_HELP_STANDARD.md` tracks rollout state and open implementation
+work. Release-ready operator help files opt into the v1 structure with
+`standard: operator_help_v1`; legacy help files without that marker are
+transitional and must not be used as precedent for new public operators.
+
 ## Operator Technical Summary For Lab
 
 Lab must be able to present operator facts, not only port tooltips. A complete
