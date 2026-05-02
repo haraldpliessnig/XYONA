@@ -37,3 +37,24 @@ This table is updated as implementation commits are produced and pushed.
 
 | Repo | Commit | Subject | Local validation | Push |
 |---|---|---|---|---|
+| XYONA | `cb4754c` | `docs: define operator help standard` | `git diff --check` | pushed to `origin/codex/operator-help-standard` |
+| XYONA | `da3a026` | `docs: require operator help v1` | `git diff --check` | pushed to `origin/codex/operator-help-standard` |
+| xyona-core | `d0d23f9` | `help: enforce operator help v1 in core` | `validate_operator_modules.py`; `codegen_params.py`; `git diff --check`; `cmake --build build/macos-clang-debug --target xyona_core test_operator_module_runtime --parallel 8`; `ctest -R "operator_module_runtime_tests\|operator_module_metadata_tests\|operator_module_validator_guardrail_tests\|operator_packs_tests"` | pushed to `origin/codex/operator-help-standard` |
+| xyona-cdp-pack | `b13f225` | `help: enforce operator help v1 in cdp pack` | `validate_operator_modules.py`; `generate_operator_metadata.py --check`; `git diff --check`; `cmake --build build/macos-clang-debug --target xyona_pack_cdp_ops test_cdp_descriptor_metadata test_cdp_spectral_contract test_cdp_pack test_cdp_pack_env_discovery --parallel 8`; `ctest -R "cdp_generated_operator_metadata_tests\|cdp_operator_module_metadata_tests\|cdp_descriptor_metadata_tests\|cdp_spectral_contract_tests\|cdp_pack_loader_tests\|cdp_pack_env_discovery_tests"` | pushed to `origin/codex/operator-help-standard` |
+| xyona-lab | `0b0e975c` | `help: index operator help by provider` | `validate_operator_modules.py`; manual docs sync/index smoke test; `git diff --check`; `./build-dev.sh`; `ctest -R "lab_operator_module_metadata_tests"`; `ctest -R "xyona_lab_tests"` | pushed to `origin/codex/operator-help-standard` |
+| XYONA | `40afa9c` | `help: add strict operator help lint` | `tools/help_lint/operator_help_lint.py --workspace .`; `git diff --check` | pushed to `origin/codex/operator-help-standard` |
+
+## Current Result
+
+- Public operator help now uses strict `operator_help_v1`; no legacy-help
+  compatibility path is required or implemented.
+- Core transports structured help metadata in generated descriptors.
+- CDP generated metadata now requires localized help frontmatter and embeds the
+  help payload.
+- Lab syncs Core and CDP module-local help by provider, indexes YAML
+  frontmatter, and includes Lab-owned operator help.
+- The workspace linter validates all current public Core, CDP, and Lab
+  operators across `en` and `de`.
+
+Final GitHub Actions verification is intentionally run only after all
+implementation and report commits are pushed.
