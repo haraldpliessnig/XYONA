@@ -2,6 +2,8 @@
 
 **Date:** 2026-05-02
 **Branch:** `codex/operator-help-standard`
+**Archived Roadmap:** `ROADMAP_OPERATOR_HELP_STANDARD.md`
+**Follow-up Roadmap:** `../../ROADMAP_OPERATOR_HELP_STANDARD_FOLLOWUP.md`
 **Scope:** Workspace standard, Core metadata transport, CDP pack metadata,
 workspace linting, and Lab help indexing
 
@@ -24,7 +26,9 @@ replaces the current operator-help shape with descriptor-grounded
 ## Technical Decisions
 
 - `OPERATOR_HELP_STANDARD.md` is the normative v1 help standard.
-- `ROADMAP_OPERATOR_HELP_STANDARD.md` remains the active rollout tracker.
+- `ROADMAP_OPERATOR_HELP_STANDARD.md` is archived as the first implementation
+  slice; remaining work continues in
+  `ROADMAP_OPERATOR_HELP_STANDARD_FOLLOWUP.md`.
 - All public operator help files must declare `standard: operator_help_v1`.
 - `Tech Sheet` may be authored and validated in Markdown or generated into
   companion metadata from descriptor facts; no prose belongs in the block.
@@ -70,5 +74,19 @@ This table is updated as implementation commits are produced and pushed.
 - Lab now renders the focused operator `short` directly below the Parameter
   sidebar title.
 
-Final GitHub Actions verification is intentionally run only after all
-implementation and report commits are pushed.
+## Final Verification
+
+Final GitHub Actions verification was run after all implementation and report
+commits were pushed:
+
+- Lab CI run `25245875964`
+- URL: `https://github.com/haraldpliessnig/xyona-lab/actions/runs/25245875964`
+- Head SHA: `1ddee90d2ce24223fc554dfee0763427e9f644f2`
+- Result: success on macOS Clang Debug and Windows MSVC Debug
+
+## Follow-Up
+
+The original roadmap is not fully done as a product roadmap. The completed
+slice delivered the strict v1 standard, metadata transport, indexing, Tier 1
+tooltips, and Parameter sidebar summaries. Remaining work is split into
+`../../ROADMAP_OPERATOR_HELP_STANDARD_FOLLOWUP.md`.

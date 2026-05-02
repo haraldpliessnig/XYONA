@@ -1259,10 +1259,11 @@ panels, topics, workflows, and host-operator help. Lab must not author CDP or
 Core DSP help as a substitute for the owning package.
 
 The normative help content and validation contract lives in
-`OPERATOR_HELP_STANDARD.md`. During active migration,
-`ROADMAP_OPERATOR_HELP_STANDARD.md` tracks rollout state and open implementation
-work. Backward compatibility with legacy operator help structure is not
-required; every public operator help file must use `standard: operator_help_v1`.
+`OPERATOR_HELP_STANDARD.md`. The first implementation slice is archived in
+`docs/done/ROADMAP_OPERATOR_HELP_STANDARD.md`; remaining operator-help product
+work is tracked in `ROADMAP_OPERATOR_HELP_STANDARD_FOLLOWUP.md`. Backward
+compatibility with legacy operator help structure is not required; every public
+operator help file must use `standard: operator_help_v1`.
 
 ## Operator Technical Summary For Lab
 

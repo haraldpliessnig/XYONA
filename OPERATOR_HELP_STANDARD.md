@@ -6,8 +6,9 @@
 runtime packs that publish public operators
 
 This document is the normative help/documentation standard for public XYONA
-operators. `ROADMAP_OPERATOR_HELP_STANDARD.md` remains the rollout plan while
-existing help files are migrated.
+operators. The first implementation slice is archived in
+`docs/done/ROADMAP_OPERATOR_HELP_STANDARD.md`; remaining product work is tracked
+in `ROADMAP_OPERATOR_HELP_STANDARD_FOLLOWUP.md`.
 
 ## Source Model
 

@@ -16,10 +16,14 @@ historical follow-ups and should become new current roadmaps when work resumes.
 - `CDP8_OFFLINE_SPECTRAL_ROADMAP.md`
 - `CDP8_OFFLINE_SPECTRAL_IMPLEMENTATION_REPORT.md`
 
-## Active Implementation Evidence
+## Archived 2026-05-02
 
-These reports live here because they are dated review/implementation evidence,
-but their roadmap remains active at the workspace root:
-
+- `ROADMAP_PARAMETER_AUTOMATION_SYSTEM.md`
 - `REPORT_PARAMETER_AUTOMATION_SYSTEM_TECHNICAL_REVIEW_2026-05-01.md`
 - `REPORT_PARAMETER_AUTOMATION_SYSTEM_IMPLEMENTATION_2026-05-01.md`
+- `ROADMAP_OPERATOR_HELP_STANDARD.md`
+- `REPORT_OPERATOR_HELP_STANDARD_IMPLEMENTATION_2026-05-02.md`
+
+## Active Follow-Ups
+
+- `../../ROADMAP_OPERATOR_HELP_STANDARD_FOLLOWUP.md`

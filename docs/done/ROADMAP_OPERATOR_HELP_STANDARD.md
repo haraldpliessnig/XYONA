@@ -1,6 +1,6 @@
 ---
 title: Roadmap: XYONA Operator Help Standard
-status: Active planing
+status: Archived implementation slice
 owners: workspace
 parent: OPERATOR_CONTRACT.md
 started: 2026-05-01
@@ -14,19 +14,24 @@ applies_to:
 
 # Roadmap: XYONA Operator Help Standard
 
-**Status:** Active planing
+**Status:** Archived implementation slice
 
 **Started:** 2026-05-01
+
+**Archived:** 2026-05-02
+
+**Follow-up roadmap:** `../../ROADMAP_OPERATOR_HELP_STANDARD_FOLLOWUP.md`
+
+**Implementation report:**
+`REPORT_OPERATOR_HELP_STANDARD_IMPLEMENTATION_2026-05-02.md`
 
 **Primary contract:** `OPERATOR_CONTRACT.md`
 
 **Scope:** `xyona-core`, `xyona-cdp-pack`, future runtime packs, and
 Lab-authored public host operators
 
-This active roadmap follows the workspace naming convention used by the
-archived operator roadmaps in `docs/done`: current work lives as a root
-`ROADMAP_*.md`; once closed, the roadmap and any matching `REPORT_*.md` can be
-archived under `docs/done`.
+This roadmap is archived as the completed first implementation slice. Remaining
+product work was split into `../../ROADMAP_OPERATOR_HELP_STANDARD_FOLLOWUP.md`.
 
 ## Goal
 
