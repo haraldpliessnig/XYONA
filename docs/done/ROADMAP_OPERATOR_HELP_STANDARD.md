@@ -1,6 +1,6 @@
 ---
 title: Roadmap: XYONA Operator Help Standard
-status: Active planing
+status: Archived implementation slice
 owners: workspace
 parent: OPERATOR_CONTRACT.md
 started: 2026-05-01
@@ -14,19 +14,24 @@ applies_to:
 
 # Roadmap: XYONA Operator Help Standard
 
-**Status:** Active planing
+**Status:** Archived implementation slice
 
 **Started:** 2026-05-01
+
+**Archived:** 2026-05-02
+
+**Follow-up roadmap:** `../../ROADMAP_OPERATOR_HELP_STANDARD_FOLLOWUP.md`
+
+**Implementation report:**
+`REPORT_OPERATOR_HELP_STANDARD_IMPLEMENTATION_2026-05-02.md`
 
 **Primary contract:** `OPERATOR_CONTRACT.md`
 
 **Scope:** `xyona-core`, `xyona-cdp-pack`, future runtime packs, and
 Lab-authored public host operators
 
-This active roadmap follows the workspace naming convention used by the
-archived operator roadmaps in `docs/done`: current work lives as a root
-`ROADMAP_*.md`; once closed, the roadmap and any matching `REPORT_*.md` can be
-archived under `docs/done`.
+This roadmap is archived as the completed first implementation slice. Remaining
+product work was split into `../../ROADMAP_OPERATOR_HELP_STANDARD_FOLLOWUP.md`.
 
 ## Goal
 
@@ -161,13 +166,18 @@ is not fully satisfied by the current tree yet.
 Every operator help source must support three render tiers from the same
 content.
 
-Tier 1: Tooltip.
+Tier 1: Operator-list tooltip and compact summary.
 
 - Source: `short` in help frontmatter, mirrored by descriptor/help metadata as
   needed.
-- Length budget: 120 characters or less.
-- Shape: one sentence, no Markdown.
-- Surface: palette hover, node-header hover, compact context labels.
+- Length budget: 180 characters or less.
+- Shape: one or two user-facing application sentences, no Markdown.
+- Surface: operator browser/sidebar hover, parameter sidebar summary, compact
+  context labels. Canvas node hover is not an operator-help surface.
+- Technical classification such as provider (`core`, `cdp`, `lab`), processing
+  domain (`time_audio`, `spectral_pvoc`), and capability (`RT`, `HQ`, `Data`)
+  is rendered as a separate mini line from existing metadata, not embedded in
+  `short`.
 
 Tier 2: Sidebar / Parameter Inspector.
 
@@ -214,7 +224,7 @@ operator-help standard.
 ---
 id: help.node.<operator_id>
 title: <Human Readable Title>
-short: <one-line tooltip description, <= 120 chars>
+short: <application tooltip text, 1-2 sentences, <= 180 chars>
 tags: [node, <provider>, <family>, ...]
 provider: <core|cdp|faust|maximilian|lab|...>
 family: <family-id>
@@ -232,7 +242,10 @@ Rules:
 
 - `id` equals `help.node.<operator_id>`.
 - `operator_id` is the stable descriptor ID from `OPERATOR_CONTRACT.md`.
-- `short` is the Tier 1 tooltip and matches the first prose line under H1.
+- `short` is the Tier 1 application summary and matches the first prose line
+  under H1.
+- `short` describes user intent and must not carry schema, descriptor,
+  host-contract, fixture, or internal workflow wording.
 - `tags` includes `node` and the provider.
 - `related` contains help IDs only, never relative paths.
 - Locale variants for the same operator share non-translatable identity,
@@ -548,7 +561,10 @@ Status: pending.
 
 Deliverables:
 
-- Implement Tier 1 tooltip lookup from `short` or descriptor-mirrored metadata.
+- Implement Tier 1 operator browser/sidebar hover and parameter-sidebar summary
+  lookup from `short` or descriptor-mirrored metadata.
+- Render provider/domain/capability as a separate compact technical line in
+  Tier 1 surfaces.
 - Implement Tier 2 inspector extraction from frontmatter plus canonical
   `Tech Sheet`, `Ports`, and `Parameters` content.
 - Add capability and availability badges using descriptor facts.
