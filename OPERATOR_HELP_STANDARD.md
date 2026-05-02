@@ -33,8 +33,9 @@ Lab panel, topic, and workflow help is outside this operator standard.
 Every release-ready operator help source must support three tiers from one
 source:
 
-- **Tier 1 tooltip:** `short` frontmatter, 120 characters or less, one
-  sentence, no Markdown.
+- **Tier 1 operator-list tooltip:** `short` frontmatter, 180 characters or
+  less, one or two user-facing application sentences, no Markdown. Canvas node
+  hover is not an operator-help surface.
 - **Tier 2 inspector/sidebar:** frontmatter plus canonical `Tech Sheet`,
   `Ports`, and `Parameters` sections.
 - **Tier 3 help window:** the full localized Markdown article.
@@ -52,7 +53,7 @@ Release-ready operator help files use this frontmatter:
 standard: operator_help_v1
 id: help.node.<operator_id>
 title: <Human Readable Title>
-short: <one-line tooltip description, <= 120 chars>
+short: <application tooltip text, 1-2 sentences, <= 180 chars>
 tags: [node, <provider>, <family>, ...]
 provider: <core|cdp|faust|maximilian|lab|...>
 family: <family-id>
@@ -69,7 +70,14 @@ since: <pack-version>
 Rules:
 
 - `id` equals `help.node.<operator_id>`.
-- `short` is the Tier 1 tooltip and matches the first prose line under H1.
+- `short` is the Tier 1 application summary and matches the first prose line
+  under H1.
+- `short` describes what the user can do with the operator. It must not carry
+  schema, descriptor, host-contract, fixture, or internal workflow wording.
+- Tooltip renderers may add a compact technical classification line from
+  existing metadata, for example `Core | time_audio | RT` or
+  `CDP | spectral_pvoc | HQ+Data`. Do not duplicate that classification in
+  `short`.
 - `tags` includes `node` and the provider.
 - `related` contains help IDs only, never relative paths.
 - Locale variants for the same operator share non-translatable facts:

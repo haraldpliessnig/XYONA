@@ -19,6 +19,18 @@ except ImportError as exc:  # pragma: no cover - environment dependency
 
 REQUIRED_LOCALES = ("en", "de")
 STANDARD = "operator_help_v1"
+MAX_SHORT_LENGTH = 180
+FORBIDDEN_SHORT_FRAGMENTS = (
+    "descriptor",
+    "host-contract",
+    "host contract",
+    "fixture",
+    " workflow",
+    "-workflows",
+    "operator for",
+    "operator fuer",
+    "schema",
+)
 SECTION_ORDER = [
     "Tech Sheet",
     "Process",
@@ -262,8 +274,16 @@ def validate_frontmatter(
             validation.error(path, f"frontmatter {key!r} must be a non-empty string")
 
     short = frontmatter.get("short")
-    if isinstance(short, str) and len(short) > 120:
-        validation.error(path, "frontmatter 'short' must be 120 characters or less")
+    if isinstance(short, str):
+        if len(short) > MAX_SHORT_LENGTH:
+            validation.error(path, f"frontmatter 'short' must be {MAX_SHORT_LENGTH} characters or less")
+        lower_short = short.lower()
+        for fragment in FORBIDDEN_SHORT_FRAGMENTS:
+            if fragment in lower_short:
+                validation.error(
+                    path,
+                    f"frontmatter 'short' must be application-focused and must not contain {fragment!r}",
+                )
 
     tags = frontmatter.get("tags")
     if not isinstance(tags, list) or any(not isinstance(tag, str) for tag in tags):
