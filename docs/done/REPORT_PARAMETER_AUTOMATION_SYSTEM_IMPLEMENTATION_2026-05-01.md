@@ -1187,6 +1187,7 @@ xyona-lab: ./build/tests/xyona_lab_tests --match "Timeline Automation Reconcilia
 xyona-lab: ./build/tests/xyona_lab_tests --match "ParamTargetEligibility" --summary-only passed, 5 tests, 56 passes, 0 failures
 xyona-lab: ./build/tests/xyona_lab_tests --match "PreparedParameterAutomationRuntime" --summary-only passed, 3 tests, 18 passes, 0 failures
 xyona-lab: ./build/tests/xyona_lab_tests --match "AudioGraphProcessor Parameter Automation Runtime" --summary-only passed, 6 tests, 28 passes, 0 failures
+xyona-lab: GitHub Actions CI run 25249097977 passed on codex/operator-help-standard at 0b298ab0; macOS Clang Debug and Windows MSVC Debug succeeded
 ```
 
 Remaining follow-up:
