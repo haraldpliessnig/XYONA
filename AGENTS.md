@@ -164,10 +164,25 @@ above it.
 - For cross-repo work, describe and verify each repo separately.
 - Do not assume root-level commands cover nested repos.
 - Preserve unrelated dirty work in any repo.
+- For roadmap-driven work, keep the theme token stable across all planning,
+  report, and post-completion tracking docs. Use uppercase snake case:
+  `ROADMAP_<THEME>.md`,
+  `REPORT_<THEME>_TECHNICAL_REVIEW_<YYYY-MM-DD>.md` when a review exists,
+  `REPORT_<THEME>_IMPLEMENTATION_<YYYY-MM-DD>.md`, and
+  `FIX_<THEME>_<YYYY-MM-DD>_<SHORT_TITLE>` entries in
+  `docs/done/POST_ROADMAP_FIXES.md`.
+- After a roadmap is completed or archived, do not rewrite the roadmap as if a
+  later bugfix was planned work. Track every post-completion bugfix in both the
+  related implementation report under `Post-Completion Fixes` and the central
+  `docs/done/POST_ROADMAP_FIXES.md` index. Include symptom, root cause, affected
+  repo/branch, fix commit, verification, and any regression-test gap.
 - For substantial tasks, inspect the current source, repo-local build scripts,
   tests, `AGENTS.md`, package-local authoring guides, and current
   contract/roadmap/report docs needed for the task. Prefer live code and test
   definitions over prewritten summaries.
+- When working on a subsystem with completed roadmap history, inspect
+  `docs/done/POST_ROADMAP_FIXES.md` and the matching implementation report
+  before assuming the current source is the only useful history.
 - Treat `CONTEXT.md` files as optional historical handoff notes only. Do not use
   them as current truth unless they were explicitly refreshed for the task, and
   verify any useful claim against source, CMake, tests, current reports, and git

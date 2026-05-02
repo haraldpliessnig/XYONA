@@ -1080,3 +1080,64 @@ xyona-lab: CI run 25238473324 passed on parameter-automation-system at ff4ce441;
 The GitHub Actions runs reported non-failing workflow annotations for Node.js 20
 action deprecation and preinstalled Ninja packages. No CI failure or skipped
 required implementation check remained.
+
+## Post-Completion Fixes
+
+Post-completion fixes for this roadmap use the `PARAMETER_AUTOMATION_SYSTEM`
+theme token and are indexed centrally in `POST_ROADMAP_FIXES.md`.
+
+### FIX_PARAMETER_AUTOMATION_SYSTEM_2026-05-02_TIMELINE_RETARGET_EDITING
+
+Status: committed and pushed
+Repository: `xyona-lab`
+Branch: `codex/operator-help-standard`
+Commit: `ea9ec70c`
+
+Symptom:
+
+```text
+After selecting a parameter in a timeline automation lane, for example TestTone
+frequency, the lane no longer accepts drawn points. Modulation lanes still allow
+point drawing.
+```
+
+Root cause:
+
+```text
+Timeline::handleAutomationLaneTargetChanged validated the requested target but
+did not assign that ParamAddress to the visible current lane on the new-target
+path. The lane stayed targetless/unresolved, so the new automation
+value-presentation gate disabled editing because target presentation is
+required but unresolved.
+```
+
+Fix summary:
+
+```text
+Assign the requested target to the current visible automation lane, reset the
+lane segment document, mark the lane as Normalized01 and resolved, refresh the
+automation UI, and keep the lane focused. When retargeting a lane that already
+had a persistent target, preserve the old lane as hidden history and roll that
+hidden clone back if the visible-lane update fails.
+```
+
+Verification:
+
+```text
+xyona-lab: git diff --check passed
+xyona-lab: cmake --build build --target xyona_lab_tests -- -j8 passed
+xyona-lab: ./build/tests/xyona_lab_tests --match "TimelineLaneStackController" --summary-only passed, 17 tests, 149 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --match "Timeline Sidebar Bindings" --summary-only passed, 4 tests, 12 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --match "Timeline Automation Lane Resolver" --summary-only passed, 4 tests, 32 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --match "Timeline Automation Reconciliation" --summary-only passed, 7 tests, 62 passes, 0 failures
+xyona-lab: ./build/tests/xyona_lab_tests --match "ProjectState Timeline Automation" --summary-only passed, 19 tests, 290 passes, 0 failures
+```
+
+Regression-test gap:
+
+```text
+The exact UI retarget handler path is private behind Timeline/HeaderColumn
+callbacks. Existing resolver, sidebar, lane-controller, reconciliation, and
+ProjectState tests cover the surrounding contracts, but a direct regression test
+would require a small testable retargeting helper or a broader UI harness.
+```
